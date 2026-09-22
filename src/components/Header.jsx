@@ -34,7 +34,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
       turno = true;
       requestAnimationFrame(() => {
         const y = window.scrollY;
-        setOculto(y > 160 && y > ultimo);
+        setOculto(y > 60);
         ultimo = y;
         turno = false;
       });

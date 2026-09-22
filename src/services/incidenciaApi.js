@@ -1,26 +1,18 @@
 /**
  * Model — incidencias sobre la colección `contactos`.
  * Al enviar logueado se guarda uid/email/estado 'pendiente'.
- * El cliente ve las suyas; el admin (allowlist `admins/{uid}`) ve pendientes y resuelve.
+ * El cliente ve las suyas; el admin (tipo='admin' en usuarios) ve pendientes y resuelve.
  * Costes: todo son queries pequeñas o escrituras unitarias, nada de full-scans.
  */
 import { collection, addDoc, getDocs, getDoc, doc, query, where, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { getDb } from './firebase.js';
 
-/** ¿Es admin? Revisa `usuarios/{uid}.tipo` y la colección `admins/{uid}`. */
+/** ¿Es admin? Revisa `usuarios/{uid}.tipo === 'admin'`. */
 export async function esAdmin(uid) {
   if (!uid) return false;
   try {
-    const [userSnap, adminSnap] = await Promise.all([
-      getDoc(doc(getDb(), 'usuarios', uid)),
-      getDoc(doc(getDb(), 'admins', uid)),
-    ]);
-    if (userSnap.exists() && userSnap.data().tipo === 'admin') return true;
-    if (adminSnap.exists()) {
-      const data = adminSnap.data();
-      return data.rol === 'admin' || data.tipo === 'admin' || true;
-    }
-    return false;
+    const snap = await getDoc(doc(getDb(), 'usuarios', uid));
+    return snap.exists() && snap.data().tipo === 'admin';
   } catch {
     return false;
   }
