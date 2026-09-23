@@ -3,6 +3,7 @@
  */
 import { useT } from '../i18n/index.jsx';
 import PromoBadge from './promotions/PromoBadge.jsx';
+import { imagenParaRestaurante } from '../models/restaurantModel.js';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
@@ -49,6 +50,12 @@ export default function RestaurantCard({ restaurant, filtros, esFavorito, onTogg
           src={imagen}
           alt={`${nombre} — cocina ${cocina}`}
           loading="lazy"
+          onError={(e) => {
+            const el = e.currentTarget;
+            if (el.dataset.fallback === '1') return;
+            el.dataset.fallback = '1';
+            el.src = imagenParaRestaurante(cocina, restaurant.id);
+          }}
         />
         {destacado && <span className="card-top">{t('card.recomendado')}</span>}
         <span className="card-precio-badge">{precio}</span>

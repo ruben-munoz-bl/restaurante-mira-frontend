@@ -175,8 +175,8 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
       // si no hay filtro, deja todos; si quieres estricto, descomenta siguiente linea
       // if(list.length===0) list=data.ticketsRecientes||[];
     }
-    const rows = list.map(t=> ({ fecha: t.fecha || (t.createdAt?.toDate? t.createdAt.toDate().toISOString().split('T')[0] : ''), codigo: t.codigoReserva || t.id.slice(0,6), total: t.totalPagado||0, comision: t.importeComision|| Math.round((t.totalPagado||0)*0.08*100)/100, neto: t.netoRestaurante|| Math.round((t.totalPagado||0)*0.92*100)/100, cliente: t.clienteNombre||t.restauranteNombre||'' }));
-    const header = ['Fecha','Codigo','Cliente','Total','Comision 8%','Neto','Asistio'];
+    const rows = list.map(t=> ({ fecha: t.fecha || (t.createdAt?.toDate? t.createdAt.toDate().toISOString().split('T')[0] : ''), codigo: t.codigoReserva || t.id.slice(0,6), total: t.totalPagado||0, comision: t.importeComision!=null ? t.importeComision : Math.round((t.totalPagado||0)*(comisionPct/100)*100)/100, neto: t.netoRestaurante!=null ? t.netoRestaurante : Math.round(((t.totalPagado||0) - (t.importeComision!=null ? t.importeComision : (t.totalPagado||0)*(comisionPct/100)))*100)/100, cliente: t.clienteNombre||t.restauranteNombre||'' }));
+    const header = ['Fecha','Codigo','Cliente','Total',`Comision ${comisionPct}%`,'Neto','Asistio'];
     const csv = [header.join(';'), ...rows.map(r=> [r.fecha,r.codigo,`"${r.cliente}"`,r.total.toFixed(2),r.comision.toFixed(2),r.neto.toFixed(2), 'si'].join(';'))].join('\n');
     const blob = new Blob(["\uFEFF"+csv], {type:'text/csv;charset=utf-8;'});
     const url = URL.createObjectURL(blob);
@@ -313,12 +313,16 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
   const baseImponible = totalFacturacion / 1.10;
   const costePorPax = totalComensales ? totalComisiones/totalComensales : 0;
   const ticketMedio = stats.ticketPromedio || (totalTickets? totalFacturacion/totalTickets: 0);
-  // Occupancy
-  const aforo = 150;
+  const comisionPct = Number(restaurante.comisionPct) || 8;
+  const tasaEfec = totalFacturacion > 0 ? Math.round((totalComisiones / totalFacturacion) * 1000) / 10 : 0;
+  const pctConciliados = reservasNoCanceladas > 0 ? Math.min(100, Math.round((totalTickets / reservasNoCanceladas) * 1000) / 10) : 0;
+  const paxPorTicket = totalTickets > 0 ? (totalComensales / totalTickets) : 0;
+  // Occupancy — aforo real del restaurante si existe; si no, maxReservasPorHora * 10 como techo diario configurado.
+  const aforo = Number(restaurante.aforo) || (Number(restaurante.maxReservasPorHora) > 0 ? Number(restaurante.maxReservasPorHora) * 10 : null);
   const hoyComensales = (reservasHoyList||[]).reduce((s,r)=> s+(Number(r.comensales)||0),0);
   const almuerzo = (reservasHoyList||[]).filter(r=> (r.hora||'') < '16:00').reduce((s,r)=> s+(Number(r.comensales)||0),0);
   const cena = hoyComensales - almuerzo;
-  const ocupacion = Math.min(100, Math.round(hoyComensales/aforo*100)) || 0;
+  const ocupacion = aforo ? Math.min(100, Math.round(hoyComensales/aforo*100)) || 0 : 0;
   const pctAlm = aforo? Math.round(almuerzo/aforo*100):0;
   const pctCena = aforo? Math.round(cena/aforo*100):0;
   const pctLibre = Math.max(0, 100 - pctAlm - pctCena);
@@ -326,24 +330,20 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
   // Forecast grouping by fecha
   const byDate = {};
   (proximasReservas||[]).forEach(r=>{ const d=r.fecha; if(!byDate[d]) byDate[d]=[]; byDate[d].push(r); });
+  const capDia = aforo || Number(restaurante.maxReservasPorHora) * 10 || 50;
   const forecastDays = Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b)).slice(0,5).map(([fecha, arr])=>{
     const d = new Date(fecha+'T00:00:00');
     const dow = d.toLocaleDateString('es-ES',{ weekday:'short'}).replace('.','');
     const day = d.getDate();
     const pax = arr.reduce((s,r)=> s+(Number(r.comensales)||0),0);
     const res = arr.length;
-    const pct = Math.min(100, Math.round(pax/50*100)); // 50 pax capacity per day est.
+    const pct = Math.min(100, Math.round(pax/capDia*100));
     let tag = pct>=98? 'SOLD OUT' : pct>80? 'ALTA DEMANDA' : 'DISPONIBLE';
     let tagClass = pct>=98? 'soldout' : pct>80? 'alta' : '';
     return { dow, day, fecha, res, pax, pct, tag, tagClass };
   });
-  // Mock extras if no data yet (keep visual consistent with screen.png)
-  const forecastToShow = forecastDays.length? forecastDays : [
-    { dow:'VIE', day:25, res:18, pax:198, pct:100, tag:'SOLD OUT', tagClass:'soldout', fecha: '2024-10-25' },
-    { dow:'SÁB', day:26, res:22, pax:242, pct:98, tag:'SOLD OUT', tagClass:'soldout', fecha: '2024-10-26' },
-    { dow:'DOM', day:27, res:12, pax:134, pct:82, tag:'ALTA DEMANDA', tagClass:'alta', fecha: '2024-10-27' },
-    { dow:'JUE', day:31, res:15, pax:170, pct:91, tag:'MENÚ CERRADO', tagClass:'cerrado', fecha: '2024-10-31' },
-  ];
+  // Solo datos reales (sin mock).
+  const forecastToShow = forecastDays;
 
   const estadoToBadge = (estado) =>{
     const s = String(estado||'').toLowerCase();
@@ -357,7 +357,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
 
   const nombreCorto = restaurante.nombre || 'Mi Restaurante';
   const dir = restaurante.direccion_completa || restaurante.direccion || restaurante.direccionCompleta || '-';
-  const restId = restaurante.id ? `#RES-${String(restaurante.id).slice(-4).toUpperCase()}` : '#RES-8492';
+  const restId = restaurante.id ? `#RES-${String(restaurante.id).slice(-4).toUpperCase()}` : '#RES-????';
 
   return (
     <section className="auth-pagina pagina-ancha" style={{background:'#F8FAFC', margin:'0 -1.5rem', padding:'1rem 1.5rem 2rem'}}>
@@ -427,7 +427,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                     <option value="anio">Año en curso</option>
                   </select>
                 </div>
-                <span className="op-premium-badge"><span className="material-symbols-outlined" style={{fontSize:12}}>workspace_premium</span> Partner Premium Verificado</span>
+                <span className="op-premium-badge"><span className="material-symbols-outlined" style={{fontSize:12}}>workspace_premium</span> {restaurante.activo !== false ? 'Partner Activo' : 'Partner Inactivo'}</span>
               </div>
             </div>
             <div className="op-topbar-actions">
@@ -487,18 +487,18 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
               </div>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:'0.6rem'}}>
                 <span className="op-kpi-value">{euro(totalFacturacion || stats.totalFacturacion || 0)}</span>
-                <span className="op-kpi-trend up"><span className="material-symbols-outlined" style={{fontSize:12}}>trending_up</span> +14.2%</span>
+                <span className="op-kpi-trend neutral">{totalTickets} tickets</span>
               </div>
               <div className="op-kpi-foot"><span className="op-kpi-foot-label">Base imponible sin IVA:</span><span className="op-kpi-foot-val">{euro(baseImponible)}</span></div>
             </div>
             <div className="op-kpi-card">
               <div className="op-kpi-head">
-                <div><div className="op-kpi-label">Comisión MIRA</div><div className="op-kpi-sub">Deducible en liquidación neta · 8%</div></div>
+                <div><div className="op-kpi-label">Comisión MIRA</div><div className="op-kpi-sub">Deducible en liquidación neta · {comisionPct}%</div></div>
                 <div className="op-kpi-icon"><span className="material-symbols-outlined">receipt_long</span></div>
               </div>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:'0.6rem'}}>
                 <span className="op-kpi-value">{euro(totalComisiones || stats.totalComisiones || 0)}</span>
-                <span className="op-kpi-trend neutral">Tasa efec. 9.0%</span>
+                <span className="op-kpi-trend neutral">Tasa efec. {tasaEfec}%</span>
               </div>
               <div className="op-kpi-foot"><span className="op-kpi-foot-label">Coste por pax confirmado:</span><span className="op-kpi-foot-val" style={{color:'var(--op-secondary)'}}>{euro(costePorPax)} / comensal</span></div>
             </div>
@@ -509,7 +509,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
               </div>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:'0.6rem'}}>
                 <span className="op-kpi-value">{totalTickets} <span style={{fontSize:'0.75rem', fontWeight:400, color:'var(--op-outline)'}}>uds</span></span>
-                <span className="op-kpi-trend up"><span className="material-symbols-outlined" style={{fontSize:12}}>check_circle</span> 98.4% OK</span>
+                <span className="op-kpi-trend up"><span className="material-symbols-outlined" style={{fontSize:12}}>check_circle</span> {pctConciliados}% OK</span>
               </div>
               <div className="op-kpi-foot"><span className="op-kpi-foot-label">Ticket medio por comanda:</span><span className="op-kpi-foot-val">{euro(ticketMedio)}</span></div>
             </div>
@@ -519,10 +519,10 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                 <div className="op-kpi-icon"><span className="material-symbols-outlined">groups</span></div>
               </div>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:'0.6rem'}}>
-                <span className="op-kpi-value">{totalComensales || stats.reservasHoy*2 || 0} <span style={{fontSize:'0.75rem', fontWeight:400, color:'var(--op-outline)'}}>pax</span></span>
-                <span className="op-kpi-trend" style={{background:'#a1f4c6', color:'#002112'}}>{totalTickets? (totalComensales/Math.max(1,totalTickets)).toFixed(2):'2.55'} pax/res</span>
+                <span className="op-kpi-value">{totalComensales || 0} <span style={{fontSize:'0.75rem', fontWeight:400, color:'var(--op-outline)'}}>pax</span></span>
+                <span className="op-kpi-trend" style={{background:'#a1f4c6', color:'#002112'}}>{totalTickets ? paxPorTicket.toFixed(2) : '—'} pax/res</span>
               </div>
-              <div className="op-kpi-foot"><span className="op-kpi-foot-label">Mix de comensales:</span><span className="op-kpi-foot-val" style={{fontSize:'0.66rem'}}>68% fidel. · 32% nuevos</span></div>
+              <div className="op-kpi-foot"><span className="op-kpi-foot-label">Tickets pendientes:</span><span className="op-kpi-foot-val" style={{fontSize:'0.66rem'}}>{ticketsPendientesSubir}</span></div>
             </div>
           </div>
 
@@ -534,7 +534,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                 <p style={{fontSize:'0.72rem', color:'var(--op-on-variant)', marginTop:'0.15rem'}}>Sube los reportes Z, tickets de caja o facturas simplificadas para validar liquidaciones con MIRA Pay y pasarela bancaria.</p>
               </div>
               <div style={{display:'flex', alignItems:'center', gap:'0.4rem', background:'var(--op-surface-low)', padding:'0.35rem 0.6rem', borderRadius:'0.5rem', fontFamily:'ui-monospace,monospace', fontSize:'0.68rem'}}>
-                <span style={{width:'0.45rem', height:'0.45rem', borderRadius:'50%', background:'var(--op-secondary)', display:'inline-block', animation:'opPulse 1s infinite'}}></span> OCR Automático Activo: <strong>98.4% match</strong>
+                <span style={{width:'0.45rem', height:'0.45rem', borderRadius:'50%', background:'var(--op-secondary)', display:'inline-block', animation:'opPulse 1s infinite'}}></span> Tickets conciliados: <strong>{totalTickets}</strong>
               </div>
             </div>
             <div className="op-reco-grid">
@@ -550,17 +550,16 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
               </div>
               <div className="op-ledger">
                 <div className="op-ledger-head"><span>Últimos lotes conciliados</span><button onClick={()=> setShowHistorial(true)} style={{color:'var(--op-primary)', background:'none', border:'none', fontSize:'0.68rem', fontWeight:600, cursor:'pointer'}}>Ver Historial ({ticketsRecientes.length})</button></div>
-                {(ticketsRecientes.slice(0,3).length? ticketsRecientes.slice(0,3) : [
-                  {id:'mock1', nombre:'Z_Cierre_Caja_23Oct_2024.pdf', fecha:'Hoy 02:40 AM · 94 tickets', total:4892.40, estado:'Conciliado'},
-                  {id:'mock2', nombre:'Export_Revo_Tickets_22Oct.csv', fecha:'Ayer 23:15 · 112 tickets', total:6210.00, estado:'Conciliado'},
-                  {id:'mock3', nombre:'Ticket_Manual_Mesa14_VIP.jpg', fecha:'22 Oct · TPV offline', total:348.00, estado:'Revisión manual'},
-                ]).map(item=> (
+                {(ticketsRecientes.slice(0,3).length? ticketsRecientes.slice(0,3) : []).length === 0 && (
+                  <p style={{fontSize:'0.68rem', color:'var(--op-on-variant)', padding:'0.5rem'}}>Sin tickets conciliados todavía.</p>
+                )}
+                {(ticketsRecientes.slice(0,3).length? ticketsRecientes.slice(0,3) : []).map(item=> (
                   <div key={item.id} className="op-ledger-item">
                     <div style={{display:'flex', gap:'0.5rem', alignItems:'center', minWidth:0}}>
-                      <span className="material-symbols-outlined" style={{fontSize:18, color: String(item.estado).includes('Revisi')? 'var(--op-error)': item.nombre?.includes('.csv')? 'var(--op-tertiary)':'var(--op-primary)'}}>{String(item.nombre).endsWith('.pdf')? 'picture_as_pdf' : String(item.nombre).endsWith('.csv')? 'table_chart' : 'image'}</span>
+                      <span className="material-symbols-outlined" style={{fontSize:18, color: String(item.estado).includes('Revisi')? 'var(--op-error)': String(item.fileName||item.nombre||'').includes('.csv')? 'var(--op-tertiary)':'var(--op-primary)'}}>{String(item.fileName||item.nombre||'').endsWith('.pdf')? 'picture_as_pdf' : String(item.fileName||item.nombre||'').endsWith('.csv')? 'table_chart' : 'receipt'}</span>
                       <div style={{minWidth:0}}>
-                        <p style={{fontFamily:'ui-monospace,monospace', fontSize:'0.68rem', fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{item.nombre || item.restaurantName || 'Lote'}</p>
-                        <p style={{fontSize:'0.62rem', color:'var(--op-outline)'}}>{item.fecha || (item.createdAt?.toDate? item.createdAt.toDate().toLocaleDateString(): item.fecha)}</p>
+                        <p style={{fontFamily:'ui-monospace,monospace', fontSize:'0.68rem', fontWeight:600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis'}}>{item.fileName || item.nombre || item.codigoReserva || item.id?.slice(0,8) || 'Ticket'}</p>
+                        <p style={{fontSize:'0.62rem', color:'var(--op-outline)'}}>{item.fecha || (item.createdAt?.toDate? item.createdAt.toDate().toLocaleDateString(): '')}</p>
                       </div>
                     </div>
                     <div style={{textAlign:'right', flex:'0 0 auto', marginLeft:'0.5rem'}}>
@@ -586,9 +585,9 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                 </div>
               </div>
               <div className="op-occupancy">
-                <div className="op-occupancy-head"><span>Ocupación estimada de sala: {ocupacion}%</span><span style={{fontFamily:'ui-monospace', color:'var(--op-primary)'}}>{hoyComensales} / {aforo} Asientos</span></div>
+                <div className="op-occupancy-head"><span>{aforo ? `Ocupación estimada de sala: ${ocupacion}%` : 'Pax de hoy (sin aforo configurado)'}</span><span style={{fontFamily:'ui-monospace', color:'var(--op-primary)'}}>{hoyComensales}{aforo ? ` / ${aforo} Asientos` : ' pax'}</span></div>
                 <div className="op-bar"><div className="op-bar-almuerzo" style={{width: `${pctAlm}%`}} title="Almuerzo"></div><div className="op-bar-cena" style={{width: `${pctCena}%`}} title="Cena"></div><div className="op-bar-libre" style={{width:`${pctLibre}%`}}></div></div>
-                <div className="op-legend"><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'var(--op-primary)'}}></span>Almuerzo ({almuerzo} pax)</span><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'#4ae183'}}></span>Cena ({cena} pax)</span><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'var(--op-outline-variant)'}}></span>Disponible ({Math.max(0,aforo-hoyComensales)} pax)</span></div>
+                <div className="op-legend"><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'var(--op-primary)'}}></span>Almuerzo ({almuerzo} pax)</span><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'#4ae183'}}></span>Cena ({cena} pax)</span><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'var(--op-outline-variant)'}}></span>Disponible ({aforo ? Math.max(0,aforo-hoyComensales) : '—'} pax)</span></div>
               </div>
               {/* Navegación por fecha — permite ver cualquier día y cancelar */}
               <div className="op-date-nav">
@@ -635,7 +634,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                       const mesa = r.mesa || (r.terraza? 'T-04' : `Mesa ${String(r.id).slice(-2)}`);
                       const comensal = r.usuarioNombre || r.usuarioEmail || r.email || 'Cliente';
                       const codigo = r.codigo || `#BK-${String(r.id).slice(-4).toUpperCase()}`;
-                      const ticket = r.ticketTotal ? euro(r.ticketTotal) : (r.estado==='completada' || r.estado==='pagado' ? euro(120 + Math.random()*80) : 'Pendiente servicio');
+                      const ticket = r.ticketTotal != null ? euro(r.ticketTotal) : (r.totalPagado != null ? euro(r.totalPagado) : 'Pendiente servicio');
                       return (
                         <tr key={r.id}>
                           <td><div className="op-mono" style={{fontWeight:800}}>{r.hora||'-'}</div><span style={{fontFamily:'ui-monospace', fontSize:'0.62rem', color:'var(--op-outline)'}}>{codigo}</span></td>
@@ -660,7 +659,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                 <div style={{marginTop:'0.5rem', display:'flex', flexDirection:'column', gap:'0.4rem'}}>
                   <span style={{fontSize:'0.68rem', fontWeight:700, color:'var(--op-on-variant)'}}>Acción rápida sobre {filtroTodas? 'próximas' : fechaFiltro}:</span>
                   <div style={{display:'flex', flexWrap:'wrap', gap:'0.4rem'}}>
-                    {vis.map(r=> <ReservationActions key={'act-'+r.id} reserva={r} onStatusChange={(id, act)=>{ handleReservationChange(id, act); if(act==='confirmar' || act==='no_show' || act==='cancelada'){ setTimeout(()=> dashboardApi.getMyRestaurant().then(d=> setData(prev=> ({...prev, ...d, restaurante: d.restaurante || prev.restaurante })) ).catch(()=>{}), 400); } }} t={t} />)}
+                    {vis.map(r=> <ReservationActions key={'act-'+r.id} reserva={r} comisionPct={comisionPct} onStatusChange={(id, act)=>{ handleReservationChange(id, act); if(act==='confirmar' || act==='no_show' || act==='cancelada'){ setTimeout(()=> dashboardApi.getMyRestaurant().then(d=> setData(prev=> ({...prev, ...d, restaurante: d.restaurante || prev.restaurante })) ).catch(()=>{}), 400); } }} t={t} />)}
                   </div>
                 </div>
               ); })()}
@@ -668,8 +667,8 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
 
             <div className="op-panel">
               <div className="op-panel-head">
-                <div><div className="op-panel-title">Previsión y Calendario</div><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>Proyección resto de mes (25 al 31 Oct)</p></div>
-                <div style={{textAlign:'right'}}><div style={{fontWeight:800, fontSize:'1.1rem', color:'var(--op-primary)', fontVariantNumeric:'tabular-nums'}}>{stats.totalReservas || 1180}</div><p style={{fontSize:'0.62rem', color:'var(--op-on-variant)'}}>{totalComensales*2 || 3890} pax proyectados</p></div>
+                <div><div className="op-panel-title">Previsión y Calendario</div><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>Próximas reservas reales</p></div>
+                <div style={{textAlign:'right'}}><div style={{fontWeight:800, fontSize:'1.1rem', color:'var(--op-primary)', fontVariantNumeric:'tabular-nums'}}>{stats.totalReservas || 0}</div><p style={{fontSize:'0.62rem', color:'var(--op-on-variant)'}}>{totalComensales || 0} pax acumulados</p></div>
               </div>
               <div className="op-forecast-list">
                 {forecastToShow.map(d=>(
@@ -677,7 +676,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                     <div style={{display:'flex', alignItems:'center', gap:'0.6rem', flex:1}}>
                       <div className="op-cal"><span className="op-cal-day">{d.dow}</span><span className="op-cal-num">{d.day}</span></div>
                       <div className="op-forecast-meta">
-                        <div className="op-forecast-title">{d.dow==='VIE'?'Viernes Cena': d.dow==='SÁB'?'Sábado Completo': d.dow==='DOM'?'Domingo Almuerzos':'Noche de Gala / Evento'} <span className={`op-tag ${d.tagClass}`}>{d.tag}</span></div>
+                        <div className="op-forecast-title">{d.dow} · {d.fecha} <span className={`op-tag ${d.tagClass}`}>{d.tag}</span></div>
                         <div className="op-forecast-sub">{d.pax} pax confirmados ({d.res} res) · {d.fecha}</div>
                       </div>
                     </div>
@@ -685,9 +684,11 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                   </div>
                 ))}
               </div>
+              {forecastToShow.length === 0 && (
+                <div style={{fontSize:'0.72rem', color:'var(--op-on-variant)', padding:'0.75rem'}}>Sin reservas próximas para prever.</div>
+              )}
               {selectedForecast && <div style={{fontSize:'0.68rem', background:'var(--op-secondary-container)', color:'var(--op-on-secondary-container)', padding:'0.35rem 0.5rem', borderRadius:'0.4rem', display:'flex', justifyContent:'space-between', alignItems:'center'}}><span>Filtrando reservas por {selectedForecast}</span><button onClick={()=> setSelectedForecast(null)} style={{background:'none', border:'none', fontWeight:800, cursor:'pointer', color:'inherit'}}>Quitar ×</button></div>}
-              <div className="op-yield"><span className="material-symbols-outlined" style={{fontSize:16, color:'var(--op-secondary)'}}>insights</span><div><strong>Sugerencia de Yield Management:</strong><p style={{margin:'0.15rem 0 0', color:'var(--op-on-variant)'}}>El turno de 20:00h para el Miércoles 30 aún cuenta con 14 plazas vacantes. Activa una promoción -20% en MIRA Festival para optimizar rotación.</p></div></div>
-              <div style={{display:'flex', justifyContent:'space-between', paddingTop:'0.5rem', borderTop:'1px solid var(--op-surface-low)', fontSize:'0.68rem', color:'var(--op-on-variant)'}}><span>Garantía no-show activa en fin de semana</span><button onClick={()=> { setAforoLimit(data?.restaurante?.maxReservasPorHora||12); setShowAforoModal(true); }} style={{color:'var(--op-primary)', background:'none', border:'none', fontWeight:700, cursor:'pointer'}}>Configurar aforos</button></div>
+              <div style={{display:'flex', justifyContent:'space-between', paddingTop:'0.5rem', borderTop:'1px solid var(--op-surface-low)', fontSize:'0.68rem', color:'var(--op-on-variant)'}}><span>Aforo por hora configurable</span><button onClick={()=> { setAforoLimit(data?.restaurante?.maxReservasPorHora||12); setShowAforoModal(true); }} style={{color:'var(--op-primary)', background:'none', border:'none', fontWeight:700, cursor:'pointer'}}>Configurar aforos</button></div>
             </div>
           </div>
 
@@ -696,8 +697,8 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
             <div className="op-dir-head">
               <div><h3 style={{fontWeight:800, fontSize:'0.95rem'}}>Directorio de Restaurantes &amp; Liquidaciones</h3><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>Conmuta de restaurante, supervisa tickets pendientes y verifica retenciones por sede.</p></div>
               <div className="op-dir-filters">
-                <button onClick={()=> setDirFilter('todos')} className={`op-dir-filter ${dirFilter==='todos'?'active':''}`}>Todos (1)</button>
-                <button onClick={()=> setDirFilter('premium')} className={`op-dir-filter ${dirFilter==='premium'?'active':''}`}>Premium (1)</button>
+                <button onClick={()=> setDirFilter('todos')} className={`op-dir-filter ${dirFilter==='todos'?'active':''}`}>Todos ({listaRests.length || 1})</button>
+                <button onClick={()=> setDirFilter('premium')} className={`op-dir-filter ${dirFilter==='premium'?'active':''}`}>Activos ({restaurante.activo !== false ? 1 : 0})</button>
                 <button onClick={()=> setDirFilter('incidencias')} className={`op-dir-filter ${dirFilter==='incidencias'?'active':''}`}>Con Incidencias <span style={{width:'0.35rem', height:'0.35rem', borderRadius:'50%', background:'var(--op-error)', display:'inline-block', marginLeft:'0.2rem'}}></span></button>
                 <button onClick={()=> setDirFilter('pendiente')} className={`op-dir-filter ${dirFilter==='pendiente'?'active':''}`}>Pendiente de Tickets ({ticketsPendientesSubir})</button>
               </div>
@@ -724,7 +725,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                 </tbody>
               </table>
             </div>
-            <div style={{display:'flex', justifyContent:'space-between', paddingTop:'0.5rem', fontSize:'0.68rem', color:'var(--op-on-variant)'}}><span>Mostrando 1 de 1 restaurantes</span><div style={{display:'flex', gap:'0.25rem', alignItems:'center'}}><span style={{padding:'0.15rem 0.35rem', borderRadius:'0.25rem', background:'var(--op-primary-container)', color:'var(--op-on-primary)', fontFamily:'ui-monospace', fontWeight:800}}>1</span></div></div>
+            <div style={{display:'flex', justifyContent:'space-between', paddingTop:'0.5rem', fontSize:'0.68rem', color:'var(--op-on-variant)'}}><span>Mostrando 1 de {listaRests.length || 1} restaurantes</span><div style={{display:'flex', gap:'0.25rem', alignItems:'center'}}><span style={{padding:'0.15rem 0.35rem', borderRadius:'0.25rem', background:'var(--op-primary-container)', color:'var(--op-on-primary)', fontFamily:'ui-monospace', fontWeight:800}}>1</span></div></div>
             {/* Charts kept for data depth, styled with new palette */}
             <div style={{marginTop:'0.75rem', display:'grid', gap:'0.75rem'}}>
               <RevenueLineChart data={ingresosPorMes} title={t("dashboard.evolucionIngresos") || "Evolución ingresos"} />
@@ -744,16 +745,16 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
               <div style={{display:'flex', gap:'0.6rem', alignItems:'center'}}>
                 <div style={{width:'2.2rem', height:'2.2rem', borderRadius:'0.6rem', background:'var(--op-primary-container)', color:'var(--op-on-primary)', display:'grid', placeItems:'center'}}><span className="material-symbols-outlined">receipt</span></div>
-                <div><h3 style={{fontWeight:800, fontSize:'0.95rem'}}>Cargar Tickets &amp; Facturas</h3><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{nombreCorto} · ID {restId} · Comisión 8%</p></div>
+                <div><h3 style={{fontWeight:800, fontSize:'0.95rem'}}>Cargar Tickets &amp; Facturas</h3><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{nombreCorto} · ID {restId} · Comisión {comisionPct}%</p></div>
               </div>
               <button className="op-btn-ghost" style={{padding:'0.2rem'}} onClick={()=> setShowTicketModal(false)}><span className="material-symbols-outlined">close</span></button>
             </div>
             <div style={{background:'var(--op-surface-low)', borderRadius:'0.6rem', padding:'0.7rem', display:'flex', gap:'0.5rem', alignItems:'flex-start', border:'1px solid var(--op-outline-variant)'}}>
               <span className="material-symbols-outlined" style={{fontSize:20, color:'var(--op-primary)', marginTop:'0.1rem'}}>info</span>
               <div style={{fontSize:'0.72rem', lineHeight:'1.4'}}>
-                <strong>¿Cómo funciona?</strong> Indica el importe total pagado por el cliente. Calculamos automáticamente la comisión MIRA del 8% y el neto para tu liquidación. Marca si el cliente asistió para confirmar la reserva o como no-show.
+                <strong>¿Cómo funciona?</strong> Indica el importe total pagado por el cliente. Calculamos automáticamente la comisión MIRA del {comisionPct}% y el neto para tu liquidación. Marca si el cliente asistió para confirmar la reserva o como no-show.
                 <div style={{marginTop:'0.3rem', display:'flex', gap:'0.4rem', flexWrap:'wrap'}}>
-                  <span style={{background:'white', padding:'0.2rem 0.45rem', borderRadius:'0.4rem', border:'1px solid var(--op-outline-variant)', fontSize:'0.68rem'}}>Ej: 50€ → comisión 4€ · neto 46€</span>
+                  <span style={{background:'white', padding:'0.2rem 0.45rem', borderRadius:'0.4rem', border:'1px solid var(--op-outline-variant)', fontSize:'0.68rem'}}>Ej: 50€ → comisión {euro(50*comisionPct/100)} · neto {euro(50 - 50*comisionPct/100)}</span>
                   <span style={{background:'white', padding:'0.2rem 0.45rem', borderRadius:'0.4rem', border:'1px solid var(--op-outline-variant)', fontSize:'0.68rem'}}>Asistió: <span style={{color:'var(--op-primary)', fontWeight:700}}>completada</span> · No asistió: <span style={{color:'var(--op-error)', fontWeight:700}}>no-show</span></span>
                 </div>
               </div>
@@ -761,7 +762,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
             <div style={{display:'flex', flexDirection:'column', gap:'0.6rem', maxHeight:'52vh', overflowY:'auto', paddingRight:'0.2rem', marginTop:'0.2rem'}}>
               {reservasParaTicket.length? (
                 reservasParaTicket.slice(0,12).map(r=>(
-                  <div key={r.id} style={{textAlign:'left'}}><TicketUpload reserva={r} onUploaded={(id, estado)=>{ handleReservationChange(id, estado==='no_show' ? 'no_show' : 'confirmar');
+                  <div key={r.id} style={{textAlign:'left'}}><TicketUpload reserva={r} comisionPct={comisionPct} onUploaded={(id, estado)=>{ handleReservationChange(id, estado==='no_show' ? 'no_show' : 'confirmar');
                     dashboardApi.getMyRestaurant().then(d=> setData(d)).catch(()=>{});
                     // no cerramos modal automáticamente para permitir varios tickets seguidos
                   }} t={t} /></div>
@@ -770,7 +771,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
             </div>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:'0.4rem', borderTop:'1px solid var(--op-surface-low)', fontSize:'0.68rem', color:'var(--op-on-variant)'}}>
               <span>{reservasParaTicket.length} reservas sin ticket · {totalTickets} subidos</span>
-              <span style={{display:'inline-flex', alignItems:'center', gap:'0.2rem'}}><span className="material-symbols-outlined" style={{fontSize:14}}>lock</span> Comisión fija 8% · Liquidación MIRA</span>
+              <span style={{display:'inline-flex', alignItems:'center', gap:'0.2rem'}}><span className="material-symbols-outlined" style={{fontSize:14}}>lock</span> Comisión {comisionPct}% · Liquidación MIRA</span>
             </div>
             <div style={{display:'flex', justifyContent:'flex-end', gap:'0.4rem'}}>
               <button className="op-btn-ghost" onClick={()=> setShowTicketModal(false)}>Cerrar</button>
@@ -791,7 +792,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
             </div>
             <div className="op-table-wrap" style={{marginTop:'0.5rem'}}>
               <table className="op-table">
-                <thead><tr><th>Fecha</th><th>Código</th><th>Cliente</th><th style={{textAlign:'right'}}>Total</th><th style={{textAlign:'right'}}>Comisión 8%</th><th style={{textAlign:'right'}}>Neto</th><th>Estado</th></tr></thead>
+                <thead><tr><th>Fecha</th><th>Código</th><th>Cliente</th><th style={{textAlign:'right'}}>Total</th><th style={{textAlign:'right'}}>Comisión {comisionPct}%</th><th style={{textAlign:'right'}}>Neto</th><th>Estado</th></tr></thead>
                 <tbody>
                   {ticketsRecientes.length? ticketsRecientes.map(ti=> (
                     <tr key={ti.id}>
@@ -799,8 +800,8 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
                       <td style={{fontFamily:'ui-monospace', fontSize:'0.68rem'}}>{ti.codigoReserva || ti.id.slice(0,6)}</td>
                       <td style={{fontSize:'0.72rem'}}>{ti.clienteNombre || ti.restauranteNombre || '-'}</td>
                       <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:700}}>{euro(ti.totalPagado||0)}</td>
-                      <td style={{textAlign:'right', fontFamily:'ui-monospace', color:'var(--op-error)'}}>{euro(ti.importeComision|| Math.round((ti.totalPagado||0)*0.08*100)/100)}</td>
-                      <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:700, color:'var(--op-primary)'}}>{euro(ti.netoRestaurante|| Math.round((ti.totalPagado||0)*0.92*100)/100)}</td>
+                      <td style={{textAlign:'right', fontFamily:'ui-monospace', color:'var(--op-error)'}}>{euro(ti.importeComision!=null ? ti.importeComision : Math.round((ti.totalPagado||0)*(comisionPct/100)*100)/100)}</td>
+                      <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:700, color:'var(--op-primary)'}}>{euro(ti.netoRestaurante!=null ? ti.netoRestaurante : Math.round(((ti.totalPagado||0) - (ti.importeComision!=null ? ti.importeComision : (ti.totalPagado||0)*(comisionPct/100)))*100)/100)}</td>
                       <td><span className={`op-status ${ti.asistio===false?'no_show':'pagado'}`}><span className="op-status-dot"></span>{ti.asistio===false?'No-show':'Conciliado'}</span></td>
                     </tr>
                   )) : <tr><td colSpan={7} className="op-empty">Sin tickets conciliados aún</td></tr>}

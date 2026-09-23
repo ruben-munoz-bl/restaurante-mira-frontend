@@ -1,47 +1,6 @@
-import { getAuth } from 'firebase/auth';
-import {
-  doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-  collection, query, where, orderBy, limit, startAfter,
-  increment, Timestamp, serverTimestamp, writeBatch,
-} from 'firebase/firestore';
-import { getDb, getFirebaseApp } from './firebase.js';
-
-const db = getDb();
-
-function getUser() {
-  const auth = getAuth(getFirebaseApp());
-  return auth.currentUser;
-}
-
-async function requireUser() {
-  const u = getUser();
-  if (!u) throw new Error('No autenticado');
-  return u;
-}
+import { api } from './httpClient.js';
 
 /* ────────────── POINTS ────────────── */
-
-function calcRachaLogin(data) {
-  const hoy = new Date().toISOString().split('T')[0];
-  const ultimo = data.ultimoLoginDate || null;
-  if (ultimo === hoy) return { dias: Math.min(data.rachaLoginDias || 0, 7), ultimoLogin: ultimo, graceUsados: data.graceUsados || 0, yaReclamado: true };
-  const anterior = new Date(ultimo || hoy);
-  const diff = Math.floor((new Date(hoy) - anterior) / 86400000);
-  let dias = Math.min(data.rachaLoginDias || 0, 7);
-  let grace = data.graceUsados || 0;
-  if (diff === 1) {
-    dias += 1;
-  } else if (diff === 2 && grace < 2) {
-    grace += 1;
-  } else {
-    dias = diff > 2 ? 1 : (dias || 0) + 1;
-    if (diff > 2) grace = 0;
-  }
-  dias = Math.min(dias, 7);
-  const dia7Disponible = dias >= 7;
-  const pts = dia7Disponible ? 0 : Math.min(5 + 3 * Math.max(0, dias - 1), 15);
-  return { dias, ultimoLogin: hoy, graceUsados: grace, puntos: pts, yaReclamado: false, dia7Disponible };
-}
 
 const WHEEL_PRIZES = [
   { puntos: 20, label: '20 MIRA', peso: 475 },
@@ -51,176 +10,73 @@ const WHEEL_PRIZES = [
   { puntos: 100, label: '100 MIRA', peso: 5 },
 ];
 
-function spinWheel() {
-  const totalPeso = WHEEL_PRIZES.reduce((s, p) => s + p.peso, 0);
-  let rand = Math.random() * totalPeso;
-  for (const prize of WHEEL_PRIZES) {
-    rand -= prize.peso;
-    if (rand <= 0) return prize;
-  }
-  return WHEEL_PRIZES[0];
-}
-
 export const pointsApi = {
   isNewUser: async () => {
-    const u = await requireUser();
-    const snap = await getDoc(doc(db, 'usuarios', u.uid));
-    const d = snap.data() || {};
-    return !d.ultimoLoginDate && (d.rachaLoginDias || 0) === 0;
+    const d = await api.get('/v1/points/is-new-user');
+    return Boolean(d.isNew);
   },
 
-  getBalance: async () => {
-    const u = await requireUser();
-    const snap = await getDoc(doc(db, 'usuarios', u.uid));
-    const d = snap.data() || {};
-    const racha = calcRachaLogin(d);
-    return {
-      saldoActual: d.saldoPuntos || 0,
-      totalAcumulado: d.totalAcumulado || 0,
-      totalCanjeado: d.totalCanjeado || 0,
-      rachaLogin: { dias: racha.dias, ultimoLogin: racha.ultimoLogin, graceUsados: racha.graceUsados, yaReclamado: racha.yaReclamado },
-      rachaReservas: { semanasConsecutivas: d.rachaReservasSemanas || 0, multiplicador: d.rachaReservasMultiplicador || 1 },
-    };
-  },
+  getBalance: async () => api.get('/v1/points/balance'),
 
   getLedger: async (params = {}) => {
-    const u = await requireUser();
-    const constraints = [where('uid', '==', u.uid), orderBy('createdAt', 'desc')];
-    if (params.tipo) constraints.splice(1, 0, where('tipo', '==', params.tipo));
-    const q = query(collection(db, 'puntos_movimientos'), ...constraints, limit(Number(params.limit) || 20));
-    const snap = await getDocs(q);
-    return { data: snap.docs.map(d => ({ id: d.id, ...d.data() })) };
+    const q = new URLSearchParams();
+    if (params.tipo) q.set('tipo', params.tipo);
+    if (params.limit) q.set('limit', String(params.limit));
+    if (params.page) q.set('page', String(params.page));
+    const qs = q.toString();
+    return api.get(`/v1/points/ledger${qs ? `?${qs}` : ''}`);
   },
 
-  dailyLogin: async () => {
-    const u = await requireUser();
-    const ref = doc(db, 'usuarios', u.uid);
-    const snap = await getDoc(ref);
-    const d = snap.data() || {};
-    const racha = calcRachaLogin(d);
-    if (racha.yaReclamado) return { yaReclamado: true, puntos: 0, racha };
-    if (racha.dia7Disponible) {
-      await updateDoc(ref, {
-        rachaLoginDias: racha.dias,
-        ultimoLoginDate: racha.ultimoLogin,
-        graceUsados: racha.graceUsados,
-      });
-      return { yaReclamado: false, puntos: 0, racha, dia7Disponible: true, nuevoSaldo: d.saldoPuntos || 0 };
+  dailyLogin: async () => api.post('/v1/points/daily-login'),
+
+  claimWheelReward: async () => api.post('/v1/points/wheel'),
+
+  getWheelPrizes: async () => {
+    try {
+      const d = await api.get('/v1/points/wheel/prizes');
+      const prizes = d.prizes || d.data || d;
+      return Array.isArray(prizes) ? prizes : WHEEL_PRIZES.map((p) => ({ puntos: p.puntos, label: p.label }));
+    } catch {
+      return WHEEL_PRIZES.map((p) => ({ puntos: p.puntos, label: p.label }));
     }
-    await updateDoc(ref, {
-      saldoPuntos: increment(racha.puntos),
-      totalAcumulado: increment(racha.puntos),
-      rachaLoginDias: racha.dias,
-      ultimoLoginDate: racha.ultimoLogin,
-      graceUsados: racha.graceUsados,
-    });
-    await addDoc(collection(db, 'puntos_movimientos'), {
-      uid: u.uid, tipo: 'login_diario', puntos: racha.puntos,
-      descripcion: `Login diario día ${racha.dias}`,
-      createdAt: Timestamp.now(),
-    });
-    return { yaReclamado: false, puntos: racha.puntos, racha, nuevoSaldo: (d.saldoPuntos || 0) + racha.puntos };
   },
 
-  claimWheelReward: async () => {
-    const u = await requireUser();
-    const ref = doc(db, 'usuarios', u.uid);
-    const snap = await getDoc(ref);
-    const d = snap.data() || {};
-    const prize = spinWheel();
-    await updateDoc(ref, {
-      saldoPuntos: increment(prize.puntos),
-      totalAcumulado: increment(prize.puntos),
-      rachaLoginDias: 0,
-      ultimoLoginDate: new Date().toISOString().split('T')[0],
-      graceUsados: 0,
-    });
-    await addDoc(collection(db, 'puntos_movimientos'), {
-      uid: u.uid, tipo: 'ruleta_dia7', puntos: prize.puntos,
-      descripcion: `Ruleta día 7: ${prize.label}`,
-      createdAt: Timestamp.now(),
-    });
-    return { puntos: prize.puntos, label: prize.label, nuevoSaldo: (d.saldoPuntos || 0) + prize.puntos };
-  },
+  redeem: async (puntos) => api.post('/v1/points/redeem', { puntos }),
 
-  getWheelPrizes: () => WHEEL_PRIZES.map(p => ({ puntos: p.puntos, label: p.label })),
-
-  redeem: async (puntos) => {
-    const u = await requireUser();
-    const ref = doc(db, 'usuarios', u.uid);
-    const snap = await getDoc(ref);
-    const d = snap.data() || {};
-    if ((d.saldoPuntos || 0) < puntos) throw new Error('Saldo insuficiente');
-    await updateDoc(ref, { saldoPuntos: increment(-puntos), totalCanjeado: increment(puntos) });
-    await addDoc(collection(db, 'puntos_movimientos'), {
-      uid: u.uid, tipo: 'canje_descuento', puntos: -puntos,
-      descripcion: `Canje de ${puntos} puntos`,
-      createdAt: Timestamp.now(),
-    });
-    return { nuevoSaldo: (d.saldoPuntos || 0) - puntos };
-  },
-
-  review: async (data) => {
-    const u = await requireUser();
-    const ref = doc(db, 'usuarios', u.uid);
-    const snap = await getDoc(ref);
-    const d = snap.data() || {};
-    const pts = 20;
-    await updateDoc(ref, { saldoPuntos: increment(pts), totalAcumulado: increment(pts) });
-    await addDoc(collection(db, 'puntos_movimientos'), {
-      uid: u.uid, tipo: 'resena', puntos: pts,
-      descripcion: `Reseña reseña`,
-      createdAt: Timestamp.now(),
-    });
-    return { puntos: pts, nuevoSaldo: (d.saldoPuntos || 0) + pts };
-  },
+  review: async () => api.post('/v1/points/review', {}),
 };
 
-/* ────────────── RESERVATIONS ────────────── */
-
-function genCodigo() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
+/* ────────────── RESERVATIONS (legacy api.js) ────────────── */
 
 export const reservationsApi = {
   create: async (data) => {
-    const u = await requireUser();
-    const codigo = genCodigo();
     const rId = String(data.restauranteId || data.restaurante?.id || '');
-    const docRef = await addDoc(collection(db, 'reservas'), {
-      restaurantId: rId,
+    return api.post('/v1/reservations', {
       restauranteId: rId,
+      restaurantId: rId,
       nombreRestaurante: data.restaurante?.nombre || data.nombreRestaurante,
-      uid: u.uid,
-      usuarioNombre: u.displayName || u.email,
-      usuarioEmail: u.email,
       fecha: data.fecha,
       hora: data.hora,
       comensales: Number(data.comensales),
       comentarios: data.comentarios || '',
-      codigo,
-      estado: 'pendiente',
-      createdAt: Timestamp.now(),
+      usuarioNombre: data.usuarioNombre || '',
+      usuarioEmail: data.usuarioEmail || '',
     });
-    return { id: docRef.id, codigo };
   },
 
   list: async (params = {}) => {
-    const u = await requireUser();
-    const constraints = [where('uid', '==', u.uid), orderBy('fecha', 'desc')];
-    if (params.estado) constraints.splice(1, 0, where('estado', '==', params.estado));
-    const q = query(collection(db, 'reservas'), ...constraints, limit(100));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const q = params.estado ? `?estado=${encodeURIComponent(params.estado)}` : '';
+    const d = await api.get(`/v1/reservations${q}`);
+    return d.data || d;
   },
 
   cancel: async (id) => {
-    await updateDoc(doc(db, 'reservas', id), { estado: 'cancelada', updatedAt: Timestamp.now() });
+    await api.put(`/v1/reservations/${id}/cancel`);
     return { ok: true };
   },
 
   complete: async (id, precioBase) => {
-    await updateDoc(doc(db, 'reservas', id), { estado: 'completada', precioBase, updatedAt: Timestamp.now() });
+    await api.put(`/v1/reservations/${id}/complete`, { precioBase });
     return { ok: true };
   },
 };
@@ -229,62 +85,32 @@ export const reservationsApi = {
 
 export const ticketsApi = {
   list: async () => {
-    const u = await requireUser();
-    const q = query(collection(db, 'tickets'), where('uid', '==', u.uid), orderBy('createdAt', 'desc'), limit(50));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const d = await api.get('/v1/tickets');
+    return d.data || d;
   },
-  get: async (id) => {
-    const snap = await getDoc(doc(db, 'tickets', id));
-    if (!snap.exists()) throw new Error('Ticket no encontrado');
-    return { id: snap.id, ...snap.data() };
-  },
+  get: async (id) => api.get(`/v1/tickets/${id}`),
 };
 
 /* ────────────── INVITATIONS ────────────── */
 
 export const invitationsApi = {
-  create: async (email) => {
-    const u = await requireUser();
-    const snap = await getDocs(query(collection(db, 'invitaciones'), where('creadorUid', '==', u.uid)));
-    const thisMonth = snap.docs.filter(d => {
-      const c = d.data().createdAt?.toDate ? d.data().createdAt.toDate() : new Date(d.data().createdAt);
-      const now = new Date();
-      return c.getMonth() === now.getMonth() && c.getFullYear() === now.getFullYear();
-    });
-    if (thisMonth.length >= 5) throw new Error('Límite de 5 invitaciones por mes');
-    const codigo = Math.random().toString(36).substring(2, 10).toUpperCase();
-    const docRef = await addDoc(collection(db, 'invitaciones'), {
-      creadorUid: u.uid, emailInvitado: email, codigo,
-      estado: 'pendiente', reservasAmigo: 0,
-      createdAt: Timestamp.now(),
-    });
-    return { id: docRef.id, codigo, email, estado: 'pendiente' };
-  },
+  create: async (email) => api.post('/v1/invite', { email }),
 
-  accept: async (codigo) => {
-    const u = await requireUser();
-    const q = query(collection(db, 'invitaciones'), where('codigo', '==', codigo));
-    const snap = await getDocs(q);
-    if (snap.empty) throw new Error('Código no válido');
-    const invDoc = snap.docs[0];
-    const inv = invDoc.data();
-    if (inv.emailInvitado !== u.email) throw new Error('Este código no es para ti');
-    if (inv.estado !== 'pendiente') throw new Error('Invitación ya usada');
-    await updateDoc(invDoc.ref, { estado: 'aceptada', aceptadaPor: u.uid, aceptadaEn: Timestamp.now() });
-    return { ok: true, creadorUid: inv.creadorUid };
-  },
+  accept: async (codigo) => api.post('/v1/invite/accept', { codigo }),
 
   getMy: async () => {
-    const u = await requireUser();
-    const [enviadasSnap, aceptadasSnap] = await Promise.all([
-      getDocs(query(collection(db, 'invitaciones'), where('creadorUid', '==', u.uid), orderBy('createdAt', 'desc'))),
-      getDocs(query(collection(db, 'invitaciones'), where('aceptadaPor', '==', u.uid))),
-    ]);
+    const d = await api.get('/v1/invite/my');
+    const enviadas = (d.enviadas || d.invitaciones || []).map((inv) => ({
+      ...inv,
+      emailInvitado: inv.emailInvitado || inv.invitadoEmail || '',
+      link: inv.link || null,
+    }));
+    const aceptadas = d.aceptadas ?? 0;
     return {
-      enviadas: enviadasSnap.docs.map(d => ({ id: d.id, ...d.data() })),
-      aceptadas: aceptadasSnap.size,
-      invitaciones: enviadasSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+      enviadas,
+      aceptadas,
+      invitaciones: enviadas,
+      puntosTotales: typeof d.puntosTotales === 'number' ? d.puntosTotales : aceptadas * 200,
     };
   },
 };
@@ -293,27 +119,23 @@ export const invitationsApi = {
 
 export const promotionsApi = {
   list: async (params = {}) => {
-    const constraints = [where('estado', '==', 'activa'), orderBy('createdAt', 'desc')];
-    const q = query(collection(db, 'promociones'), ...constraints, limit(20));
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const q = new URLSearchParams();
+    if (params.estado) q.set('estado', params.estado);
+    if (params.restauranteId) q.set('restauranteId', params.restauranteId);
+    const qs = q.toString();
+    const d = await api.get(`/v1/promotions${qs ? `?${qs}` : ''}`, { auth: false });
+    return d.data || d;
   },
-  getStats: async (id) => {
-    const snap = await getDoc(doc(db, 'promociones', id));
-    if (!snap.exists()) throw new Error('Promoción no encontrada');
-    return { id: snap.id, ...snap.data() };
-  },
+  getStats: async (id) => api.get(`/v1/promotions/${id}/stats`),
 };
 
 /* ────────────── INTERACTIONS ────────────── */
 
 export const interactionsApi = {
   track: async (restauranteId, tipo) => {
-    const u = getUser();
-    await addDoc(collection(db, 'interacciones'), {
-      uid: u?.uid || 'anon', restauranteId, tipo,
-      createdAt: Timestamp.now(),
-    });
+    try {
+      await api.post('/v1/interactions', { restauranteId, tipo });
+    } catch { /* best-effort */ }
     return { ok: true };
   },
 };
@@ -321,485 +143,40 @@ export const interactionsApi = {
 /* ────────────── ADMIN ────────────── */
 
 export const adminApi = {
-  getRevenue: async (params = {}) => {
-    const snap = await getDocs(query(collection(db, 'tickets'), orderBy('createdAt', 'desc'), limit(500)));
-    const tickets = snap.docs.map(d => d.data());
-    const total = tickets.reduce((s, t) => s + (t.totalPagado || 0), 0);
-    const comisiones = tickets.reduce((s, t) => s + (t.importeComision || 0), 0);
-    return { total, comisiones, tickets: tickets.length };
+  getRevenue: async () => api.get('/v1/admin/revenue'),
+  getFraudFlags: async () => {
+    const d = await api.get('/v1/admin/fraud-flags');
+    return d.data || d;
   },
-  getFraudFlags: async () => [],
 };
 
-/* ────────────── DASHBOARD (restaurante + admin) ────────────── */
-
-async function fetchReservasForRestaurant(restaurantId) {
-  const tryQuery = async (field) => {
-    try {
-      const q = query(collection(db, 'reservas'), where(field, '==', restaurantId), orderBy('fecha', 'desc'), limit(500));
-      const snap = await getDocs(q);
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch (e) {
-      if (e?.code === 'failed-precondition' || String(e?.message || '').includes('index')) {
-        try {
-          const q2 = query(collection(db, 'reservas'), where(field, '==', restaurantId), limit(500));
-          const snap2 = await getDocs(q2);
-          const arr = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
-          arr.sort((a, b) => `${b.fecha||''} ${b.hora||''}`.localeCompare(`${a.fecha||''} ${a.hora||''}`));
-          return arr;
-        } catch { return []; }
-      }
-      throw e;
-    }
-  };
-  const [a, b] = await Promise.all([tryQuery('restaurantId'), tryQuery('restauranteId')]);
-  const map = new Map();
-  for (const r of a) map.set(r.id, r);
-  for (const r of b) if (!map.has(r.id)) map.set(r.id, r);
-  const merged = Array.from(map.values());
-  merged.sort((x, y) => `${y.fecha||''} ${y.hora||''}`.localeCompare(`${x.fecha||''} ${x.hora||''}`));
-  return merged;
-}
-
-const ESTADOS_PENDIENTES = new Set(['pendiente', 'confirmada', 'activa', 'en_mesa', 'en mesa']);
-const isPendiente = (s) => ESTADOS_PENDIENTES.has(String(s||'').toLowerCase());
-const isCompletada = (s) => ['completada','pagado','pagada'].includes(String(s||'').toLowerCase());
-const isCancelada = (s) => String(s||'').toLowerCase() === 'cancelada';
-const isNoShow = (s) => ['no_show','no-show','no show'].includes(String(s||'').toLowerCase());
+/* ────────────── DASHBOARD ────────────── */
 
 export const dashboardApi = {
   listMyRestaurants: async (currentId) => {
-    const u = await requireUser();
-    const ids = new Set();
-    const meta = new Map(); // id -> {nombre, ciudad} from negocios
-    const seenIds = new Set();
-    if (currentId) ids.add(currentId);
-
-    const [userDoc, restByUid, negSnap, restByEmail] = await Promise.all([
-      getDoc(doc(db, 'usuarios', u.uid)).catch(() => null),
-      getDocs(query(collection(db, 'restaurants'), where('uid', '==', u.uid))).catch((e) => {
-        console.warn('listMyRestaurants restaurants/uid', e?.code || e?.message);
-        return null;
-      }),
-      getDocs(query(collection(db, 'negocios'), where('uid', '==', u.uid))).catch((e) => {
-        console.warn('listMyRestaurants negocios/uid', e?.code || e?.message);
-        return null;
-      }),
-      u.email
-        ? getDocs(query(collection(db, 'restaurants'), where('email', '==', u.email))).catch(() => null)
-        : Promise.resolve(null),
-    ]);
-
-    const userData = userDoc && userDoc.exists() ? userDoc.data() : {};
-    if (Array.isArray(userData.restaurantIds)) userData.restaurantIds.forEach((id) => id && ids.add(id));
-    if (userData.restaurantId) ids.add(userData.restaurantId);
-    if (restByUid) restByUid.docs.forEach((d) => ids.add(d.id));
-    if (restByEmail) restByEmail.docs.forEach((d) => ids.add(d.id));
-
-    // Aprobadas: siempre entran (misma fuente que Cuenta). Si no traen restaurantId, se resuelven por nombre.
-    const aprobadas = [];
-    if (negSnap) {
-      negSnap.docs.forEach((d) => {
-        const n = d.data();
-        if (n?.estado !== 'aprobada') return;
-        aprobadas.push(n);
-        meta.set(n.restaurantId || `neg:${d.id}`, { nombre: n.nombre || '', ciudad: n.ciudad || '' });
-        if (n.restaurantId) ids.add(n.restaurantId);
-      });
-    }
-
-    // Resolve aprobadas sin restaurantId por nombre (cruce con restaurants)
-    const sinId = aprobadas.filter((n) => !n.restaurantId);
-    if (sinId.length) {
-      await Promise.all(sinId.map(async (n) => {
-        try {
-          const snap = await getDocs(query(collection(db, 'restaurants'), where('nombre', '==', n.nombre)));
-          const match = snap.docs.find((d) => {
-            const r = d.data();
-            return r.uid === u.uid || (n.email && r.email === n.email) || (!r.uid && !r.email);
-          }) || snap.docs[0];
-          if (match) {
-            ids.add(match.id);
-            meta.set(match.id, { nombre: n.nombre || '', ciudad: n.ciudad || '' });
-            // self-heal: stamp uid if missing (rules allow isEmpresa)
-            const rd = match.data();
-            if (!rd.uid && (rd.email === u.email || rd.email === n.email)) {
-              updateDoc(doc(db, 'restaurants', match.id), { uid: u.uid, email: rd.email || u.email || '' }).catch(() => {});
-            }
-          } else {
-            // placeholder entry so it still shows (id synthetic won't switch — skip)
-            console.warn('listMyRestaurants: aprobada sin restaurants doc', n.nombre);
-          }
-        } catch (e) {
-          console.warn('listMyRestaurants resolve nombre', n.nombre, e?.code || e?.message);
-        }
-      }));
-    }
-
-    const idList = [...ids].filter((id) => id && !String(id).startsWith('neg:'));
-    const docs = await Promise.all(idList.map((id) => getDoc(doc(db, 'restaurants', id)).catch(() => null)));
-
-    const lista = [];
-    const seen = new Set();
-    idList.forEach((id, i) => {
-      if (seen.has(id)) return;
-      const d = docs[i];
-      const m = meta.get(id);
-      if (d && d.exists()) {
-        seen.add(id);
-        const rd = d.data();
-        lista.push({ id, nombre: rd.nombre || m?.nombre || '', ciudad: rd.ciudad || m?.ciudad || '' });
-        // self-heal uid on owned restaurants (email match)
-        if (!rd.uid && u.email && rd.email === u.email) {
-          updateDoc(doc(db, 'restaurants', id), { uid: u.uid }).catch(() => {});
-        }
-      } else if (m) {
-        seen.add(id);
-        lista.push({ id, nombre: m.nombre || 'Restaurante', ciudad: m.ciudad || '' });
-      }
-    });
-
-    // Fallback final: negocios aprobadas que no cuajaron en restaurants — igual que en Cuenta
-    aprobadas.forEach((n) => {
-      const already = lista.some((r) => r.nombre === n.nombre && (!n.restaurantId || r.id === n.restaurantId));
-      if (!already && n.restaurantId && !seen.has(n.restaurantId)) {
-        lista.push({ id: n.restaurantId, nombre: n.nombre || 'Restaurante', ciudad: n.ciudad || '' });
-      }
-    });
-
-    if (currentId && !lista.some((r) => r.id === currentId)) {
-      const d = docs[idList.indexOf(currentId)];
-      const m = meta.get(currentId);
-      lista.unshift({
-        id: currentId,
-        nombre: (d && d.exists() && d.data().nombre) || m?.nombre || 'Restaurante activo',
-        ciudad: (d && d.exists() && d.data().ciudad) || m?.ciudad || '',
-      });
-    }
-
-    console.info('listMyRestaurants', {
-      uid: u.uid,
-      sources: {
-        restaurantIds: userData.restaurantIds || null,
-        restaurantId: userData.restaurantId || null,
-        byUid: restByUid?.docs?.length ?? 'err',
-        byEmail: restByEmail?.docs?.length ?? 'err',
-        negocios: negSnap?.docs?.length ?? 'err',
-        aprobadas: aprobadas.length,
-      },
-      count: lista.length,
-      lista,
-    });
-    return lista;
+    const q = currentId ? `?currentId=${encodeURIComponent(currentId)}` : '';
+    const d = await api.get(`/v1/dashboard/my-restaurants${q}`);
+    return Array.isArray(d) ? d : d.data || [];
   },
   getMyRestaurant: async (restaurantIdOverride) => {
-    const u = await requireUser();
-    const userDoc = await getDoc(doc(db, 'usuarios', u.uid));
-    const userData = userDoc.exists() ? userDoc.data() : {};
-    let restaurantId = restaurantIdOverride || null;
-
-    if (!restaurantId) {
-      const stored = typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('mira_rest_activo') : null;
-      if (stored) {
-        const check = await getDoc(doc(db, 'restaurants', stored)).catch(() => null);
-        if (check && check.exists()) restaurantId = stored;
-      }
-    }
-    if (!restaurantId) restaurantId = userData?.restaurantId || null;
-
-    if (!restaurantId) {
-      const q = query(collection(db, 'restaurants'), where('uid', '==', u.uid), limit(1));
-      const snap = await getDocs(q);
-      if (snap.empty) throw new Error('Restaurante no encontrado');
-      restaurantId = snap.docs[0].id;
-    }
-
-    const restDoc = await getDoc(doc(db, 'restaurants', restaurantId));
-    if (!restDoc.exists()) throw new Error('Restaurante no encontrado');
-    const restaurante = { id: restDoc.id, ...restDoc.data() };
-
-    const [reservas, ticketsSnap, finanzasSnap] = await Promise.all([
-      fetchReservasForRestaurant(restaurantId),
-      getDocs(query(collection(db, 'tickets'), where('restaurantId', '==', restaurantId), orderBy('createdAt', 'desc'), limit(500))).catch(async (e) => {
-        if (e?.code === 'failed-precondition') {
-          const s = await getDocs(query(collection(db, 'tickets'), where('restaurantId', '==', restaurantId), limit(500)));
-          return s;
-        }
-        throw e;
-      }),
-      getDoc(doc(db, 'finanzas_restaurante', restaurantId)).catch(()=> ({ exists: ()=> false, data: ()=> null })),
-    ]);
-    const tickets = ticketsSnap.docs ? ticketsSnap.docs.map(d => ({ id: d.id, ...d.data() })) : ticketsSnap;
-    const finanzas = finanzasSnap && finanzasSnap.exists ? (finanzasSnap.exists() ? finanzasSnap.data() : null) : null;
-
-    const hoy = new Date().toISOString().split('T')[0];
-    const totalReservas = reservas.length;
-    const reservasCompletadas = reservas.filter(r => isCompletada(r.estado)).length;
-    const reservasCanceladas = reservas.filter(r => isCancelada(r.estado)).length;
-    const reservasNoShow = reservas.filter(r => isNoShow(r.estado)).length;
-    const reservasPendientes = reservas.filter(r => isPendiente(r.estado)).length;
-    const reservasHoy = reservas.filter(r => r.fecha === hoy && !isCancelada(r.estado)).length;
-    // Si existe finanzas persistida, úsala (no es texto plano); si no, calcula de tickets
-    const totalFacturacion = finanzas ? (Number(finanzas.ingresosBrutos)||0) : tickets.reduce((s, t) => s + (t.totalPagado || 0), 0);
-    const totalComisiones = finanzas ? (Number(finanzas.comisiones)||0) : tickets.reduce((s, t) => s + (t.importeComision || 0), 0);
-    const totalTicketsFin = finanzas ? (Number(finanzas.totalTickets)|| tickets.length) : tickets.length;
-    const comensalesFin = finanzas ? (Number(finanzas.comensalesAtendidos)||0) : 0;
-
-    const proximasReservas = reservas
-      .filter(r => r.fecha >= hoy && isPendiente(r.estado))
-      .sort((a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`))
-      .slice(0, 20);
-
-    // Reservas de hoy para la tabla del día (incluye todos los no cancelados)
-    const reservasHoyList = reservas
-      .filter(r => r.fecha === hoy && !isCancelada(r.estado))
-      .sort((a,b)=> String(a.hora||'').localeCompare(String(b.hora||'')));
-
-    // Reservas que aún pueden/pueden recibir ticket: no canceladas y sin ticketId
-    // (incluye pasadas completadas sin ticket, hoy y futuras pendientes)
-    const reservasParaTicket = reservas
-      .filter(r => !isCancelada(r.estado) && !r.ticketId)
-      .sort((a,b)=> `${b.fecha||''} ${b.hora||''}`.localeCompare(`${a.fecha||''} ${a.hora||''}`))
-      .slice(0, 50);
-
-    // Denominador "Tickets Subidos": reservas no canceladas (las canceladas no requieren ticket)
-    const reservasNoCanceladas = reservas.filter(r => !isCancelada(r.estado)).length;
-
-    const ingresosPorMes = {};
-    tickets.forEach(t => {
-      const fecha = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
-      const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-      if (!ingresosPorMes[mes]) ingresosPorMes[mes] = { facturacion: 0, comisiones: 0, tickets: 0 };
-      ingresosPorMes[mes].facturacion += t.totalPagado || 0;
-      ingresosPorMes[mes].comisiones += t.importeComision || 0;
-      ingresosPorMes[mes].tickets += 1;
-    });
-
-    return {
-      restaurante,
-      finanzas,
-      stats: { totalReservas, reservasCompletadas, reservasCanceladas, reservasNoShow, reservasPendientes, reservasHoy, totalFacturacion: Math.round(totalFacturacion * 100) / 100, totalComisiones: Math.round(totalComisiones * 100) / 100, ticketPromedio: totalTicketsFin > 0 ? Math.round(totalFacturacion / totalTicketsFin * 100) / 100 : 0, totalTicketsFin, comensalesFin, reservasNoCanceladas },
-      proximasReservas,
-      reservasHoy: reservasHoyList,
-      reservasParaTicket,
-      ingresosPorMes,
-      ticketsRecientes: tickets.slice(0, 20),
-    };
+    const q = restaurantIdOverride ? `?id=${encodeURIComponent(restaurantIdOverride)}` : '';
+    return api.get(`/v1/dashboard/my-restaurant${q}`);
   },
-
-  getRestaurant: async (restaurantId) => {
-    const restDoc = await getDoc(doc(db, 'restaurants', restaurantId));
-    if (!restDoc.exists()) throw new Error('Restaurante no encontrado');
-    const restaurante = { id: restDoc.id, ...restDoc.data() };
-
-    const [reservas, ticketsSnap, finanzasSnap] = await Promise.all([
-      fetchReservasForRestaurant(restaurantId),
-      getDocs(query(collection(db, 'tickets'), where('restaurantId', '==', restaurantId), orderBy('createdAt', 'desc'), limit(500))).catch(async (e) => {
-        if (e?.code === 'failed-precondition') {
-          const s = await getDocs(query(collection(db, 'tickets'), where('restaurantId', '==', restaurantId), limit(500)));
-          return s;
-        }
-        throw e;
-      }),
-      getDoc(doc(db, 'finanzas_restaurante', restaurantId)).catch(()=> ({ exists: ()=> false, data: ()=> null })),
-    ]);
-    const tickets = ticketsSnap.docs ? ticketsSnap.docs.map(d => ({ id: d.id, ...d.data() })) : ticketsSnap;
-    const finanzas = finanzasSnap && finanzasSnap.exists ? (finanzasSnap.exists() ? finanzasSnap.data() : null) : null;
-
-    const hoy = new Date().toISOString().split('T')[0];
-    const totalReservas = reservas.length;
-    const reservasCompletadas = reservas.filter(r => isCompletada(r.estado)).length;
-    const reservasCanceladas = reservas.filter(r => isCancelada(r.estado)).length;
-    const reservasNoShow = reservas.filter(r => isNoShow(r.estado)).length;
-    const reservasPendientes = reservas.filter(r => isPendiente(r.estado)).length;
-    const totalFacturacion = finanzas ? (Number(finanzas.ingresosBrutos)||0) : tickets.reduce((s, t) => s + (t.totalPagado || 0), 0);
-    const totalComisiones = finanzas ? (Number(finanzas.comisiones)||0) : tickets.reduce((s, t) => s + (t.importeComision || 0), 0);
-
-    const ingresosPorMes = {};
-    tickets.forEach(t => {
-      const fecha = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
-      const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-      if (!ingresosPorMes[mes]) ingresosPorMes[mes] = { facturacion: 0, comisiones: 0, tickets: 0 };
-      ingresosPorMes[mes].facturacion += t.totalPagado || 0;
-      ingresosPorMes[mes].comisiones += t.importeComision || 0;
-      ingresosPorMes[mes].tickets += 1;
-    });
-
-    return {
-      restaurante,
-      stats: { totalReservas, reservasCompletadas, reservasCanceladas, reservasNoShow, reservasPendientes, totalFacturacion: Math.round(totalFacturacion * 100) / 100, totalComisiones: Math.round(totalComisiones * 100) / 100, ticketPromedio: tickets.length > 0 ? Math.round(totalFacturacion / tickets.length * 100) / 100 : 0 },
-      proximasReservas: reservas.filter(r => r.fecha >= hoy && isPendiente(r.estado)).slice(0, 20),
-      reservasHoy: reservas.filter(r => r.fecha === hoy && !isCancelada(r.estado)).sort((a,b)=> String(a.hora||'').localeCompare(String(b.hora||''))),
-      ingresosPorMes,
-      ticketsRecientes: tickets.slice(0, 20),
-    };
-  },
-
-  getAdmin: async () => {
-    const [usersSnap, reservasSnap, ticketsSnap, promosSnap] = await Promise.all([
-      getDocs(collection(db, 'usuarios')),
-      getDocs(query(collection(db, 'reservas'), orderBy('createdAt', 'desc'), limit(2000))),
-      getDocs(query(collection(db, 'tickets'), orderBy('createdAt', 'desc'), limit(2000))),
-      getDocs(collection(db, 'promociones')),
-    ]);
-
-    const users = usersSnap.docs.map(d => ({ uid: d.id, ...d.data() }));
-    const reservas = reservasSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const tickets = ticketsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    const totalUsuarios = usersSnap.size;
-    const usuariosActivos = users.filter(u => u.tipo !== 'admin').length;
-    const totalReservas = reservas.length;
-    const reservasCompletadas = reservas.filter(r => r.estado === 'completada').length;
-    const reservasCanceladas = reservas.filter(r => r.estado === 'cancelada').length;
-    const reservasNoShow = reservas.filter(r => r.estado === 'no_show').length;
-    const totalFacturacion = tickets.reduce((s, t) => s + (t.totalPagado || 0), 0);
-    const totalComisiones = tickets.reduce((s, t) => s + (t.importeComision || 0), 0);
-
-    const reservasPorRestaurante = {};
-    reservas.forEach(r => {
-      const key = r.restaurantId || 'unknown';
-      if (!reservasPorRestaurante[key]) reservasPorRestaurante[key] = { nombre: r.nombreRestaurante || key, total: 0, completadas: 0, canceladas: 0, noShow: 0 };
-      reservasPorRestaurante[key].total++;
-      if (r.estado === 'completada') reservasPorRestaurante[key].completadas++;
-      if (r.estado === 'cancelada') reservasPorRestaurante[key].canceladas++;
-      if (r.estado === 'no_show') reservasPorRestaurante[key].noShow++;
-    });
-
-    const facturacionPorMes = {};
-    tickets.forEach(t => {
-      const fecha = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt);
-      const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-      if (!facturacionPorMes[mes]) facturacionPorMes[mes] = { facturacion: 0, comisiones: 0, tickets: 0, reservas: 0 };
-      facturacionPorMes[mes].facturacion += t.totalPagado || 0;
-      facturacionPorMes[mes].comisiones += t.importeComision || 0;
-      facturacionPorMes[mes].tickets += 1;
-    });
-    reservas.forEach(r => {
-      const fecha = r.createdAt?.toDate ? r.createdAt.toDate() : new Date(r.createdAt);
-      const mes = `${fecha.getFullYear()}-${String(fecha.getMonth() + 1).padStart(2, '0')}`;
-      if (facturacionPorMes[mes]) facturacionPorMes[mes].reservas++;
-    });
-
-    return {
-      stats: {
-        totalUsuarios, usuariosActivos, totalReservas, reservasCompletadas, reservasCanceladas, reservasNoShow,
-        totalFacturacion: Math.round(totalFacturacion * 100) / 100,
-        totalComisiones: Math.round(totalComisiones * 100) / 100,
-        totalPromociones: promosSnap.size,
-        promosActivas: promosSnap.docs.filter(d => d.data().estado === 'activa').length,
-      },
-      reservasPorRestaurante,
-      facturacionPorMes,
-      ticketsRecientes: tickets.slice(0, 30),
-    };
-  },
-
+  getRestaurant: async (restaurantId) => api.get(`/v1/dashboard/restaurant/${restaurantId}`),
+  getAdmin: async () => api.get('/v1/dashboard/admin'),
   getUsers: async () => {
-    const snap = await getDocs(collection(db, 'usuarios'));
-    return snap.docs.map(d => ({
-      uid: d.id,
-      nombre: d.data().nombre,
-      email: d.data().email,
-      tipo: d.data().tipo,
-      saldoPuntos: d.data().saldoPuntos || 0,
-      createdAt: d.data().createdAt,
-    }));
+    const d = await api.get('/v1/dashboard/users');
+    return Array.isArray(d) ? d : d.data || d;
   },
-
-  updateRestaurant: async (restaurantId, data) => {
-    const allowed = ['nombre', 'direccion', 'telefono', 'email', 'horarios', 'activo', 'ciudad', 'zona', 'precio', 'cocina', 'descripcion', 'comisionPct', 'maxReservasPorHora'];
-    const update = {};
-    allowed.forEach(k => { if (data[k] !== undefined) update[k] = data[k]; });
-    update.updatedAt = Timestamp.now();
-    await updateDoc(doc(db, 'restaurants', restaurantId), update);
-    return { updated: true };
-  },
-
-  updateReservationStatus: async (reservaId, status) => {
-    await updateDoc(doc(db, 'reservas', reservaId), { estado: status, updatedAt: Timestamp.now() });
-    return { updated: true, status };
-  },
-
-  // Nuevo: subir ticket con precio + comisión 8% + confirmación asistencia en una transacción
-  // REGLA: UN solo ticket por reserva (independiente del nº de comensales)
-  subirTicket: async (reservaId, { totalPagado, asistio = true, fileName = "", tipoDocumento = "Ticket TPV" } = {}) => {
-    const u = await requireUser();
-    const reservaRef = doc(db, 'reservas', reservaId);
-    const snap = await getDoc(reservaRef);
-    if (!snap.exists()) throw new Error('Reserva no encontrada');
-    const r = snap.data();
-    // 1 ticket por reserva: si ya tiene ticketId, bloquear
-    if (r.ticketId) throw new Error('Esta reserva ya tiene un ticket registrado (máx. 1 por reserva)');
-    // Doble comprobación por si ticketId no se llegó a escribir
-    const yaExiste = await getDocs(query(collection(db, 'tickets'), where('reservaId', '==', reservaId), limit(1)));
-    if (!yaExiste.empty) throw new Error('Esta reserva ya tiene un ticket registrado (máx. 1 por reserva)');
-    const rid = String(r.restaurantId || r.restauranteId || "");
-    if (!rid) throw new Error('Reserva sin restaurante vinculado');
-    const total = Number(totalPagado);
-    if (!(total > 0)) throw new Error('Importe inválido');
-    const comision = Math.round(total * 0.08 * 100) / 100;
-    const neto = Math.round((total - comision) * 100) / 100;
-    const batch = writeBatch(db);
-    const ticketRef = doc(collection(db, 'tickets'));
-    batch.set(ticketRef, {
-      restaurantId: rid,
-      restauranteId: rid,
-      reservaId,
-      codigoReserva: r.codigo || reservaId.slice(0, 6).toUpperCase(),
-      totalPagado: total,
-      importeComision: comision,
-      netoRestaurante: neto,
-      comisionPct: 8,
-      asistio: Boolean(asistio),
-      fileName: String(fileName || ""),
-      tipoDocumento: String(tipoDocumento || "Ticket TPV"),
-      fecha: r.fecha || new Date().toISOString().split('T')[0],
-      clienteNombre: r.usuarioNombre || r.usuarioEmail || r.email || "",
-      clienteUid: r.uid || "",
-      restauranteNombre: r.nombreRestaurante || r.restaurantName || r.nombre || "",
-      createdAt: Timestamp.now(),
-      createdBy: u.uid,
-      uid: r.uid || u.uid,
-    });
-    const nuevoEstado = asistio ? 'completada' : 'no_show';
-    batch.update(reservaRef, { estado: nuevoEstado, totalPagado: total, importeComision: comision, netoRestaurante: neto, ticketId: ticketRef.id, updatedAt: Timestamp.now(), asistio: Boolean(asistio) });
-    // Finanzas acumuladas (no toca restaurants): se guarda en colección dedicada
-    // totalTickets +1 SIEMPRE = 1 por reserva, no por comensal
-    const finanzasRef = doc(db, 'finanzas_restaurante', rid);
-    const comensales = Number(r.comensales) || 0;
-    batch.set(finanzasRef, {
-      restaurantId: rid,
-      ingresosBrutos: increment(total),
-      comisiones: increment(comision),
-      neto: increment(neto),
-      totalTickets: increment(1),
-      comensalesAtendidos: increment(asistio ? comensales : 0),
-      baseImponible: increment(Math.round(total/1.10*100)/100),
-      updatedAt: Timestamp.now(),
-      createdAt: Timestamp.now(),
-    }, { merge: true });
-    await batch.commit();
-    return { ticketId: ticketRef.id, comision, neto, estado: nuevoEstado };
-  },
-
-  confirmAttendance: async (reservaId, data = {}) => {
-    await updateDoc(doc(db, 'reservas', reservaId), { estado: 'completada', updatedAt: Timestamp.now(), asistio: true, ...(data?.precioBase? { totalPagado: Number(data.precioBase), importeComision: Math.round(Number(data.precioBase)*0.08*100)/100 } : {}) });
-    return { updated: true, status: 'completada' };
-  },
-
-  markNoShow: async (reservaId) => {
-    await updateDoc(doc(db, 'reservas', reservaId), { estado: 'no_show', updatedAt: Timestamp.now(), asistio: false });
-    return { updated: true, status: 'no_show' };
-  },
-
-  addPointsManual: async (uid, cantidad, motivo) => {
-    await updateDoc(doc(db, 'usuarios', uid), { saldoPuntos: increment(cantidad) });
-    await addDoc(collection(db, 'puntos_movimientos'), {
-      uid, tipo: 'ajuste_admin', puntos: cantidad,
-      descripcion: motivo,
-      createdAt: Timestamp.now(),
-    });
-    return { updated: true };
-  },
+  updateRestaurant: async (restaurantId, data) => api.put(`/v1/dashboard/restaurant/${restaurantId}`, data),
+  updateReservationStatus: async (reservaId, status) =>
+    api.put(`/v1/dashboard/reservations/${reservaId}/status`, { status }),
+  subirTicket: async (reservaId, payload = {}) =>
+    api.post(`/v1/dashboard/reservations/${reservaId}/ticket`, payload),
+  confirmAttendance: async (reservaId, data = {}) =>
+    api.post(`/v1/dashboard/reservations/${reservaId}/confirm-attendance`, data),
+  markNoShow: async (reservaId) =>
+    api.post(`/v1/dashboard/reservations/${reservaId}/mark-no-show`, {}),
+  addPointsManual: async (uid, cantidad, motivo) =>
+    api.post('/v1/dashboard/points/add-manual', { uid, cantidad, motivo }),
 };

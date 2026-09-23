@@ -11,6 +11,8 @@ const TIPO_LABELS = {
   invitacion: 'Invitación aceptada',
   canje_descuento: 'Canje de puntos',
   ajuste_admin: 'Ajuste admin',
+  ajuste_admin_negativo: 'Ajuste admin',
+  wheel: 'Ruleta',
 };
 
 const TIPO_COLORS = {
@@ -23,7 +25,16 @@ const TIPO_COLORS = {
   invitacion: '#f57f17',
   canje_descuento: '#c62828',
   ajuste_admin: '#616161',
+  ajuste_admin_negativo: '#616161',
+  wheel: '#ff6f00',
 };
+
+function puntosDe(mov) {
+  // La API guarda el importe en `puntos` (no `cantidad`).
+  if (typeof mov.puntos === 'number') return mov.puntos;
+  if (typeof mov.cantidad === 'number') return mov.cantidad;
+  return 0;
+}
 
 export default function LedgerTable({ limit = 10, showFilters = false, usuario }) {
   const { ledger, fetchLedger, ledgerLoading } = usePointsStore();
@@ -50,36 +61,47 @@ export default function LedgerTable({ limit = 10, showFilters = false, usuario }
             <option value="promo_view">Vistas promo</option>
             <option value="promo_click">Clicks promo</option>
             <option value="canje_descuento">Canjes</option>
+            <option value="ajuste_admin">Ajustes admin</option>
           </select>
         </div>
       )}
       <table className="ledger-table__table">
         <thead>
           <tr>
-            <th>Tipo</th>
+            <th>Concepto</th>
             <th>Puntos</th>
-            <th>Saldo</th>
             <th>Fecha</th>
           </tr>
         </thead>
         <tbody>
-          {ledger.map((mov) => (
-            <tr key={mov.id}>
-              <td>
-                <span
-                  className="ledger-badge"
-                  style={{ backgroundColor: TIPO_COLORS[mov.tipo] || '#666' }}
-                >
-                  {TIPO_LABELS[mov.tipo] || mov.tipo}
-                </span>
-              </td>
-              <td className={`ledger-puntos ${mov.cantidad >= 0 ? 'positivo' : 'negativo'}`}>
-                {mov.cantidad >= 0 ? '+' : ''}{mov.cantidad}
-              </td>
-              <td>{mov.saldoResultante}</td>
-              <td>{new Date(mov.createdAt?.seconds ? mov.createdAt.seconds * 1000 : mov.createdAt).toLocaleDateString('es-ES')}</td>
-            </tr>
-          ))}
+          {ledger.map((mov) => {
+            const pts = puntosDe(mov);
+            return (
+              <tr key={mov.id}>
+                <td>
+                  <span
+                    className="ledger-badge"
+                    style={{ backgroundColor: TIPO_COLORS[mov.tipo] || '#666' }}
+                  >
+                    {TIPO_LABELS[mov.tipo] || mov.tipo}
+                  </span>
+                  {mov.descripcion ? (
+                    <div className="ledger-desc">{mov.descripcion}</div>
+                  ) : null}
+                </td>
+                <td className={`ledger-puntos ${pts >= 0 ? 'positivo' : 'negativo'}`}>
+                  {pts >= 0 ? '+' : ''}{pts}
+                </td>
+                <td>
+                  {new Date(
+                    mov.createdAt?.seconds
+                      ? mov.createdAt.seconds * 1000
+                      : mov.createdAt,
+                  ).toLocaleDateString('es-ES')}
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       {ledger.length === 0 && (

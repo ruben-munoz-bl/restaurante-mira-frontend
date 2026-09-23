@@ -1,16 +1,11 @@
 /**
- * Model — lectura de la colección 'restaurants' de Firestore.
- * NOTA: el SDK web no soporta proyección de campos (select), así que cada
- * doc viaja completo con sus 50 reseñas (~15 KB/doc, ~10 MB por carga total).
- * Si el tráfico crece, el paso natural es mover 'resenas' a una subcolección
- * y traerla solo al abrir el detalle (ver README).
+ * Model — lectura de restaurantes vía API (intermediario mira-api).
  */
-import { collection, getDocs, getDoc, doc, query, orderBy, limit, startAfter, getCountFromServer } from 'firebase/firestore';
-import { getDb } from './firebase.js';
+import { api } from './httpClient.js';
+import { imagenParaRestaurante } from '../models/restaurantModel.js';
 
 /** Restaurantes por tanda en la portada (scroll infinito). */
-export const TAMANO_PAGINA = 21;
-import { imagenParaRestaurante } from '../models/restaurantModel.js';
+export const TAMANO_PAGINA = 27;
 
 const PRECIOS_VALIDOS = ['€', '€€', '€€€'];
 
@@ -23,7 +18,7 @@ function mapearDoc(id, d) {
     cocina: categorias[0] ?? 'Mediterránea',
     categorias,
     precio: PRECIOS_VALIDOS.includes(d.precio) ? d.precio : '€€',
-    distanciaKm: null, // se calcula en el Controller con tu ubicación
+    distanciaKm: null,
     coords:
       typeof d.coordenadas?.latitud === 'number' && typeof d.coordenadas?.longitud === 'number'
         ? { lat: d.coordenadas.latitud, lng: d.coordenadas.longitud }
@@ -40,68 +35,54 @@ function mapearDoc(id, d) {
     zona: d.zona_busqueda || '',
     telefono: d.telefono || '',
     yelpUrl: d.yelp_url || '',
-    // La empresa los rellena en su formulario; en los 690 de Yelp no existen (null).
-    accesoDiscapacidad: d.accesoDiscapacidad ?? null, // true | false | null (sin info)
-    menuInfantil: d.menuInfantil ?? null, // true | false | null (sin info)
-    tronas: d.tronas ?? null, // sillas de bebé: true | false | null (sin info)
-    entornoTranquilo: d.entornoTranquilo ?? null, // true | false | null (sin info)
-    terraza: d.terraza ?? null, // true | false | null (sin info)
-    alergenos: d.alergenos || '', // texto libre del local; vacío = sin información
-    resenas, // 50 reseñas sintéticas para el detalle
+    accesoDiscapacidad: d.accesoDiscapacidad ?? null,
+    menuInfantil: d.menuInfantil ?? null,
+    tronas: d.tronas ?? null,
+    entornoTranquilo: d.entornoTranquilo ?? null,
+    terraza: d.terraza ?? null,
+    alergenos: d.alergenos || '',
+    resenas,
+    maxReservasPorHora: d.maxReservasPorHora ?? null,
   };
 }
 
-/**
- * Descarga TODA la colección (1 lectura por doc, ~690 en Cataluña).
- * Solo para vistas que necesitan el conjunto global (filtros/orden).
- * El filtrado posterior es 100% cliente, como exige el brief.
- * @returns {Promise<import('../models/restaurantModel.js').Restaurant[]>}
- */
 export async function fetchRestaurants() {
-  const snap = await getDocs(collection(getDb(), 'restaurants'));
-  return snap.docs.map((doc) => mapearDoc(doc.id, doc.data()));
+  const d = await api.get('/v1/restaurants?all=1', { auth: false });
+  const items = d.items || d.data || [];
+  return items.map((r) => mapearDoc(r.id, r));
 }
 
-// Portada ordenada por nota. Solo UN orderBy: usa el índice automático sin
-// composite. Los empates los resuelve el cursor (snapshot completo, preciso).
-function consultaPortada(cursor = null) {
-  const partes = [collection(getDb(), 'restaurants'), orderBy('rating_yelp', 'desc')];
-  if (cursor) partes.push(startAfter(cursor));
-  partes.push(limit(TAMANO_PAGINA));
-  return query(...partes);
-}
-
-function empaquetarPagina(snap) {
-  const items = snap.docs.map((doc) => mapearDoc(doc.id, doc.data()));
+export async function fetchPrimeraPagina() {
+  const d = await api.get(`/v1/restaurants?limit=${TAMANO_PAGINA}`, { auth: false });
   return {
-    items,
-    cursor: snap.docs.length ? snap.docs[snap.docs.length - 1] : null,
-    terminado: snap.docs.length < TAMANO_PAGINA,
+    items: (d.items || []).map((r) => mapearDoc(r.id, r)),
+    cursor: d.cursor ?? null,
+    terminado: Boolean(d.terminado),
   };
 }
 
-/** Primera tanda de la portada (21 lecturas). */
-export async function fetchPrimeraPagina() {
-  return empaquetarPagina(await getDocs(consultaPortada()));
-}
-
-/** Siguiente tanda tras el cursor (21 lecturas). */
 export async function fetchSiguientePagina(cursor) {
   if (!cursor) return { items: [], cursor: null, terminado: true };
-  return empaquetarPagina(await getDocs(consultaPortada(cursor)));
+  const d = await api.get(`/v1/restaurants?limit=${TAMANO_PAGINA}&cursor=${encodeURIComponent(cursor)}`, { auth: false });
+  return {
+    items: (d.items || []).map((r) => mapearDoc(r.id, r)),
+    cursor: d.cursor ?? null,
+    terminado: Boolean(d.terminado),
+  };
 }
 
-/** Total de docs (agregado barato: ~1 lectura por cada 1000). */
 export async function contarRestaurantes() {
-  return (await getCountFromServer(collection(getDb(), 'restaurants'))).data().count;
+  const d = await api.get('/v1/restaurants/count', { auth: false });
+  return d.total ?? d.count ?? 0;
 }
 
-/**
- * Un restaurante por id (1 lectura). Para favoritos guardados aún no cargados.
- * Devuelve null si no existe.
- */
 export async function fetchRestaurantePorId(id) {
-  const snap = await getDoc(doc(getDb(), 'restaurants', String(id)));
-  if (!snap.exists()) return null;
-  return mapearDoc(snap.id, snap.data());
+  try {
+    const d = await api.get(`/v1/restaurants/${encodeURIComponent(id)}`, { auth: false });
+    if (!d || d.error === 'NOT_FOUND') return null;
+    return mapearDoc(d.id, d);
+  } catch (err) {
+    if (err.status === 404) return null;
+    throw err;
+  }
 }

@@ -547,6 +547,7 @@ export function resumenRestaurante(restaurante, dieta = null) {
     id: restaurante.id,
     nombre: restaurante.nombre,
     imagen: restaurante.imagen,
+    cocina: restaurante.cocina,
     notaYelp,
     totalYelp: restaurante.totalResenasYelp ?? 0,
     notaMira,

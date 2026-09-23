@@ -54,7 +54,7 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
       .then(([todas, inc, res, neg]) => {
         if (!vivo) return;
         const hoy = hoyISO();
-        setProximas(todas.filter((r) => r.estado === 'activa' && r.fecha >= hoy).slice(0, 3));
+        setProximas(todas.filter((r) => String(r.estado || '').toLowerCase() !== 'cancelada' && r.fecha >= hoy).slice(0, 3));
         setIncidencias(inc.slice(0, 5));
         setMisResenas(res.slice(0, 5));
         setMisNegocios(neg.slice(0, 5));

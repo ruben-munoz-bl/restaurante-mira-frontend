@@ -98,6 +98,13 @@ export default function OpsDashboard() {
     { nombre: 'No-show', valor: porEstado.no_show || 0, color: '#ba1a1a' },
   ];
   const totalPax = serie.reduce((s, d) => s + d.pax, 0);
+  const facturacionTotal = Number(kpis.facturacionTotal) || 0;
+  const comisionTotal = Number(kpis.comisionTotal) || 0;
+  const mediaComensal = Number(kpis.mediaComensal) || 0;
+  const comisionPct = Number(kpis.comisionPct) || 8;
+  const ticketPromedio = Number(kpis.ticketPromedio) || 0;
+  const ticketsTotal = Number(kpis.ticketsTotal) || 0;
+  const altas7d = Number(kpis.altas7d) || 0;
 
   return (
     <>
@@ -115,7 +122,7 @@ export default function OpsDashboard() {
           <span className="ops-live-chip"><i />MIRA Enterprise HQ</span>{' '}
           <span className="ops-sync">· Sincronización en vivo</span>
           <h1>Panel de Control Operativo &amp; Revenue</h1>
-          <p>Visión global en tiempo real de reservas, comisiones estimadas y estado de la red gastronómica.</p>
+          <p>Visión global en tiempo real de reservas, comisiones reales y estado de la red gastronómica.</p>
         </div>
         <div className="ops-actions">
           <button type="button" className="ops-btn soft" onClick={() => { const c = csvReservas(feed); descargarCSV('facturas.csv', c.cabeceras, c.filas); }}>
@@ -131,13 +138,23 @@ export default function OpsDashboard() {
       <div className="ops-kpis">
         <div className="ops-kpi">
           <div className="ops-kpi-top">
-            <span className="ops-kpi-label">Ingresos Comisión (est.)</span>
+            <span className="ops-kpi-label">Ingresos brutos (tickets)</span>
             <span className="material-symbols-outlined ops-kpi-icon">euro</span>
           </div>
-          <div className="ops-kpi-value">€{euros(kpis.comisionTotal)}</div>
-          <div className="ops-kpi-trend"><span className="ops-pill">8% base</span><span>por reserva</span></div>
-          <div className="ops-kpi-sub"><span>Media comensal</span><strong>€2.10 net</strong></div>
-          <div className="ops-bar"><i style={{ width: '72%' }} /></div>
+          <div className="ops-kpi-value">€{euros(facturacionTotal)}</div>
+          <div className="ops-kpi-trend"><span className="ops-pill">{ticketsTotal} tickets</span></div>
+          <div className="ops-kpi-sub"><span>Ticket medio</span><strong>€{euros(ticketPromedio)}</strong></div>
+          <div className="ops-bar"><i style={{ width: ticketsTotal ? '100%' : '0%' }} /></div>
+        </div>
+        <div className="ops-kpi">
+          <div className="ops-kpi-top">
+            <span className="ops-kpi-label">Comisión MIRA (real)</span>
+            <span className="material-symbols-outlined ops-kpi-icon">receipt_long</span>
+          </div>
+          <div className="ops-kpi-value">€{euros(comisionTotal)}</div>
+          <div className="ops-kpi-trend"><span className="ops-pill">{comisionPct}% base</span></div>
+          <div className="ops-kpi-sub"><span>Media comensal</span><strong>€{euros(mediaComensal)}</strong></div>
+          <div className="ops-bar"><i style={{ width: facturacionTotal ? '100%' : '0%' }} /></div>
         </div>
         <div className="ops-kpi">
           <div className="ops-kpi-top">
@@ -155,9 +172,9 @@ export default function OpsDashboard() {
             <span className="material-symbols-outlined ops-kpi-icon blue">storefront</span>
           </div>
           <div className="ops-kpi-value">{kpis.restaurantesActivos.toLocaleString('es-ES')} <small>locales</small></div>
-          <div className="ops-kpi-trend"><span className="ops-pill info">red en Firestore</span></div>
+          <div className="ops-kpi-trend"><span className="ops-pill info">{altas7d} altas 7d</span></div>
           <div className="ops-kpi-sub"><span>Cubiertos 14 días</span><strong>{totalPax.toLocaleString('es-ES')} pax</strong></div>
-          <div className="ops-bar"><i className="blue" style={{ width: '98%' }} /></div>
+          <div className="ops-bar"><i className="blue" style={{ width: kpis.restaurantesActivos ? '100%' : '0%' }} /></div>
         </div>
         <div className="ops-kpi">
           <div className="ops-kpi-top">
@@ -177,7 +194,7 @@ export default function OpsDashboard() {
           <div className="ops-kpi-value">{kpis.usuariosTotal.toLocaleString('es-ES')} <small>users</small></div>
           <div className="ops-kpi-trend"><span className="ops-pill info">puntos MIRA</span></div>
           <div className="ops-kpi-sub"><span>Comensales</span><strong>red activa</strong></div>
-          <div className="ops-bar"><i style={{ width: '78%' }} /></div>
+          <div className="ops-bar"><i style={{ width: kpis.usuariosTotal ? '100%' : '0%' }} /></div>
         </div>
       </div>
 
@@ -187,7 +204,7 @@ export default function OpsDashboard() {
           <div className="ops-card-head">
             <div>
               <h2>Evolución de Comisiones y Facturación Bruta</h2>
-              <p className="ops-card-sub">Comida (13–15h) y cena (20–22h) · últimos 14 días · comisiones estimadas al 8%</p>
+              <p className="ops-card-sub">Comida (13–15h) y cena (20–22h) · últimos 14 días · datos reales de tickets</p>
             </div>
             <div className="ops-seg" role="tablist" aria-label="Granularidad">
               {['horas', 'dias', 'meses'].map((g) => (
@@ -200,8 +217,8 @@ export default function OpsDashboard() {
           </div>
           <div className="ops-metrics-3">
             <div>
-              <span className="ops-metric-label"><span className="ops-metric-dot" style={{ background: '#0e6b47' }} />Comisiones MIRA (est.)</span>
-              <div className="ops-metric-value">€{euros(kpis.comisionTotal)}</div>
+              <span className="ops-metric-label"><span className="ops-metric-dot" style={{ background: '#0e6b47' }} />Comisiones MIRA (real)</span>
+              <div className="ops-metric-value">€{euros(comisionTotal)}</div>
             </div>
             <div>
               <span className="ops-metric-label"><span className="ops-metric-dot" style={{ background: '#004393' }} />Cubiertos 14 días</span>
@@ -292,7 +309,7 @@ export default function OpsDashboard() {
           <div className="ops-card-head">
             <div>
               <h2>Top Cubiertos de Hoy &amp; Auditoría</h2>
-              <p className="ops-card-sub">Comisiones estimadas al 8% sobre 18 €/pax</p>
+              <p className="ops-card-sub">Comisiones reales de tickets emitidos hoy · {comisionPct}% sobre el importe pagado</p>
             </div>
           </div>
           <div className="ops-table-wrap">
@@ -301,7 +318,7 @@ export default function OpsDashboard() {
                 <tr>
                   <th>Restaurante</th>
                   <th style={{ textAlign: 'right' }}>Cubiertos hoy</th>
-                  <th style={{ textAlign: 'right' }}>Comisión est.</th>
+                  <th style={{ textAlign: 'right' }}>Comisión real</th>
                   <th style={{ textAlign: 'right' }}>Reservas</th>
                 </tr>
               </thead>
@@ -318,7 +335,7 @@ export default function OpsDashboard() {
                       </span>
                     </td>
                     <td className="num">{t.paxHoy} pax</td>
-                    <td className="num">€{euros(t.comisionEst)}</td>
+                    <td className="num">€{euros(t.comisionHoy)}</td>
                     <td className="num">{t.reservasHoy}</td>
                   </tr>
                 ))}
@@ -359,8 +376,8 @@ export default function OpsDashboard() {
                 </div>
               </div>
               <div className="ops-feed-foot">
-                <span>Comisión neta est.:</span>
-                <strong>+€{Number(r.comision).toFixed(2)}</strong>
+                <span>{r.comisionReal ? 'Comisión real:' : 'Comisión (pendiente ticket):'}</span>
+                <strong>{r.comisionReal ? `+€${Number(r.comision).toFixed(2)}` : '—'}</strong>
               </div>
             </div>
           ))}

@@ -39,7 +39,7 @@
 |---|---|---|
 | React | 18.3.1 | UI framework |
 | Vite | 5.4.0 | Bundler / dev server |
-| Firebase | 12.18.0 | Auth + Firestore |
+| Firebase | 12.18.0 | Auth (login/token) — Firestore va por mira-api |
 | Leaflet / react-leaflet | 1.9.4 / 4.2.1 | Mapas interactivos |
 | Geoapify API | — | Parkings cercanos |
 | Open-Meteo API | — | Predicción meteorológica |
@@ -175,16 +175,17 @@ restaurante-mira-frontend/
 ## 5. Inicio rápido
 
 ```bash
-# 1. Clonar el repositorio
-git clone https://github.com/ruben-munoz-bl/restaurante-mira-frontend.git
-cd restaurante-mira-frontend
+# 1. Arrancar la API (otra terminal)
+cd ../restuarante-mira-backend/mira-api
+npm start                 # http://localhost:3000
 
-# 2. Instalar dependencias
+# 2. Clonar / entrar al frontend
+cd restaurante-mira-frontend
 npm install
 
 # 3. Configurar variables de entorno
 cp .env.example .env
-# Editar .env con tu clave Geoapify
+# VITE_API_URL=http://localhost:3000  (+ clave Geoapify si usas parkings)
 
 # 4. Iniciar servidor de desarrollo
 npm run dev
@@ -204,9 +205,12 @@ npm run dev
 
 | Variable | Descripción | Ejemplo |
 |---|---|---|
+| `VITE_API_URL` | Base URL de la API `mira-api` | `http://localhost:3000` |
 | `VITE_GEOAPIFY_KEY` | API key de Geoapify para parkings cercanos | `f9344e461230...` |
 
-> **Nota:** Las claves de Firebase están codificadas directamente en `src/services/firebaseConfig.js` ya que son públicas por diseño (la seguridad se controla en las reglas de Firestore).
+> **Nota:** Las claves de Firebase en `src/services/firebaseConfig.js` son
+> públicas por diseño (solo se usan para Auth). Los datos de Firestore **no**
+> se leen desde el frontend: pasan por `mira-api` (Admin SDK en el servidor).
 
 ---
 
@@ -541,18 +545,24 @@ Contiene toda la lógica de dominio de la aplicación.
 
 ## 13. Servicios
 
-### Firebase Core
+Todos los módulos de datos hablan con **`mira-api`** vía `httpClient.js`
+(`VITE_API_URL`). El frontend **no** importa Firestore.
 
-#### `firebase.js` — Inicialización lazy
+### HTTP Core
+
+#### `httpClient.js`
 ```javascript
-getDb()           // Devuelve instancia de Firestore
-getFirebaseApp()  // Devuelve app de Firebase
+api.get(path, opts)   // GET  (opts.auth añade Bearer token de Firebase Auth)
+api.post(path, body)
+api.put(path, body)
+api.del(path)
+BASE_URL              // VITE_API_URL || http://localhost:3000
 ```
 
-#### `firebaseConfig.js` — Configuración
-Credenciales de Firebase (apiKey, authDomain, projectId, etc.). Son públicas por diseño.
+#### `firebase.js` / `firebaseConfig.js`
+Solo Auth (login/token). Credenciales web públicas por diseño.
 
-### API de Autenticación (`authApi.js`, 229 líneas)
+### API de Autenticación (`authApi.js`)
 
 | Función | Descripción |
 |---|---|
@@ -565,23 +575,26 @@ Credenciales de Firebase (apiKey, authDomain, projectId, etc.). Son públicas po
 | `recargarEmailVerified()` | Recarga `emailVerified` del usuario |
 | `suscribirSesion(cb)` | Listener de `onAuthStateChanged` |
 
-### Perfil (`perfilApi.js`, 32 líneas)
+### Perfil (`perfilApi.js`)
 
 | Función | Descripción |
 |---|---|
-| `leerPerfil(uid)` | Lee perfil de Firestore |
+| `leerPerfil(uid)` | Lee perfil vía API |
 | `guardarPerfil(uid, data)` | Actualiza perfil |
 | `guardarLang(uid, lang)` | Guarda idioma preferido |
 
-### Restaurantes (`restaurantApi.js`, 107 líneas)
+### Restaurantes (`restaurantApi.js`)
 
 | Función | Descripción |
 |---|---|
-| `listarRestaurantes({limite, ultimo, filtros})` | Carga paginada |
-| `contarRestaurantes()` | Cuenta total |
-| `obtenerRestaurante(id)` | Obtiene un restaurante por ID |
+| `fetchPrimeraPagina()` | 1ª tanda (`limit=27`) + cursor |
+| `fetchSiguientePagina(cursor)` | Siguiente tanda del scroll |
+| `fetchRestaurants()` | Catálogo completo (`all=1`, filtros) |
+| `contarRestaurantes()` | Count total |
+| `fetchRestaurantePorId(id)` | Detalle por ID |
+| `TAMANO_PAGINA` | **27** (constante compartida con la API) |
 
-### Filtros (`filterService.js`, 81 líneas)
+### Filtros (`filterService.js`)
 
 Funciones puras de filtrado y ordenación (todo en cliente):
 
@@ -970,14 +983,14 @@ Toggle en Header. Preferencia guardada en `localStorage`. Respeta `prefers-color
 - **Plan:** Spark (gratuito)
 
 ### Servicios utilizados
-- **Firebase Authentication:** Email+password, Google Sign-In
-- **Cloud Firestore:** Base de datos principal
+- **Firebase Authentication** (desde el frontend): Email+password, Google Sign-In
+- **Cloud Firestore** (solo desde `mira-api` con Admin SDK): base de datos
 
 ### Colecciones Firestore
 
 | Colección | Documentos | Descripción |
 |---|---|---|
-| `restaurants/{id}` | ~30 | Restaurantes |
+| `restaurants/{id}` | ~690 | Restaurantes |
 | `usuarios/{uid}` | Por usuario | Perfiles |
 | `reservas/{id}` | Por reserva | Reservas |
 | `aforo/{key}` | Por slot | Control de capacidad |
@@ -989,12 +1002,10 @@ Toggle en Header. Preferencia guardada en `localStorage`. Respeta `prefers-color
 
 ### Configuración de seguridad (Firebase Rules)
 
-Las reglas de Firestore deben configurarse en la consola de Firebase para:
-- Lectura pública de `restaurants`
-- Escritura de `usuarios/{uid}` solo por el propietario
-- Escritura de `reservas` solo por el usuario autenticado
-- Lectura de `resenas` pública, escritura autenticada
-- Admin check para `incidencias` y `negocios`
+Las reglas de Firestore viven en `mira-api/firestore.rules` y se despliegan
+con la API. El frontend no escribe en Firestore; las escrituras pasan por
+endpoints autenticados de `mira-api`. Ver README del backend para el
+inventario completo de endpoints.
 
 ---
 

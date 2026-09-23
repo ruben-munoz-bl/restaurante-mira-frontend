@@ -15,7 +15,7 @@ import '../../styles/ops.css';
 
 const SECCIONES = [
   { id: 'dashboard', nombre: 'Dashboard General', icono: 'dashboard' },
-  { id: 'restaurantes', nombre: 'Gestión Restaurantes', icono: 'restaurant', badge: '+14' },
+  { id: 'restaurantes', nombre: 'Gestión Restaurantes', icono: 'restaurant' },
   { id: 'reservas', nombre: 'Reservas Globales', icono: 'calendar_month', live: true },
   { id: 'finanzas', nombre: 'Finanzas & Comisiones', icono: 'payments' },
   { id: 'incidencias', nombre: 'Incidencias & Soporte', icono: 'report_problem', badgeCrit: true },
@@ -108,7 +108,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
           </div>
           <div className="ops-side-foot">
             <div className="ops-sys">
-              <span>Sistemas 99.98% OK</span>
+              <span>API mira-api</span>
               <span className="ops-sys-live">Live</span>
             </div>
             <div className="ops-theme-row">
@@ -181,7 +181,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
 
           <main className="ops-content">
             {seccion === 'dashboard' && <OpsDashboard usuario={usuario} todos={todos} />}
-            {seccion === 'restaurantes' && <OpsRestaurantes todos={todos} />}
+            {seccion === 'restaurantes' && <OpsRestaurantes />}
             {seccion === 'reservas' && <OpsReservas busquedaInicial={busqueda} />}
             {seccion === 'finanzas' && <OpsFinanzas />}
             {seccion === 'incidencias' && <OpsIncidencias />}

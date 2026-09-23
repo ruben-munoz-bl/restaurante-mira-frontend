@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { dashboardApi } from "../../services/api.js";
 
-export default function ReservationActions({ reserva, onStatusChange, t }) {
+export default function ReservationActions({ reserva, onStatusChange, t, comisionPct = 8 }) {
   const tt = (k,d)=>{ try{ const v=t?t(k):null; return v && v!==k? v : d; }catch{ return d; } };
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -45,7 +45,8 @@ export default function ReservationActions({ reserva, onStatusChange, t }) {
   const activa = ['pendiente','confirmada','activa','en_mesa','en mesa'].includes(estado);
   const yaTieneTicket = Boolean(reserva.ticketId);
   const totalNum = Number(precio)||0;
-  const comisionPreview = totalNum>0 ? Math.round(totalNum*0.08*100)/100 : 0;
+  const pct = Number(comisionPct) || 8;
+  const comisionPreview = totalNum>0 ? Math.round(totalNum*(pct/100)*100)/100 : 0;
   const netoPreview = totalNum>0 ? Math.round((totalNum-comisionPreview)*100)/100 : 0;
 
   return (
@@ -63,7 +64,7 @@ export default function ReservationActions({ reserva, onStatusChange, t }) {
                 <input type="number" value={precio} onChange={e=> setPrecio(e.target.value)} placeholder={tt("dashboard.precioPlaceholder","45.50")} step="0.01" min="0" style={{flex:1, height:'2rem', padding:'0 0.5rem', border:'1px solid var(--op-outline-variant, #bec9c0)', borderRadius:'0.4rem', fontSize:'0.82rem'}} />
                 <span style={{fontSize:'0.72rem'}}>EUR</span>
               </div>
-              {totalNum>0 && <div style={{fontSize:'0.62rem', display:'flex', justifyContent:'space-between', background:'white', padding:'0.25rem 0.4rem', borderRadius:'0.3rem'}}><span>Comisión 8%: {comisionPreview.toFixed(2)}€</span><span>Neto: {netoPreview.toFixed(2)}€</span></div>}
+              {totalNum>0 && <div style={{fontSize:'0.62rem', display:'flex', justifyContent:'space-between', background:'white', padding:'0.25rem 0.4rem', borderRadius:'0.3rem'}}><span>Comisión {pct}%: {comisionPreview.toFixed(2)}€</span><span>Neto: {netoPreview.toFixed(2)}€</span></div>}
             </>
           )}
           {!showPrice && <span style={{fontSize:'0.62rem', color:'var(--op-on-variant, #3f4942)'}}>Se confirmará sin ticket (0€). Activa "Con ticket" para registrar importe.</span>}

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { dashboardApi } from "../../services/api.js";
 
-export default function TicketUpload({ reserva, onUploaded, t }) {
+export default function TicketUpload({ reserva, onUploaded, t, comisionPct = 8 }) {
   const tt = (k, d) => { try{ const v = t ? t(k) : null; return v && v!==k ? v : d; }catch{ return d; } };
   const [precio, setPrecio] = useState(reserva.totalPagado || reserva.precioBase || "");
   const [file, setFile] = useState(null);
@@ -11,9 +11,10 @@ export default function TicketUpload({ reserva, onUploaded, t }) {
   const [success, setSuccess] = useState(false);
   const fileRef = useRef(null);
 
+  const pct = Number(comisionPct) || 8;
   const total = Number(precio) || 0;
-  const comision = total * 0.08;
-  const neto = total - comision;
+  const comision = Math.round(total * (pct / 100) * 100) / 100;
+  const neto = Math.round((total - comision) * 100) / 100;
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -46,7 +47,7 @@ export default function TicketUpload({ reserva, onUploaded, t }) {
   if (success || reserva.ticketId) {
     return (
       <div style={{background:'#d1fae5', color:'#065f46', padding:'0.7rem', borderRadius:'0.5rem', fontWeight:700, textAlign:'center', fontSize:'0.82rem'}}>
-        {success ? `${tt("dashboard.ticketSubido","Ticket registrado")} · ${euro(neto)} neto · ${euro(comision)} comisión 8%` : 'Ticket ya registrado (máx. 1 por reserva)'}
+        {success ? `${tt("dashboard.ticketSubido","Ticket registrado")} · ${euro(neto)} neto · ${euro(comision)} comisión ${pct}%` : 'Ticket ya registrado (máx. 1 por reserva)'}
       </div>
     );
   }
@@ -67,7 +68,7 @@ export default function TicketUpload({ reserva, onUploaded, t }) {
         </div>
         {total>0 && (
           <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.68rem', background:'white', padding:'0.35rem 0.5rem', borderRadius:'0.4rem', marginTop:'0.2rem'}}>
-            <span>Comisión MIRA 8%: <strong>{euro(comision)}</strong></span>
+            <span>Comisión MIRA {pct}%: <strong>{euro(comision)}</strong></span>
             <span>Neto restaurante: <strong style={{color:'var(--op-primary)'}}>{euro(neto)}</strong></span>
           </div>
         )}

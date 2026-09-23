@@ -19,9 +19,9 @@ export default function BottomNav({ ruta, numFavoritos, numReservas, puntosSaldo
     setLoadingStreak(true);
     try {
       const data = await fetchStreakData?.();
-      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: true });
+      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: false });
     } catch {
-      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: true });
+      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: false });
     } finally {
       setLoadingStreak(false);
     }

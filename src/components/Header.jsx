@@ -27,6 +27,16 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
   }, [abierto]);
 
   useEffect(() => {
+    // Solo en móvil el header se oculta al bajar; en desktop/tablet siempre visible.
+    const mq = window.matchMedia('(max-width: 767px)');
+    if (!mq.matches) {
+      setOculto(false);
+      return undefined;
+    }
+    if (abierto) {
+      setOculto(false);
+      return undefined;
+    }
     let ultimo = window.scrollY;
     let turno = false;
     function alDesplazar() {
@@ -34,14 +44,16 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
       turno = true;
       requestAnimationFrame(() => {
         const y = window.scrollY;
-        setOculto(y > 60);
+        const delta = y - ultimo;
+        if (y <= 60 || delta < 0) setOculto(false);
+        else if (delta > 0) setOculto(true);
         ultimo = y;
         turno = false;
       });
     }
     window.addEventListener('scroll', alDesplazar, { passive: true });
     return () => window.removeEventListener('scroll', alDesplazar);
-  }, []);
+  }, [abierto]);
 
   function cerrar() {
     setAbierto(false);
@@ -52,9 +64,9 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
     setLoadingStreak(true);
     try {
       const data = await fetchStreakData?.();
-      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: true });
+      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: false });
     } catch {
-      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: true });
+      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: false });
     } finally {
       setLoadingStreak(false);
     }

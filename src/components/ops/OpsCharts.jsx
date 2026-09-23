@@ -103,7 +103,7 @@ export function OpsLineChart({ serie, modo = 'dias', height = 260 }) {
       {hover != null && datos[hover] && (
         <p className="ops-muted" aria-live="polite" style={{ margin: '6px 0 0' }}>
           <strong>{datos[hover].etiqueta}</strong> · {datos[hover].reservas} reservas · {datos[hover].pax ?? '—'} pax ·{' '}
-          {Number(datos[hover].comisiones).toFixed(2)} € com. est.
+          {Number(datos[hover].comisiones).toFixed(2)} € com. real.
         </p>
       )}
     </div>

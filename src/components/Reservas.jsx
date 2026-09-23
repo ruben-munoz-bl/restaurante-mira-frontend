@@ -97,8 +97,9 @@ export default function Reservas({ usuario, esAdmin }) {
   }
 
   const hoy = hoyISO();
-  const proximas = lista.filter((r) => r.estado === 'activa' && r.fecha >= hoy);
-  const pasadas = lista.filter((r) => r.estado === 'activa' && r.fecha < hoy);
+  const noCancelada = (r) => String(r.estado || '').toLowerCase() !== 'cancelada';
+  const proximas = lista.filter((r) => noCancelada(r) && r.fecha >= hoy);
+  const pasadas = lista.filter((r) => noCancelada(r) && r.fecha < hoy);
   const canceladas = lista.filter((r) => r.estado === 'cancelada');
   const visibles = tab === 'proximas' ? proximas : tab === 'pasadas' ? pasadas : canceladas;
 
@@ -258,7 +259,7 @@ export default function Reservas({ usuario, esAdmin }) {
                     </div>
                     {r.comentarios && <div className="registro-detalle">“{r.comentarios}”</div>}
                   </div>
-                  {r.estado === 'activa' && r.fecha >= hoy && (
+                  {String(r.estado || '').toLowerCase() !== 'cancelada' && r.fecha >= hoy && (
                     <button type="button" className="btn-secundario btn-peq" onClick={() => handleCancelar(r)}>
                       {t('reservas.cancelar')}
                     </button>

@@ -295,6 +295,7 @@
 }
 .ops-input:focus, .ops-selectbox:focus { outline: none; border-color: var(--ops-primary-container); box-shadow: 0 0 0 3px rgba(14,107,71,0.12); }
 .ops-error { background: var(--ops-error-container); color: var(--ops-on-error-container); border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600; }
+.ops-success { background: var(--ops-primary-container, #0e6b47); color: #fff; border-radius: 8px; padding: 10px 14px; font-size: 13px; font-weight: 600; }
 .ops-empty { text-align: center; color: var(--ops-on-variant); padding: 28px 12px; font-size: 13px; }
 .ops-modal-overlay { position: fixed; inset: 0; background: rgba(17,28,45,0.55); display: grid; place-items: center; z-index: 200; padding: 16px; }
 .ops-modal { background: var(--ops-surface-lowest); border-radius: 12px; padding: 22px; max-width: 520px; width: 100%; box-shadow: var(--ops-shadow-lg); }

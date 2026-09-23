@@ -71,9 +71,13 @@ export default function InvitePanel() {
         <div className="invite-list">
           {enviadas.map((inv) => (
             <div key={inv.id} className="invite-item">
-              <span className="invite-item__email">{inv.invitadoEmail}</span>
+              <span className="invite-item__email">{inv.emailInvitado || inv.invitadoEmail}</span>
               <span className={`invite-item__status invite-item__status--${inv.estado}`}>
-                {inv.estado === 'aceptada' ? '✅' : inv.estado === 'pendiente' ? '⏳' : '❌'}
+                {inv.estado === 'aceptada'
+                  ? '✅'
+                  : inv.estado === 'esperando_2_reservas' || inv.estado === 'pendiente'
+                    ? '⏳'
+                    : '❌'}
               </span>
               {inv.link && (
                 <button className="btn-texto" onClick={() => copyLink(inv.link)}>

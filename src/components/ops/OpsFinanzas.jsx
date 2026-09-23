@@ -1,4 +1,4 @@
-/** OpsFinanzas — agregados mensuales (comisiones est. 8%) + exportación CSV. */
+/** OpsFinanzas — agregados mensuales con datos REALES de tickets. */
 import { useEffect, useState } from 'react';
 import { getOpsOverview, descargarCSV, csvReservas, mensajeErrorFirestore, nombreRestauranteDe } from './opsData.js';
 import { OpsLineChart } from './OpsCharts.jsx';
@@ -33,12 +33,16 @@ export default function OpsFinanzas() {
   const porMes = {};
   datos.serie.forEach((s) => {
     const k = s.fecha.slice(0, 7);
-    if (!porMes[k]) porMes[k] = { facturacion: 0, comisiones: 0, tickets: 0 };
-    porMes[k].comisiones = Math.round((porMes[k].comisiones + s.comisiones) * 100) / 100;
-    porMes[k].tickets += s.reservas;
-    porMes[k].facturacion = Math.round((porMes[k].facturacion + s.pax * 18) * 100) / 100;
+    if (!porMes[k]) porMes[k] = { facturacion: 0, comisiones: 0, tickets: 0, reservas: 0 };
+    porMes[k].comisiones = Math.round((porMes[k].comisiones + (s.comisiones || 0)) * 100) / 100;
+    porMes[k].facturacion = Math.round((porMes[k].facturacion + (s.facturacion || 0)) * 100) / 100;
+    porMes[k].tickets += s.tickets || 0;
+    porMes[k].reservas += s.reservas || 0;
   });
   const meses = Object.entries(porMes).sort(([a], [b]) => a.localeCompare(b));
+  const facturacionTotal = Number(datos.kpis.facturacionTotal) || 0;
+  const comisionTotal = Number(datos.kpis.comisionTotal) || 0;
+  const comisionPct = Number(datos.kpis.comisionPct) || 8;
 
   return (
     <>
@@ -46,7 +50,7 @@ export default function OpsFinanzas() {
         <div className="ops-card-head">
           <div>
             <h2>Finanzas &amp; Comisiones</h2>
-            <p className="ops-card-sub">Estimación al 8% sobre ticket medio de 18 €/pax · últimos 14 días</p>
+            <p className="ops-card-sub">Datos reales de tickets · comisión {comisionPct}% · últimos 14 días</p>
           </div>
           <button type="button" className="ops-btn soft sm" onClick={exportar}>
             <span className="material-symbols-outlined">file_present</span>Exportar Reporte Fiscal
@@ -54,12 +58,12 @@ export default function OpsFinanzas() {
         </div>
         <div className="ops-metrics-3">
           <div>
-            <span className="ops-metric-label">Comisiones (est.)</span>
-            <div className="ops-metric-value">€{datos.kpis.comisionTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</div>
+            <span className="ops-metric-label">Comisiones (real)</span>
+            <div className="ops-metric-value">€{comisionTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</div>
           </div>
           <div>
-            <span className="ops-metric-label">GMV bruto (est.)</span>
-            <div className="ops-metric-value">€{(datos.kpis.comisionTotal / 0.08).toLocaleString('es-ES', { maximumFractionDigits: 0 })}</div>
+            <span className="ops-metric-label">Facturación bruta (real)</span>
+            <div className="ops-metric-value">€{facturacionTotal.toLocaleString('es-ES', { maximumFractionDigits: 0 })}</div>
           </div>
           <div>
             <span className="ops-metric-label">Asistencia</span>
@@ -75,7 +79,7 @@ export default function OpsFinanzas() {
         </div>
         <div className="ops-table-wrap">
           <table className="ops-table">
-            <thead><tr><th>Mes</th><th style={{ textAlign: 'right' }}>Reservas</th><th style={{ textAlign: 'right' }}>GMV est.</th><th style={{ textAlign: 'right' }}>Comisión est.</th></tr></thead>
+            <thead><tr><th>Mes</th><th style={{ textAlign: 'right' }}>Tickets</th><th style={{ textAlign: 'right' }}>Facturación real</th><th style={{ textAlign: 'right' }}>Comisión real</th></tr></thead>
             <tbody>
               {meses.map(([m, d]) => (
                 <tr key={m}>

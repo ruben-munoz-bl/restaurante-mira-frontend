@@ -3167,6 +3167,12 @@ button.btn-texto {
   color: var(--rojo);
 }
 
+.ledger-desc {
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--gris);
+}
+
 .ledger-empty,
 .ledger-loading {
   text-align: center;
@@ -4917,6 +4923,4 @@ button.btn-texto {
   .streak-badge__fire-section { gap: 0.7rem; }
   .streak-badge__fire-img-wrap { width: 44px; height: 44px; }
   .streak-badge__fire-img { width: 28px; height: 28px; }
-  .ledger-table__table th:nth-child(4),
-  .ledger-table__table td:nth-child(4) { display: none; }
 }

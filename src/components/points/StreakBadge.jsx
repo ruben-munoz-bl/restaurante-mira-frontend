@@ -2,11 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 
 const TOTAL_DAYS = 7;
 
-function calcularPuntosDia(dia) {
-  if (dia >= 7) return 0;
-  return Math.min(5 + 3 * Math.max(0, dia - 1), 15);
-}
-
 export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, fetchStreakData }) {
   const [loading, setLoading] = useState(false);
   const [localRacha, setLocalRacha] = useState(rachaLogin);
@@ -30,8 +25,9 @@ export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, f
   const dias = localRacha?.dias || 0;
   const multiplicador = rachaReservas?.multiplicador || 1;
   const semanas = rachaReservas?.semanasConsecutivas || 0;
-  const esDia7 = dias >= 7;
-  const puntosHoy = esDia7 ? 0 : calcularPuntosDia(dias);
+  const yaReclamado = Boolean(localRacha?.yaReclamado);
+  const esDia7 = (localRacha?.dia7Disponible ?? dias >= 7) || dias >= 7;
+  const puntosHoy = yaReclamado ? 0 : (localRacha?.puntosHoy ?? (esDia7 ? 0 : Math.min(5 + 3 * Math.max(0, dias), 15)));
   const diasRestantes = Math.max(0, TOTAL_DAYS - dias);
   const progreso = Math.min((dias / TOTAL_DAYS) * 100, 100);
 
@@ -41,9 +37,9 @@ export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, f
     try {
       const data = await fetchStreakData?.();
       if (data?.racha) setLocalRacha(data.racha);
-      onOpenStreak?.(data || { racha: localRacha, puntos: 0, yaReclamado: true });
+      onOpenStreak?.(data || { racha: localRacha, puntos: 0, yaReclamado: false });
     } catch {
-      onOpenStreak?.({ racha: localRacha, puntos: 0, yaReclamado: true });
+      onOpenStreak?.({ racha: localRacha, puntos: 0, yaReclamado: false });
     } finally {
       setLoading(false);
     }
@@ -77,7 +73,7 @@ export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, f
 
       <div className="streak-badge__progress-section">
         <div className="streak-badge__progress-header">
-          <span className="streak-badge__progress-label">Progreso semanal</span>
+          <span className="streak-badge__progress-label">Progreso de racha</span>
           <span className="streak-badge__progress-count">{dias}/7 días</span>
         </div>
         <div className="streak-badge__progress-bar">

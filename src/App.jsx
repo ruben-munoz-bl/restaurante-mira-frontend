@@ -129,7 +129,7 @@ function AppContent({ auth, tema, setTema }) {
   const [streakData, setStreakData] = useState(null);
   const [showWheel, setShowWheel] = useState(false);
   const { claim: claimDaily, claimWheel } = useDailyLogin();
-  const claimedTodayKey = `dailyLogin_shown_${new Date().toISOString().split('T')[0]}`;
+  const claimedTodayKey = `dailyLogin_shown_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}`;
   const newUserKey = `streak_newuser_shown_${usuario?.uid}`;
 
 
@@ -161,18 +161,25 @@ function AppContent({ auth, tema, setTema }) {
   }, [usuario]);
 
   async function fetchStreakData() {
-    if (!usuario) return { racha: { dias: 0 }, puntos: 0, yaReclamado: true };
+    if (!usuario) return { racha: { dias: 0 }, puntos: 0, yaReclamado: false };
     try {
       const { pointsApi } = await import('./services/api.js');
       const bal = await pointsApi.getBalance();
+      const yaReclamado = bal.rachaLogin?.yaReclamado ?? false;
+      // API dice "sin reclamar" → purga caché local para poder reclamar de verdad.
+      if (!yaReclamado) {
+        const { clearDailyLoginCache } = await import('./hooks/useDailyLogin.js');
+        clearDailyLoginCache();
+      }
       return {
         racha: bal.rachaLogin || { dias: 0 },
         puntos: 0,
-        yaReclamado: bal.rachaLogin?.yaReclamado ?? false,
+        yaReclamado,
         nuevoSaldo: bal.saldoActual,
       };
     } catch {
-      return { racha: { dias: 0 }, puntos: 0, yaReclamado: true };
+      // Error de red ≠ ya reclamado: dejar que el usuario reintente el claim manual.
+      return { racha: { dias: 0 }, puntos: 0, yaReclamado: false };
     }
   }
 
@@ -182,18 +189,22 @@ function AppContent({ auth, tema, setTema }) {
   }
 
   async function handleClaimDaily() {
-    console.log('[App] handleClaimDaily called');
     const result = await claimDaily();
-    console.log('[App] claimDaily result:', result);
-    if (result && result.nuevoSaldo) setPuntosSaldo(result.nuevoSaldo);
-    if (result && result.racha) {
+    if (result && result.nuevoSaldo != null) setPuntosSaldo(result.nuevoSaldo);
+
+    const puntosNuevos = typeof result?.puntos === 'number' ? result.puntos : 0;
+    const exito = puntosNuevos > 0 || (result?.nuevoSaldo != null && result?.yaReclamado !== true);
+
+    if (result) {
       setStreakData((prev) => ({
         ...prev,
-        racha: result.racha,
-        yaReclamado: true,
-        puntos: result.puntos,
+        racha: result.racha || prev?.racha || { dias: 0 },
+        // "Reclamado" solo si la API lo confirma o acabamos de sumar puntos.
+        yaReclamado: Boolean(result.yaReclamado || puntosNuevos > 0 || exito),
+        puntos: puntosNuevos,
       }));
     }
+    // Estado real de Firestore (saldo + racha) para el resto de la UI.
     syncBalance().catch(() => {});
     return result;
   }
@@ -233,6 +244,7 @@ function AppContent({ auth, tema, setTema }) {
   const {
     filtros,
     filtrados,
+    visibles,
     todos,
     total,
     modo,
@@ -397,9 +409,10 @@ function AppContent({ auth, tema, setTema }) {
                   />
 
                     <p aria-live="polite" className="contador">
-                      {modo === 'pagina'
-                        ? t('lista.mostrando', { n: filtrados.length, total })
-                        : `${filtrados.length} ${t('lista.de')} ${total} ${filtrados.length === 1 ? t('lista.restaurante') : t('lista.restaurantesPlural')}`}
+                      {t('lista.mostrando', {
+                        n: visibles.length,
+                        total: modo === 'pagina' ? total || filtrados.length : filtrados.length,
+                      })}
                       {filtros.q && ` ${t('lista.de')} "${filtros.q}"`}
                     </p>
                     {ocultosDieta > 0 && !ignorarDieta && (
@@ -412,16 +425,17 @@ function AppContent({ auth, tema, setTema }) {
                       </p>
                     )}
                   <RestaurantList
-                    restaurants={filtrados}
+                    restaurants={visibles}
                     filtros={filtros}
                     onClear={limpiarFiltros}
                     onSelect={abrirDetalle}
-                    hayMas={modo === 'pagina' && hayMas}
+                    hayMas={hayMas}
                     cargandoMas={cargandoMas}
                     onLoadMore={cargarMas}
                     esFavorito={esFavorito}
                     onToggleFavorito={toggleFavorito}
                     onVerCarta={abrirCarta}
+                    cargandoInicial={estado === 'cargando'}
                   />
                 </>
               )}

@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react';
 import { crearReserva, getDisponibilidad, SLOTS } from '../services/reservaApi.js';
 import { crearResena, listarResenasDeRestaurante, darLikeResena, quitarLikeResena } from '../services/resenasApi.js';
-import { semillaLikes, parseFechaLocal, hoyLocalISO, ordenarResenas, cartaDelLocal, flagsPlato } from '../models/restaurantModel.js';
+import { semillaLikes, parseFechaLocal, hoyLocalISO, ordenarResenas, cartaDelLocal, flagsPlato, imagenParaRestaurante } from '../models/restaurantModel.js';
 import { pronosticoDia, alertaTerraza } from '../services/meteoApi.js';
 import { fetchNearbyParkings } from '../services/parkingApi.js';
 import RestaurantMap from './RestaurantMap.jsx';
@@ -79,7 +79,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     return (
       <li>
         <p className="resena-cab">
-          <strong>{r.usuarioNombre || r.usuario}</strong> · {r.fecha || (r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString(t('modelos.locale')) : '')} · <span aria-label={`${r.puntuacion} de 5`}>★ {r.puntuacion}</span>
+          <strong>{r.usuarioNombre || r.usuario}</strong> · {(r.fecha || (r.createdAt ? new Date(r.createdAt).toLocaleDateString(t('modelos.locale')) : ''))} · <span aria-label={`${r.puntuacion} de 5`}>★ {r.puntuacion}</span>
           <span style={{ float: 'right', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <button type="button" onClick={() => handleLike(r)} disabled={r.esMock} title={r.esMock ? t('detail.soloLikeMira') : liked ? t('detail.quitarLike') : t('detail.darLike')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: liked ? 'var(--primary-container)' : 'var(--papel)', color: liked ? '#fff' : 'var(--tinta)', border: '1px solid var(--borde)', borderRadius: '999px', padding: '0.15rem 0.5rem', cursor: r.esMock ? 'not-allowed' : 'pointer', fontSize: '0.78rem', fontWeight: 700, opacity: r.esMock ? 0.5 : 1 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
@@ -197,7 +197,17 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
         <button type="button" className="modal-cerrar" onClick={onClose} aria-label={t('otros.cerrar')} autoFocus>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
         </button>
-        <img className="modal-foto" src={restaurant.imagen} alt={`${restaurant.nombre} — cocina ${restaurant.cocina}`} />
+        <img
+          className="modal-foto"
+          src={restaurant.imagen}
+          alt={`${restaurant.nombre} — cocina ${restaurant.cocina}`}
+          onError={(e) => {
+            const el = e.currentTarget;
+            if (el.dataset.fallback === '1') return;
+            el.dataset.fallback = '1';
+            el.src = imagenParaRestaurante(restaurant.cocina, restaurant.id);
+          }}
+        />
         <div className="modal-cuerpo">
           <p className="card-meta" style={{ color: 'var(--gris)', fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.3rem' }}>{restaurant.cocina}</p>
           <h2 id="detalle-titulo" className="modal-titulo">{restaurant.nombre}</h2>
