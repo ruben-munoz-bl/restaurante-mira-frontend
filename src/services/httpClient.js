@@ -1,4 +1,7 @@
-const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+const BASE_URL = (
+  import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? 'https://mira-api-xveu.onrender.com' : 'http://localhost:3000')
+).replace(/\/$/, '');
 
 async function getToken() {
   try {
