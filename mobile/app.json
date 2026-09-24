@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "MIRA",
+    "slug": "mira",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "scheme": "mira",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "app.mira.restaurante",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true
+      }
+    },
+    "android": {
+      "package": "app.mira.restaurante",
+      "adaptiveIcon": {
+        "backgroundColor": "#002218",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-web-browser",
+      "expo-font",
+      "expo-image",
+      "expo-sharing",
+      "expo-localization"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
