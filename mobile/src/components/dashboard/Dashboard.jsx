@@ -745,7 +745,7 @@ export default function Dashboard({ usuario }) {
                         <Pressable
                           key={r.id}
                           onPress={() => handleSwitchRest(r.id)}
-                          accessibilityRole="option"
+                          accessibilityRole="menuitem"
                           accessibilityState={{ selected: activo }}
                           style={[s.restDropdownItem, activo && s.restDropdownItemActive]}
                         >

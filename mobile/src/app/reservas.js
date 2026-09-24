@@ -200,7 +200,7 @@ export default function Reservas() {
                         <Pressable
                           key={c.fecha}
                           onPress={() => setDiaSel(c.fecha)}
-                          accessibilityRole="gridcell"
+                          accessibilityRole="button"
                           accessibilityState={{ selected: diaSel === c.fecha }}
                           accessibilityLabel={`${c.dia}: ${(porDia.get(c.fecha) || []).length} reservas`}
                           style={[
@@ -262,7 +262,7 @@ export default function Reservas() {
                           {m && m.tempMax != null ? <> Â· {Math.round(m.tempMax)}Â° {m.resumen}</> : null}
                         </Text>
                         {aviso ? (
-                          <Text style={[estilos.detalle, estilos.avisoMeteo]} accessibilityRole="status">
+                          <Text style={[estilos.detalle, estilos.avisoMeteo]} accessibilityLiveRegion="polite">
                             {aviso}
                           </Text>
                         ) : null}

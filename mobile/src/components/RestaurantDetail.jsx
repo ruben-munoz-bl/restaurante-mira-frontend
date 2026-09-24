@@ -537,7 +537,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                   styles.avisoDescuento,
                   { backgroundColor: colores.verdeSuave, borderColor: colores.verde },
                 ]}
-                accessibilityRole="status"
+                accessibilityLiveRegion="polite"
               >
                 <Text style={{ fontSize: 14.08, color: colores.tinta, fontFamily: FUENTES.texto }}>
                   {t('detail.descuentoPendiente', { euros: descuentoPendiente.euros })}
@@ -600,7 +600,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
             </View>
 
             {reserva.fecha && reserva.hora && disponibilidad && (
-              <Text style={[styles.plazas, { color: colores.primaryContainer }]} accessibilityRole="status">
+              <Text style={[styles.plazas, { color: colores.primaryContainer }]} accessibilityLiveRegion="polite">
                 {disponibilidad.libres > 0
                   ? t('detail.plazasLibres', { libres: disponibilidad.libres, limite: disponibilidad.limite })
                   : t('detail.completo')}
@@ -608,7 +608,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
             )}
 
             {avisoTerraza && (
-              <View style={styles.avisoMeteo} accessibilityRole="status">
+              <View style={styles.avisoMeteo} accessibilityLiveRegion="polite">
                 <Text style={styles.avisoMeteoTxt}>
                   {avisoTerraza}
                   {meteoReserva ? ` (${meteoReserva.resumen})` : ''}

@@ -160,7 +160,7 @@ export default function Restablecer() {
 
           {paso === 'exito' && (
             <>
-              <Text style={[styles.exito, { color: colores.verde }]} accessibilityRole="status">
+              <Text style={[styles.exito, { color: colores.verde }]} accessibilityLiveRegion="polite">
                 {t('restablecer.exito')}
               </Text>
               <AuthSub>{t('restablecer.yaPuedes')}</AuthSub>

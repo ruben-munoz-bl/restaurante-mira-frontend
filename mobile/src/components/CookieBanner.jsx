@@ -79,7 +79,7 @@ export default function CookieBanner({ usuario }) {
 
   return (
     <Modal visible transparent animationType="fade" onRequestClose={() => {}} accessibilityViewIsModal>
-      <View style={styles.fondo} accessibilityLabel={t('cookie.aviso')} accessibilityRole="dialog">
+      <View style={styles.fondo} accessibilityLabel={t('cookie.aviso')}>
         <View style={[styles.banner, { backgroundColor: colores.papel, borderColor: colores.glassBorder }, sombraFlotante(colores), estrecho && { padding: 16 }]}>
           {!configurando ? (
             <>

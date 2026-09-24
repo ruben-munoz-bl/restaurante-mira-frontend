@@ -105,7 +105,7 @@ export default function Negocio() {
   if (perfil && perfil.tipo !== 'empresa') {
     return (
       <AppShell>
-        <AuthPagina accessibilityRole="status">
+        <AuthPagina>
           <AuthTarjeta titulo={t('otros.soloEmpresas')}>
             <AuthSub>{t('otros.estaPaginaEsParaEmpresas')}</AuthSub>
             <AuthEnlace onPress={() => router.replace('/')}>
@@ -120,7 +120,7 @@ export default function Negocio() {
   if (enviado) {
     return (
       <AppShell>
-        <AuthPagina accessibilityRole="status">
+        <AuthPagina>
           <AuthTarjeta titulo={t('negocio.propuestaEnviada')}>
             <AuthSub>
               {t('negocio.revisaremos')} <Text style={styles.negrita}>{form.nombre}</Text>{' '}

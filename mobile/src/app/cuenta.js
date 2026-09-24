@@ -464,7 +464,7 @@ export default function Cuenta() {
               </Text>
             </Pressable>
             {prefsOk ? (
-              <Text style={[styles.ok, { color: colores.gris }]} accessibilityRole="status">
+              <Text style={[styles.ok, { color: colores.gris }]} accessibilityLiveRegion="polite">
                 {prefsOk}
               </Text>
             ) : null}
@@ -490,7 +490,7 @@ export default function Cuenta() {
               </Text>
             </Pressable>
             {accOk ? (
-              <Text style={[styles.ok, { color: colores.gris }]} accessibilityRole="status">
+              <Text style={[styles.ok, { color: colores.gris }]} accessibilityLiveRegion="polite">
                 {accOk}
               </Text>
             ) : null}
@@ -553,7 +553,7 @@ export default function Cuenta() {
                 <Text style={[styles.vacio, { color: colores.gris }]}>{t('cuenta.correoNoVerificado')}</Text>
                 {verError ? <AuthError>{verError}</AuthError> : null}
                 {verOk ? (
-                  <Text style={{ color: colores.verde }} accessibilityRole="status">
+                  <Text style={{ color: colores.verde }} accessibilityLiveRegion="polite">
                     {verOk}
                   </Text>
                 ) : null}
@@ -601,7 +601,7 @@ export default function Cuenta() {
               </Text>
             </Pressable>
             {cookiesOk ? (
-              <Text style={[styles.ok, { color: colores.gris }]} accessibilityRole="status">
+              <Text style={[styles.ok, { color: colores.gris }]} accessibilityLiveRegion="polite">
                 {cookiesOk}
               </Text>
             ) : null}

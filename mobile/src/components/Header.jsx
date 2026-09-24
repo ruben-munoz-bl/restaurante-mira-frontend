@@ -252,7 +252,7 @@ export default function Header({ oculto = false, onAltoChange }) {
     <Animated.View
       onLayout={(e) => notificarAlto(e.nativeEvent.layout.height)}
       style={[styles.raiz, { transform: [{ translateY: anim }] }]}
-      accessibilityRole="banner"
+      accessibilityRole="header"
     >
       <View style={[styles.fila, { paddingTop: insets.top + (esMovil ? 9.6 : 10.4), paddingHorizontal: esMovil ? 16 : 24, backgroundColor: colores.glassBg, borderBottomColor: colores.glassBorder }]}>
         <BlurView intensity={30} tint={esOscuro ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />

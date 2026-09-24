@@ -76,7 +76,7 @@ export default function Contacto() {
   if (enviado) {
     return (
       <AppShell>
-        <AuthPagina accessibilityRole="status">
+        <AuthPagina>
           <AuthTarjeta titulo={t('contacto.enviado')}>
             <AuthSub>
               {t('contacto.agradecimiento', { nombre: nombre.trim(), email: email.trim() })}
