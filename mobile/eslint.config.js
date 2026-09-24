@@ -10,7 +10,6 @@ module.exports = defineConfig([
       // Copias literales del web aún sin migrar a RN (fases 3–10):
       'src/components/Cuenta.jsx',
       'src/components/Favoritos.jsx',
-      'src/components/LibroCarta.jsx',
       'src/components/Login.jsx',
       'src/components/Negocio.jsx',
       'src/components/Registro.jsx',

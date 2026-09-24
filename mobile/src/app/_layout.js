@@ -68,7 +68,14 @@ function RootStack() {
         <Stack.Screen name="invitar" />
         <Stack.Screen name="ticket/[id]" />
         <Stack.Screen name="detalle" options={{ presentation: 'modal' }} />
-        <Stack.Screen name="carta" options={{ presentation: 'modal' }} />
+        <Stack.Screen
+          name="carta"
+          options={{
+            presentation: 'transparentModal',
+            animation: 'fade',
+            contentStyle: { backgroundColor: 'transparent' },
+          }}
+        />
       </Stack>
     </>
   );
