@@ -20,7 +20,7 @@ export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, f
       })
       .catch(() => {});
     return () => { alive = false; };
-  }, []);
+  }, [fetchStreakData]);
 
   const dias = localRacha?.dias || 0;
   const multiplicador = rachaReservas?.multiplicador || 1;

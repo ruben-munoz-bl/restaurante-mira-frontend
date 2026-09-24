@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { dashboardApi } from "../../services/api.js";
-import { RevenueLineChart, ReservationsPieChart, RevenueBarChart, RestaurantPerformanceChart } from "./Charts.jsx";
+import { RevenueLineChart, ReservationsPieChart, RestaurantPerformanceChart } from "./Charts.jsx";
 import StatsCard from "./StatsCard.jsx";
 import ReservationActions from "./ReservationActions.jsx";
-import TicketUpload from "./TicketUpload.jsx";
 import { useT } from "../../i18n/index.jsx";
 import es from "../../i18n/es.js";
 import ca from "../../i18n/ca.js";
@@ -18,7 +17,6 @@ export default function AdminPanel({ usuario }) {
   const [tab, setTab] = useState("analytics");
   const [data, setData] = useState(null);
   const [users, setUsers] = useState([]);
-  const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);

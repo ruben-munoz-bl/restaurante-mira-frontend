@@ -1,5 +1,5 @@
 /** View pura: formulario para que una cuenta empresa proponga su local. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ZONAS_CATALUNA, CIUDADES_CATALUNA } from '../models/restaurantModel.js';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
@@ -41,10 +41,11 @@ export default function Negocio({ usuario, perfil, onProponer }) {
     setForm((f) => ({ ...f, [campo]: valor }));
   }
 
-  if (!usuario) {
-    window.location.hash = '#/login';
-    return null;
-  }
+  useEffect(() => {
+    if (!usuario) window.location.hash = '#/login';
+  }, [usuario]);
+
+  if (!usuario) return null;
   if (perfil && perfil.tipo !== 'empresa') {
     return (
       <section className="auth-pagina" aria-labelledby="negocio-no">

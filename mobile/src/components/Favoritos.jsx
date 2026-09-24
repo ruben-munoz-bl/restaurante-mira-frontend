@@ -81,7 +81,6 @@ export default function Favoritos({
 
   const recomendados = useMemo(
     () => recomendarPara(locales, todos, MAX_RECOMENDADOS),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     [locales, todos],
   );
 

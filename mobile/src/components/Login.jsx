@@ -1,5 +1,5 @@
 /** View pura: inicio de sesión + enlace a recuperación por email + Google Sign-In. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -57,10 +57,11 @@ export default function Login({ onLogin, onLoginGoogle, yaTieneSesion }) {
     }
   }
 
-  if (yaTieneSesion) {
-    window.location.hash = '#/';
-    return null;
-  }
+  useEffect(() => {
+    if (yaTieneSesion) window.location.hash = '#/';
+  }, [yaTieneSesion]);
+
+  if (yaTieneSesion) return null;
 
   return (
     <section className="auth-pagina" aria-labelledby="login-titulo">

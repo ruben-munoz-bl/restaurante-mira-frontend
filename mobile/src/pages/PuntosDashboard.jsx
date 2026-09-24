@@ -14,11 +14,11 @@ const TRADS = { es, ca, en };
 
 export default function PuntosDashboard({ fetchStreakData, onOpenStreak, usuario }) {
   const t = useT(TRADS);
-  const { saldoActual, rachaLogin, rachaReservas, fetchBalance } = usePointsStore();
+  const { rachaLogin, rachaReservas, fetchBalance } = usePointsStore();
 
   useEffect(() => {
     if (usuario) fetchBalance();
-  }, [usuario]);
+  }, [usuario, fetchBalance]);
 
   return (
     <div className="puntos-page">

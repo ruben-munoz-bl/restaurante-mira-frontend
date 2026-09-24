@@ -44,7 +44,7 @@ export default function LedgerTable({ limit = 10, showFilters = false, usuario }
     // Solo con sesión: `usuario === null` (deslogueado) u `undefined` sin sesión no debe llamar a la API.
     if (usuario) fetchLedger({ tipo: filtro || undefined, limit });
     else if (usuario === undefined) fetchLedger({ tipo: filtro || undefined, limit });
-  }, [usuario, filtro, limit]);
+  }, [usuario, filtro, limit, fetchLedger]);
 
   if (ledgerLoading) {
     return <div className="ledger-loading">Cargando historial...</div>;

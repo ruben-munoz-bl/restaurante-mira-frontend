@@ -5,24 +5,7 @@ const expoConfig = require('eslint-config-expo/flat');
 module.exports = defineConfig([
   expoConfig,
   {
-    ignores: [
-      'dist/*',
-      // Copias literales del web aún sin migrar a RN (fases 3–10):
-      'src/components/Favoritos.jsx',
-      'src/components/Login.jsx',
-      'src/components/Negocio.jsx',
-      'src/components/Registro.jsx',
-      'src/components/dashboard/AdminPanel.jsx',
-      'src/components/dashboard/RestaurantPanel.jsx',
-      'src/components/dashboard/StatsCard.jsx',
-      'src/components/points/**',
-      'src/components/promotions/**',
-      'src/components/tickets/**',
-      'src/pages/**',
-      'src/data/**',
-      'src/models/**',
-      'src/styles/**',
-    ],
+    ignores: ['dist/*'],
   },
   {
     // Código portado del web: patrón data-fetching con setState en effect.

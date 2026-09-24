@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import InvitePanel from '../components/points/InvitePanel';
 import useInviteStore from '../stores/useInviteStore';
 import { useT } from '../i18n/index.jsx';
@@ -14,7 +14,7 @@ export default function Invitar() {
 
   useEffect(() => {
     fetchMyInvites();
-  }, []);
+  }, [fetchMyInvites]);
 
   return (
     <div className="puntos-page">

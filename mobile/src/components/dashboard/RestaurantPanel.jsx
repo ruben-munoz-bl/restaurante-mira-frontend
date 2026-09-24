@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { dashboardApi } from "../../services/api.js";
-import { RevenueLineChart, ReservationsPieChart, RevenueBarChart } from "./Charts.jsx";
+import { RevenueLineChart, RevenueBarChart } from "./Charts.jsx";
 import StatsCard from "./StatsCard.jsx";
 import ReservationActions from "./ReservationActions.jsx";
 import TicketUpload from "./TicketUpload.jsx";

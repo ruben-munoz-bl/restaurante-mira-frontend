@@ -1,5 +1,5 @@
 /** View pura: página de creación de cuenta con dieta/accesibilidad/idioma en el formulario. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ALERGENOS } from '../models/restaurantModel.js';
 import { useT, useI18n } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
@@ -28,7 +28,7 @@ export default function Registro({ onRegistro, yaTieneSesion }) {
   const [sillaRuedas, setSillaRuedas] = useState(false);
   const [tea, setTea] = useState(false);
 
-  const [inviteCodigo, setInviteCodigo] = useState(() => {
+  const [inviteCodigo] = useState(() => {
     try { return new URLSearchParams(window.location.hash.split('?')[1]).get('invite') || null; } catch { return null; }
   });
 
@@ -73,10 +73,11 @@ export default function Registro({ onRegistro, yaTieneSesion }) {
     }
   }
 
-  if (yaTieneSesion) {
-    window.location.hash = '#/';
-    return null;
-  }
+  useEffect(() => {
+    if (yaTieneSesion) window.location.hash = '#/';
+  }, [yaTieneSesion]);
+
+  if (yaTieneSesion) return null;
 
   return (
     <section className="auth-pagina" aria-labelledby="registro-titulo">

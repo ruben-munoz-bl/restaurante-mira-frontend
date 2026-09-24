@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import TicketDetail from '../components/tickets/TicketDetail.jsx';
 
 export default function TicketPage() {
