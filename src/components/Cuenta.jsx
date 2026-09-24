@@ -1,4 +1,4 @@
-/** Página "Mi cuenta": datos + preferencias + idioma + dieta + accesibilidad + 2FA + cookies + negocio + reservas + incidencias + reseñas. */
+/** Página "Mi cuenta": datos + preferencias + idioma + dieta + accesibilidad + 2FA + cookies + negocio + reservas + incidencias + reseñas + puntos. */
 import { useEffect, useState } from 'react';
 import { listarMisReservas } from '../services/reservaApi.js';
 import { obtenerEmblemasUsuario } from '../services/emblemasApi.js';
@@ -9,6 +9,7 @@ import { listarMisNegocios } from '../services/negocioApi.js';
 import { ALERGENOS, normalizarDieta, normalizarAccesibilidad } from '../models/restaurantModel.js';
 import { COOKIE_CATEGORIAS, COOKIE_DEFAULT, leerCookies, guardarCookies, tieneConsentimiento } from '../services/cookieService.js';
 import { useI18n } from '../i18n/index.jsx';
+import usePointsStore from '../stores/usePointsStore.js';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
@@ -23,8 +24,9 @@ function hoyISO() {
   return `${h.getFullYear()}-${p(h.getMonth() + 1)}-${p(h.getDate())}`;
 }
 
-export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, onSalir, onEnviarVerificacion, onRecargarEmailVerified }) {
+export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, onSalir, onEnviarVerificacion, onRecargarEmailVerified }) {
   const { lang, setLang, available } = useI18n();
+  const { saldoActual, rachaLogin, rachaReservas, fetchBalance } = usePointsStore();
   function t(key, params) {
     const dict = TRADS[lang] || TRADS.es;
     let val = key.split('.').reduce((o, k) => (o && o[k] != null ? o[k] : key), dict);
@@ -56,11 +58,9 @@ export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibil
       window.location.hash = '#/login';
       return;
     }
+    fetchBalance();
     let vivo = true;
-
     (async () => {
-      // Cada consulta es independiente: un fallo en incidencias/reseñas
-      // no debe impedir cargar reservas ni emblemas.
       const [todasRes, incRes, resRes, negRes] = await Promise.allSettled([
         listarMisReservas(usuario.uid),
         listarMisIncidencias({ uid: usuario.uid, email: usuario.email }),
@@ -68,35 +68,24 @@ export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibil
         listarMisNegocios(usuario.uid),
       ]);
       if (!vivo) return;
-
       const todas = todasRes.status === 'fulfilled' ? todasRes.value : [];
       const inc = incRes.status === 'fulfilled' ? incRes.value : [];
       const res = resRes.status === 'fulfilled' ? resRes.value : [];
       const neg = negRes.status === 'fulfilled' ? negRes.value : [];
-
       const hoy = hoyISO();
-      setProximas(todas.filter((r) => r.estado === 'activa' && r.fecha >= hoy).slice(0, 3));
+      setProximas(todas.filter((r) => String(r.estado || '').toLowerCase() !== 'cancelada' && r.fecha >= hoy).slice(0, 3));
       setIncidencias(inc.slice(0, 5));
       setMisResenas(res.slice(0, 5));
       setMisNegocios(neg.slice(0, 5));
       setCargando(false);
-
       if (todasRes.status !== 'fulfilled') return;
-
       try {
         const emb = await obtenerEmblemasUsuario(usuario.uid, todas);
         if (vivo) setEmblemaEstado(emb);
       } catch {
-        // Fallback local si Firestore de usuarios falla: al menos contar reservas.
-        try {
-          const emb = await obtenerEmblemasUsuario(null, todas);
-          if (vivo) setEmblemaEstado(emb);
-        } catch {
-          // Emblemas opcionales: no rompen la página.
-        }
+        /* emblemas opcionales */
       }
     })();
-
     return () => { vivo = false; };
   }, [usuario]);
 
@@ -193,7 +182,6 @@ export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibil
   return (
     <section className="auth-pagina" aria-labelledby="cuenta-titulo">
       <div className="auth-tarjeta">
-        {/* --- PROGRESIÓN DE EMBLEMA --- */}
         <div className="emblema-progreso" aria-live="polite">
           <p className="emblema-progreso-label">{t('emblemas.tituloProgreso')}</p>
           <p className={`emblema-progreso-titulo${emblema ? ` emblema-progreso-titulo--activo emblema-progreso-titulo--${emblema.id}` : ''}`}>
@@ -207,7 +195,6 @@ export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibil
             <strong className="emblema-progreso-racha-valor">{multiTexto}</strong>
           </p>
         </div>
-
         <h1 id="cuenta-titulo">{usuario.nombre || t('cuenta.miCuenta')}</h1>
         <dl className="cuenta-datos">
           <div><dt>{t('cuenta.email')}</dt><dd>{usuario.email}</dd></div>
@@ -218,6 +205,48 @@ export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibil
           <a href="#buscar" className="btn-cta">{t('cuenta.buscarRestaurantes')}</a>
           <button type="button" className="btn-secundario" onClick={onSalir}>{t('cuenta.cerrarSesion')}</button>
         </p>
+
+        {/* --- DASHBOARD PANEL --- */}
+        {(esAdmin || perfil?.tipo === 'empresa') && (
+          <div className="cuenta-dashboard-banner">
+            <h2 className="cuenta-sub">{esAdmin ? 'Panel de Administración' : 'Panel de Restaurante'}</h2>
+            <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.8rem' }}>
+              {esAdmin
+                ? 'Gestiona usuarios, restaurantes, reservas, comisiones y analytics de la plataforma.'
+                : 'Gestiona tu restaurante: información, reservas, facturación y tickets.'}
+            </p>
+            <a href={esAdmin ? '#/admin' : '#/dashboard'} className="btn-cta">
+              {esAdmin ? 'Abrir Panel Admin' : 'Abrir Mi Panel'}
+            </a>
+          </div>
+        )}
+
+        {/* --- MIRA POINTS --- */}
+        <h2 className="cuenta-sub">{t('points.title')}</h2>
+        <div className="cuenta-points">
+          <div className="cuenta-points__saldo">
+            <span className="cuenta-points__amount">{saldoActual}</span>
+            <span className="cuenta-points__label">{t('points.balance')}</span>
+          </div>
+          {rachaLogin?.dias > 0 && (
+            <p style={{ fontSize: '0.9rem', color: 'var(--gris)', marginBottom: '0.5rem' }}>
+              🔥 {rachaLogin.dias} {t('points.days')} {t('points.streak')} — +{Math.min(5 + 3 * Math.max(0, rachaLogin.dias - 1), 15)} pts/día
+            </p>
+          )}
+          {rachaReservas?.semanasConsecutivas > 0 && (
+            <p style={{ fontSize: '0.9rem', color: 'var(--dorado)', marginBottom: '0.5rem' }}>
+              ⭐ x{rachaReservas.multiplicador} multiplicador activo
+            </p>
+          )}
+          <div className="cuenta-points__actions">
+            <a href="#/puntos" className="btn-cta btn-peq">{t('points.history')}</a>
+            <a href="#/puntos/historial" className="btn-secundario btn-peq">{t('points.redeem')}</a>
+            <a href="#/invitar" className="btn-secundario btn-peq">{t('points.invite')}</a>
+          </div>
+          <div className="cuenta-redemption">
+            💰 100 pts = 1,00 € · Sin caducidad
+          </div>
+        </div>
 
         {/* --- DIETA --- */}
         <h2 className="cuenta-sub">{t('cuenta.miDieta')}</h2>
@@ -327,10 +356,19 @@ export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibil
         </div>
 
         {/* --- NEGOCIO --- */}
-        {perfil?.tipo === 'empresa' && (
+        {(perfil?.tipo === 'empresa' || esAdmin) && (
           <>
             <h2 className="cuenta-sub">{t('cuenta.miNegocio')}</h2>
-            <p><a href="#/negocio" className="btn-cta btn-peq">{t('cuenta.anadirRestaurante')}</a></p>
+            {perfil?.tipo === 'empresa' && (
+              <p><a
+                href="#/dashboard"
+                className="btn-cta"
+                onClick={() => { try { sessionStorage.setItem('mira_abrir_crear', '1'); } catch { /* ignore */ } }}
+              >{t('cuenta.anadirRestaurante')}</a></p>
+            )}
+            {esAdmin && (
+              <p><a href="#/admin" className="btn-cta">Panel de Administracion</a></p>
+            )}
             {!cargando && misNegocios.length > 0 && (
               <ul className="lista-registros">
                 {misNegocios.map((n) => (

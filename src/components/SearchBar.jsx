@@ -121,7 +121,7 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
         </div>
 
         <div className="campo">
-          <label htmlFor="f-hora">Hora</label>
+          <label htmlFor="f-hora">{t('busqueda.hora')}</label>
           <input id="f-hora" type="time" value={filtros.hora} onChange={(e) => onChange('hora', e.target.value)} />
         </div>
 

@@ -53,7 +53,7 @@ export default function Mensajes({ usuario, onLeidos }) {
         <h1 id="mensajes-titulo">
           {t('mensajes.titulo')} {noLeidos > 0 && <span className="badge-noleidos">{noLeidos} {t('mensajes.sinLeer')}</span>}
         </h1>
-        {cargando && <p>Cargando…</p>}
+        {cargando && <p>{t('mensajes.cargando')}</p>}
         {error && (
           <p className="auth-error" role="alert">
             {error}

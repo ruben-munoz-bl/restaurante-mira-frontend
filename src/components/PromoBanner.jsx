@@ -1,21 +1,30 @@
 /** View pura: franja de ventajas con diseño editorial. */
+import { useT } from '../i18n/index.jsx';
+import es from '../i18n/es.js';
+import ca from '../i18n/ca.js';
+import en from '../i18n/en.js';
+
+const TRADS = { es, ca, en };
+
 const VENTAJAS = [
-  { titulo: 'Notas reales', texto: 'Medias de Yelp y de nuestra comunidad.' },
-  { titulo: 'Cerca de ti', texto: 'Distancia real desde tu ubicación.' },
-  { titulo: 'Sin coste', texto: 'Buscar y reservar es siempre gratis.' },
+  { key: 'notaReal', keyDesc: 'notaDesc' },
+  { key: 'cerca', keyDesc: 'cercaDesc' },
+  { key: 'gratisTitulo', keyDesc: 'gratisDesc' },
 ];
 
 export default function PromoBanner() {
+  const t = useT(TRADS);
+
   return (
-    <section className="promo" aria-label="Ventajas de MIRA">
+    <section className="promo" aria-label={t('promo.titulo')}>
       <ul className="promo-lista">
         {VENTAJAS.map((v) => (
-          <li key={v.titulo} className="promo-item">
+          <li key={v.key} className="promo-item">
             <span className="promo-check" aria-hidden="true">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 13l4 4L19 7"/></svg>
             </span>
             <div>
-              <strong>{v.titulo}.</strong> {v.texto}
+              <strong>{t(`promo.${v.key}`)}.</strong> {t(`promo.${v.keyDesc}`)}
             </div>
           </li>
         ))}

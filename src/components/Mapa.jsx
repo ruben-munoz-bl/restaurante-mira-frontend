@@ -9,9 +9,15 @@ import 'leaflet/dist/leaflet.css';
 import { fetchRestaurants } from '../services/restaurantApi.js';
 import { ZONAS_CATALUNA } from '../models/restaurantModel.js';
 import { centroDeZona, CENTRO_CATALUNA } from '../services/cityCenters.js';
+import { useT } from '../i18n/index.jsx';
+import es from '../i18n/es.js';
+import ca from '../i18n/ca.js';
+import en from '../i18n/en.js';
 
-function nombreZona(z) {
-  return String(z || '').replace(', Spain', '') || 'Sin zona';
+const TRADS = { es, ca, en };
+
+function nombreZona(z, t) {
+  return String(z || '').replace(', Spain', '') || (t ? t('otros.sinZona') : 'Sin zona');
 }
 
 function escapar(s) {
@@ -33,6 +39,7 @@ function iconoCentro() {
 }
 
 export default function Mapa({ todos, total, onVerDetalle }) {
+  const t = useT(TRADS);
   const refCont = useRef(null);
   const refMapa = useRef(null);
   const refCapa = useRef(null);
@@ -67,7 +74,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
           setCargando(false);
           return;
         }
-        setError(e.message || 'No se pudo cargar el mapa.');
+        setError(e.message || t('otros.noMapa'));
         setCargando(false);
       });
     return () => {
@@ -79,15 +86,19 @@ export default function Mapa({ todos, total, onVerDetalle }) {
   const porZona = useMemo(() => {
     const m = {};
     fuente.forEach((r) => {
-      const z = r.zona || 'Sin zona';
+      const z = r.zona || t('otros.sinZona');
       m[z] = (m[z] || 0) + 1;
     });
     return m;
-  }, [fuente]);
+  }, [fuente, t]);
 
   const visibles = useMemo(
-    () => fuente.filter((r) => r.coords && (!zona || (r.zona || 'Sin zona') === zona)),
-    [fuente, zona],
+    () => fuente.filter((r) =>
+      r.coords
+      && Number.isFinite(Number(r.coords.lat))
+      && Number.isFinite(Number(r.coords.lng))
+      && (!zona || (r.zona || t('otros.sinZona')) === zona)),
+    [fuente, zona, t],
   );
 
   // Crear el mapa cuando el contenedor existe (siempre renderizado, aunque cargando).
@@ -136,11 +147,11 @@ export default function Mapa({ todos, total, onVerDetalle }) {
     if (zona && capaCentro) {
       const mkCentro = L.marker([centro.lat, centro.lng], {
         icon: iconoCentro(),
-        title: `Centro de ${centro.nombre || nombreZona(zona)}`,
+        title: `Centro de ${centro.nombre || nombreZona(zona, t)}`,
         keyboard: false,
         zIndexOffset: 1000,
       });
-      mkCentro.bindTooltip(`Centro de ${escapar(centro.nombre || nombreZona(zona))}`, {
+      mkCentro.bindTooltip(`Centro de ${escapar(centro.nombre || nombreZona(zona, t))}`, {
         permanent: false,
         direction: 'top',
       });
@@ -149,7 +160,10 @@ export default function Mapa({ todos, total, onVerDetalle }) {
 
     const puntos = [];
     visibles.forEach((r) => {
-      const mk = L.circleMarker([r.coords.lat, r.coords.lng], {
+      const lat = Number(r.coords?.lat);
+      const lng = Number(r.coords?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const mk = L.circleMarker([lat, lng], {
         radius: 7,
         color: '#00664f',
         weight: 2,
@@ -158,11 +172,11 @@ export default function Mapa({ todos, total, onVerDetalle }) {
       });
       mk.bindPopup(
         `<strong>${escapar(r.nombre)}</strong><br>` +
-          `★ ${escapar(r.valoracion ?? '—')} · ${escapar(r.precio)} · ${escapar(nombreZona(r.zona))}<br>` +
-          `<button data-ver-detalle="${escapar(r.id)}" style="margin-top:0.4rem">Ver detalle</button>`,
+          `★ ${escapar(r.valoracion ?? '—')} · ${escapar(r.precio)} · ${escapar(nombreZona(r.zona, t))}<br>` +
+          `<button data-ver-detalle="${escapar(r.id)}" style="margin-top:0.4rem">${t('card.verMas')}</button>`,
       );
       mk.addTo(capa);
-      puntos.push([r.coords.lat, r.coords.lng]);
+      puntos.push([lat, lng]);
     });
 
     if (puntos.length > 1) {
@@ -191,7 +205,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
     return () => {
       mapa.off('popupopen', alAbrirPopup);
     };
-  }, [visibles, zona, fuente.length, onVerDetalle]);
+  }, [visibles, zona, fuente.length, onVerDetalle, t]);
 
   const zonas = useMemo(
     () => [...new Set([...ZONAS_CATALUNA, ...Object.keys(porZona)])],
@@ -203,7 +217,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
   return (
     <section className="auth-pagina pagina-ancha" aria-labelledby="mapa-titulo">
       <div className="auth-tarjeta tarjeta-ancha">
-        <h1 id="mapa-titulo">Mapa por zonas</h1>
+        <h1 id="mapa-titulo">{t('otros.mapaPorZonas')}</h1>
 
         <div className="tabs" role="group" aria-label="Filtrar por zona">
           <button
@@ -212,7 +226,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
             className={zona === '' ? 'btn-cta btn-peq' : 'btn-secundario btn-peq'}
             onClick={() => setZona('')}
           >
-            Todas ({fuente.length || total || 0})
+            {t('otros.todas')} ({fuente.length || total || 0})
           </button>
           {zonas.map((z) => (
             <button
@@ -222,33 +236,33 @@ export default function Mapa({ todos, total, onVerDetalle }) {
               className={zona === z ? 'btn-cta btn-peq' : 'btn-secundario btn-peq'}
               onClick={() => setZona(z)}
             >
-              {nombreZona(z)} ({porZona[z] ?? 0})
+              {nombreZona(z, t)} ({porZona[z] ?? 0})
             </button>
           ))}
         </div>
 
         <p className="vacio-texto" aria-live="polite">
           {cargando
-            ? 'Cargando locales…'
-            : `${visibles.length} locales en el mapa${zona ? ` · ${nombreZona(zona)} (centrado en su centro)` : ''}.`}
+            ? t('otros.cargandoLocales')
+            : t('otros.localesEnMapa', { count: visibles.length }) + (zona ? ` · ${nombreZona(zona, t)} (centrado en su centro)` : '') + '.'}
         </p>
 
         {error && fuente.length === 0 && (
           <div className="error-panel" role="alert" style={{ marginBottom: '0.8rem' }}>
-            <p className="vacio-titulo">No se pudo cargar el mapa.</p>
+            <p className="vacio-titulo">{t('otros.noMapa')}</p>
             <p>{error}</p>
             <button type="button" className="btn-cta" onClick={() => setReintento((i) => i + 1)}>
-              Reintentar
+              {t('otros.reintentar')}
             </button>
           </div>
         )}
 
-        {mapaVacio && <p className="vacio-texto">Aún no hay locales con coordenadas para mostrar.</p>}
+        {mapaVacio && <p className="vacio-texto">{t('otros.noCoordenadas')}</p>}
 
         {/* El mapa SIEMPRE en el DOM: si no, Leaflet no inicializa (altura 0) */}
-        <div ref={refCont} className="mapa-grande" role="application" aria-label="Mapa de restaurantes" />
+        <div ref={refCont} className="mapa-grande" role="application" aria-label={t('otros.mapaPorZonas')} />
 
-        {cargando && fuente.length === 0 && <p className="vacio-texto">Cargando mapa…</p>}
+        {cargando && fuente.length === 0 && <p className="vacio-texto">{t('otros.cargandoMapa')}</p>}
       </div>
     </section>
   );

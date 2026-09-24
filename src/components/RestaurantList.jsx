@@ -29,7 +29,9 @@ export default function RestaurantList({ restaurants, filtros, onClear, onSelect
     );
     obs.observe(el);
     return () => obs.disconnect();
-  }, [hayMas, onLoadMore]);
+    // restaurants.length: al crecer la grilla hay que reobservar; si el
+    // centinela sigue a la vista, el observer vuelve a notificar al montarse.
+  }, [hayMas, onLoadMore, restaurants.length]);
 
   if (restaurants.length === 0 && !hayMas && !cargandoInicial) {
     const hayBusqueda = filtros?.q?.trim();

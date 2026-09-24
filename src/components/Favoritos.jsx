@@ -89,7 +89,7 @@ export default function Favoritos({
     <section className="auth-pagina pagina-ancha" aria-labelledby="favoritos-titulo">
       <div className="auth-tarjeta tarjeta-ancha">
         <h1 id="favoritos-titulo">{t('favoritos.misFavoritos', { count: locales.length })}</h1>
-        {cargando && <p>Cargando…</p>}
+        {cargando && <p>{t('favoritos.cargando')}</p>}
         {!cargando && locales.length === 0 && (
           <div role="status">
             <p className="vacio-texto">{t('favoritos.vacio')}</p>

@@ -14,7 +14,8 @@ export default {
     "modoClaro": "Light mode",
     "modoOscuro": "Dark mode",
     "abrirMenu": "Open menu",
-    "cerrarMenu": "Close menu"
+    "cerrarMenu": "Close menu",
+    "navegacion": "Main navigation"
   },
   "hero": {
     "titulo": "Book your perfect table",
@@ -22,7 +23,8 @@ export default {
     "buscar": "Search restaurants",
     "restaurantes": "restaurants",
     "zonas": "areas",
-    "resenasPorLocal": "reviews per venue"
+    "resenasPorLocal": "reviews per venue",
+    "cifras": "The guide in numbers"
   },
   "busqueda": {
     "titulo": "Find your place",
@@ -218,19 +220,6 @@ export default {
     "cookiesDescripcion": "Control which types of cookies you accept. They're saved to your profile and apply across all sessions.",
     "enviando": "Sending…"
   },
-  "emblemas": {
-    "tituloProgreso": "Your progress",
-    "tituloNivel": "{{nombre}} badge",
-    "foodie": "Foodie",
-    "gourmet": "Gourmet",
-    "michelin": "Michelin",
-    "sinEmblema": "Book your first table to unlock the Foodie badge.",
-    "faltan": "You need {{n}} more bookings to unlock the {{siguiente}} badge.",
-    "faltaUna": "You need 1 more booking to unlock the {{siguiente}} badge.",
-    "maximo": "You've reached the Michelin badge.",
-    "multiplicador": "Multiplier",
-    "multiplicadorValor": "{{multi}}"
-  },
   "registro": {
     "crearCuenta": "Sign up",
     "gratis": "Free, takes less than a minute.",
@@ -254,7 +243,10 @@ export default {
     "creando": "Creating…",
     "volver": "Back",
     "yaTienesCuenta": "Already have an account?",
-    "iniciaSesion": "Log in"
+    "iniciaSesion": "Log in",
+    "errorNombre": "Enter your name (minimum 2 letters).",
+    "errorCorreo": "Enter a valid email.",
+    "errorPass": "Password must be at least 6 characters."
   },
   "modelos": {
     "locale": "en-US",
@@ -299,7 +291,15 @@ export default {
     "personas": "people",
     "meses": ["January","February","March","April","May","June","July","August","September","October","November","December"],
     "diasSemana": ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"],
-    "locale": "en-GB"
+    "locale": "en-GB",
+    "cargandoLocales": "Loading venues…",
+    "localesEnMapa": "{{count}} venues on the map",
+    "sinZona": "No zone",
+    "mapaPorZonas": "Map by zones",
+    "todas": "All",
+    "noCoordenadas": "No venues with coordinates to show yet.",
+    "cargandoMapa": "Loading map…",
+    "noMapa": "Could not load the map."
   },
   "reservas": {
     "misReservas": "My reservations",
@@ -352,6 +352,7 @@ export default {
     "reservando": "Booking…",
     "reservar": "Reserve",
     "debesLogin": "You need to <1>sign in</1> to reserve.",
+    "descuentoPendiente": "You have a {{euros}} € discount pending. It will be applied to your next reservation.",
     "reservaConfirmada": "Reservation confirmed!",
     "codigo": "Code",
     "verMisReservas": "View my reservations",
@@ -374,7 +375,12 @@ export default {
     "verResenasYelp": "Show all {{count}} Yelp reviews",
     "soloLikeMira": "Only MIRA reviews can be liked",
     "quitarLike": "Unlike",
-    "darLike": "Like"
+    "darLike": "Like",
+    "eligeFechaHora": "Select date, time and guests.",
+    "fechaNoAnterior": "The date cannot be in the past.",
+    "iniciaParaLike": "Sign in to like.",
+    "especialidades": "Specialties",
+    "placeholderComentarios": "Highchair, birthday, allergies…"
   },
   "cookie": {
     "aviso": "Cookie notice",
@@ -430,7 +436,8 @@ export default {
     "recomendados": "Recommended for you",
     "sinRecomendaciones": "No recommendations yet: save more cuisines or load more restaurants by scrolling on the search page.",
     "deTuCocina": "From your favourite cuisine, based on your likes.",
-    "anadirComparar": "Add to compare"
+    "anadirComparar": "Add to compare",
+    "cargando": "Loading…"
   },
   "comparador": {
     "comparando": "Comparing {{count}}",
@@ -452,15 +459,19 @@ export default {
   },
   "libro": {
     "cartaDe": "Menu of {{nombre}}",
-    "cerrarCarta": "Close menu",
+    "cerrarCarta": "Close",
     "leyenda": "Legend",
     "leyendaCarta": "Menu legend",
     "anterior": "← Previous",
+    "anteriorCorto": "Previous",
     "siguiente": "Next →",
+    "siguienteCorto": "Next",
     "secciones": "sections",
     "platos": "dishes",
     "aptosParaTi": "Suitable for you",
-    "menuInfantil": "Kids menu"
+    "menuInfantil": "Kids menu",
+    "abrirMenu": "Tap to open menu",
+    "desliza": "Swipe or use arrows to turn the page"
   },
   "recuperar": {
     "titulo": "Reset password",
@@ -503,7 +514,11 @@ export default {
     "localesPropuestos": "Proposed locations",
     "noPropuestas": "No pending proposals.",
     "aprobar": "Approve",
-    "rechazar": "Reject"
+    "rechazar": "Reject",
+    "cargando": "Loading…",
+    "si": "yes",
+    "no": "no",
+    "noInfo": "?"
   },
   "negocio": {
     "propuestaEnviada": "Proposal sent",
@@ -541,13 +556,152 @@ export default {
     "vacio": "No messages. When you have an upcoming reservation, TEAM MIRA will notify you here.",
     "parking": "Parking",
     "recomendado": "recommended",
-    "comoLlegarParking": "Directions to parking"
+    "comoLlegarParking": "Directions to parking",
+    "cargando": "Loading…"
   },
   "footer": {
     "titulo": "MIRA — Real restaurants, real reservations.",
     "copyright": "© 2026 MIRA. All rights reserved.",
     "hecho": "Spain",
     "avisoPrivacidad": "Privacy policy",
-    "avisoCookies": "Cookie policy"
+    "avisoCookies": "Cookie policy",
+    "direccion": "12 Market Street, Madrid",
+    "contactoInfo": "hello@mira.example — 910 123 456"
+  },
+  "parkings": {
+    "titulo": "Nearby parking",
+    "sinParkings": "No parking within 500 m",
+    "gratis": "Free",
+    "pago": "Paid"
+  },
+  "promo": {
+    "titulo": "MIRA Benefits",
+    "notaReal": "Real ratings",
+    "notaDesc": "Averages from Yelp and our community.",
+    "cerca": "Near you",
+    "cercaDesc": "Real distance from your location.",
+    "gratisTitulo": "Free of charge",
+    "gratisDesc": "Searching and booking is always free."
+  },
+  "bottomNav": {
+    "explorar": "Explore",
+    "reservas": "Reservations",
+    "mapa": "Map",
+    "favoritos": "Favorites",
+    "perfil": "Profile",
+    "puntos": "Points",
+    "navMovil": "Mobile navigation"
+  },
+  "floating": {
+    "confirmarReserva": "Confirm reservation",
+    "reserva": "Booking",
+    "descuentoEpicure": "Epicure discount",
+    "descuentoPendiente": "Points discount",
+    "totalEstimado": "Estimated total",
+    "confirmar": "Confirm Booking"
+  },
+  "sellos": {
+    "vegano": "Vegan",
+    "vegetariano": "Vegetarian",
+    "sinGluten": "Gluten-free",
+    "leyendaSellos": "Badge legend"
+  },
+  "points": {
+    "title": "My MIRA Points",
+    "subtitle": "Earn points with every action and redeem them for discounts",
+    "balance": "Available points",
+    "totalAcumulated": "Total earned",
+    "totalRedeemed": "Total redeemed",
+    "rate": "100 pts = 1.00 €",
+    "history": "Points history",
+    "invite": "Invite friends",
+    "inviteDesc": "Earn 200 points for each friend who makes 2 reservations",
+    "dailyLogin": "Daily login",
+    "streak": "Streak",
+    "days": "days",
+    "weeks": "weeks",
+    "multiplier": "Multiplier",
+    "redeem": "Redeem points",
+    "redeemInfo": "Minimum 100 pts (1.00 €) · Maximum 50% of the ticket",
+    "redeemSuccess": "Redemption successful",
+    "redeemDiscount": "Discount applied to your next ticket",
+    "redeemError": "Error redeeming points",
+    "redeeming": "Redeeming...",
+    "discountTitle": "Claim discount",
+    "discountInfo": "100 pts = 1 €. The discount will be applied to your next reservation.",
+    "discountPending": "of discount pending",
+    "discountPendingHint": "Will be applied on your next reservation",
+    "discountClaimed": "Discount claimed. It will be applied to your next reservation.",
+    "discountError": "Error claiming the discount",
+    "cancel": "Cancel",
+    "confirm": "Redeem",
+    "types": {
+      "reserva": "Completed reservation",
+      "login_diario": "Daily login",
+      "racha_reserva_bonus": "Weekly streak bonus",
+      "resena": "Review",
+      "promo_view": "Viewed promoted restaurant",
+      "promo_click": "Clicked promoted restaurant",
+      "invitacion": "Invitation accepted",
+      "canje_descuento": "Points redeemed",
+      "ajuste_admin": "Admin adjustment",
+      "ruleta_dia7": "Day 7 wheel"
+    },
+    "inviteEmailPlaceholder": "Friend's email",
+    "inviteSending": "Sending...",
+    "inviteSend": "Invite",
+    "inviteInfo": "Earn <strong>200 pts</strong> when your friend makes 2 reservations. Maximum 5 invitations per month.",
+    "inviteSent": "Sent",
+    "inviteAccepted": "Accepted",
+    "invitePointsEarned": "Points earned",
+    "inviteCopyLink": "Copy link",
+    "inviteCopied": "Copied",
+    "noMovements": "No movements yet",
+    "loading": "Loading history...",
+    "all": "All",
+    "reservas": "Reservations",
+    "reviews": "Reviews",
+    "invitations": "Invitations",
+    "promoViews": "Promo views",
+    "promoClicks": "Promo clicks",
+    "redeems": "Redemptions"
+  },
+  "streak": {
+    "club": "MIRA Club",
+    "dailyReward": "Daily Reward",
+    "dayCompleted": "DAY {{n}} COMPLETED",
+    "streakTitle": "You're on a {{n}}-Day Streak!",
+    "streakSubtitle": "Log in daily to unlock more MIRA Points and get discounts on your next dinner.",
+    "foodiePath": "Foodie Path",
+    "week": "Week 1",
+    "wheelPrize": "Wheel: up to 100 MIRA pts!",
+    "yourBalance": "Your MIRA Points balance",
+    "accumulated": "accumulated",
+    "claim": "CLAIM +{{n}} MIRA!",
+    "spinWheel": "SPIN THE WHEEL!",
+    "rewardObtained": "REWARD OBTAINED!",
+    "streakProtector": "Streak protector active: if you forget to log in tomorrow, your streak won't be lost.",
+    "toastClaimed": "+{{n}} MIRA Points credited",
+    "toastNext": "Come back tomorrow to continue your streak!",
+    "wheelTitle": "You completed the 7-day streak!",
+    "wheelSubtitle": "Spin the wheel to win between 20 and 100 MIRA Points",
+    "wheelSpinning": "Spinning...",
+    "wheelSpinBtn": "🎡 SPIN THE WHEEL!",
+    "wheelCongrats": "Congratulations!",
+    "wheelAdded": "Added to your balance",
+    "milestone7": "x7 Chest"
+  },
+  "emblemas": {
+    "tituloProgreso": "Your progress",
+    "tituloNivel": "{{nombre}} badge",
+    "foodie": "Foodie",
+    "gourmet": "Gourmet",
+    "michelin": "Michelin",
+    "sinEmblema": "Book your first table to unlock the Foodie badge.",
+    "faltan": "You need {{n}} more bookings to unlock the {{siguiente}} badge.",
+    "faltaUna": "You need 1 more booking to unlock the {{siguiente}} badge.",
+    "maximo": "You've reached the Michelin badge.",
+    "multiplicador": "Multiplier",
+    "multiplicadorValor": "{{multi}}"
   }
 }

@@ -4,23 +4,30 @@
  * Los textos vienen del catálogo (leyendaSellos): nada hardcodeado.
  */
 import { leyendaSellos, codigoAlergeno } from '../models/restaurantModel.js';
+import { useT } from '../i18n/index.jsx';
+import es from '../i18n/es.js';
+import ca from '../i18n/ca.js';
+import en from '../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 export function Sellos({ plato }) {
+  const t = useT(TRADS);
   return (
     <span className="plato-sellos">
       {plato.vegano && (
-        <span className="sello sello-vegano" title="Vegano">
-          🌱<span className="sr-only">Vegano</span>
+        <span className="sello sello-vegano" title={t('sellos.vegano')}>
+          🌱<span className="sr-only">{t('sellos.vegano')}</span>
         </span>
       )}
       {!plato.vegano && plato.vegetariano && (
-        <span className="sello sello-veg" title="Vegetariano">
-          VG<span className="sr-only">Vegetariano</span>
+        <span className="sello sello-veg" title={t('sellos.vegetariano')}>
+          VG<span className="sr-only">{t('sellos.vegetariano')}</span>
         </span>
       )}
       {plato.sinGluten && (
-        <span className="sello sello-sg" title="Sin gluten">
-          SG<span className="sr-only">Sin gluten</span>
+        <span className="sello sello-sg" title={t('sellos.sinGluten')}>
+          SG<span className="sr-only">{t('sellos.sinGluten')}</span>
         </span>
       )}
     </span>
@@ -44,9 +51,10 @@ export function ConflictosAlergenos({ alergenos }) {
 
 /** Mini-leyenda de una línea (sellos de dieta) para listas compactas. */
 export function MiniLeyenda() {
+  const t = useT(TRADS);
   const items = leyendaSellos().slice(0, 3);
   return (
-    <p className="mini-leyenda" aria-label="Leyenda de sellos">
+    <p className="mini-leyenda" aria-label={t('sellos.leyendaSellos')}>
       {items.map((e, i) => (
         <span key={e.nombre}>
           {i > 0 && ' · '}

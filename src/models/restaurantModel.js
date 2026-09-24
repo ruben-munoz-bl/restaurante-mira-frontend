@@ -239,6 +239,7 @@ export function ordenarResenas(lista, orden = 'populares') {
  * Se usan para el filtro aunque la portada aún no las haya cargado todas.
  */
 export const ZONAS_CATALUNA = ['Barcelona, Spain', 'Tarragona, Spain', 'Girona, Spain', 'Lleida, Spain'];
+export const CIUDADES_CATALUNA = ['Tarragona', 'Girona', 'Barcelona', 'Lleida'];
 
 // =====================================================
 // Dieta, alérgenos y carta libro (todo determinista, 0 lecturas)
@@ -546,6 +547,7 @@ export function resumenRestaurante(restaurante, dieta = null) {
     id: restaurante.id,
     nombre: restaurante.nombre,
     imagen: restaurante.imagen,
+    cocina: restaurante.cocina,
     notaYelp,
     totalYelp: restaurante.totalResenasYelp ?? 0,
     notaMira,

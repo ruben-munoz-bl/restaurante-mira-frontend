@@ -1,6 +1,6 @@
 /** View pura: formulario para que una cuenta empresa proponga su local. */
 import { useState } from 'react';
-import { ZONAS_CATALUNA } from '../models/restaurantModel.js';
+import { ZONAS_CATALUNA, CIUDADES_CATALUNA } from '../models/restaurantModel.js';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -118,7 +118,12 @@ export default function Negocio({ usuario, perfil, onProponer }) {
         </div>
         <div className="campo">
           <label htmlFor="ng-ciudad">{t('negocio.ciudad')}</label>
-          <input id="ng-ciudad" type="text" placeholder="Tarragona" value={form.ciudad} onChange={(e) => set('ciudad', e.target.value)} />
+          <select id="ng-ciudad" value={form.ciudad} onChange={(e) => set('ciudad', e.target.value)} required>
+            <option value="">{t('negocio.eligeZona') || 'Elige ciudad'}</option>
+            {CIUDADES_CATALUNA.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
         </div>
         <div className="campo">
           <label htmlFor="ng-zona">{t('negocio.zona')}</label>

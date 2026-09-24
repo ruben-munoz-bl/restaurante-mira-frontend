@@ -1,27 +1,23 @@
 /**
- * Model — formulario de contacto. Guarda 1 doc por envío en 'contactos'.
- * Requiere regla allow create en Firestore (ver README). ~1 write por envío.
+ * Model — formulario de contacto vía API.
  */
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { getDb } from './firebase.js';
+import { api } from './httpClient.js';
 
-/**
- * @param {{ nombre:string, email:string, motivo:string, mensaje:string, usuario?:{uid?:string,email?:string}|null }}
- */
-export async function enviarContacto({ nombre, email, motivo, mensaje, usuario = null }) {
+export async function enviarContacto({ nombre, email, motivo, mensaje }) {
   try {
-    await addDoc(collection(getDb(), 'contactos'), {
-      uid: usuario?.uid ?? null,
-      nombre: nombre.trim(),
-      email: email.trim(),
-      motivo,
-      mensaje: mensaje.trim(),
-      estado: 'pendiente',
-      creado: serverTimestamp(),
-    });
+    await api.post(
+      '/v1/contactos',
+      {
+        nombre: String(nombre || '').trim(),
+        email: String(email || '').trim(),
+        motivo,
+        mensaje: String(mensaje || '').trim(),
+      },
+      { auth: false },
+    );
   } catch (e) {
-    if (e.code === 'permission-denied') {
-      throw new Error('Falta permiso: publica las reglas de Firestore para «contactos» (ver README).');
+    if (e.status === 401 || e.status === 403) {
+      throw new Error('No se pudo enviar el mensaje. Inténtalo de nuevo.');
     }
     throw new Error('No se pudo enviar el mensaje. Inténtalo de nuevo.');
   }

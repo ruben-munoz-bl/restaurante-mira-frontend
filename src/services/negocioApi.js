@@ -1,21 +1,7 @@
 /**
- * Model — locales propuestos por cuentas empresa (`negocios`).
- * Flujo: empresa propone (estado pendiente) → admin aprueba (copia a
- * `restaurants`) o rechaza. 1-2 escrituras por acción, queries pequeñas.
+ * Model — locales propuestos por cuentas empresa vía API.
  */
-import {
-  collection,
-  addDoc,
-  getDocs,
-  getDoc,
-  doc,
-  query,
-  where,
-  updateDoc,
-  writeBatch,
-  serverTimestamp,
-} from 'firebase/firestore';
-import { getDb } from './firebase.js';
+import { api } from './httpClient.js';
 
 const PRECIOS = ['€', '€€', '€€€'];
 
@@ -30,14 +16,9 @@ function validarPropuesta(d) {
   }
 }
 
-/** Empresa propone su local (queda pendiente de revisión). */
-export async function proponerNegocio({ usuario, datos }) {
-  if (!usuario?.uid) throw new Error('Debes iniciar sesión para proponer tu local.');
+export async function proponerNegocio({ datos }) {
   validarPropuesta(datos);
-  const ref = await addDoc(collection(getDb(), 'negocios'), {
-    uid: usuario.uid,
-    email: usuario.email ?? '',
-    estado: 'pendiente',
+  const d = await api.post('/v1/negocios', {
     nombre: datos.nombre.trim(),
     ciudad: datos.ciudad.trim(),
     zona: datos.zona,
@@ -53,64 +34,27 @@ export async function proponerNegocio({ usuario, datos }) {
     tronas: datos.tronas ?? null,
     terraza: datos.terraza ?? null,
     alergenos: (datos.alergenos || '').trim(),
-    creado: serverTimestamp(),
   });
-  return ref.id;
+  return d.id;
 }
 
-/** Locales propuestos por un usuario (para "Mi negocio"). */
-export async function listarMisNegocios(uid) {
-  const snap = await getDocs(query(collection(getDb(), 'negocios'), where('uid', '==', uid)));
-  const list = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+export async function listarMisNegocios() {
+  const d = await api.get('/v1/negocios/my');
+  const list = d.data || d || [];
   list.sort((a, b) => (b.creado?.seconds ?? 0) - (a.creado?.seconds ?? 0));
   return list;
 }
 
-/** Cola de pendientes para el admin (1 query). */
 export async function listarNegociosPendientes() {
-  const snap = await getDocs(query(collection(getDb(), 'negocios'), where('estado', '==', 'pendiente')));
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const d = await api.get('/v1/negocios/pendientes');
+  return d.data || d || [];
 }
 
-/**
- * Aprueba: copia a `restaurants` (id auto) y marca aprobada. Atómico (batch).
- * El local nuevo empieza sin nota ni reseñas: las ganará con los clientes.
- */
 export async function aprobarNegocio(negocioId) {
-  const db = getDb();
-  const ref = doc(db, 'negocios', negocioId);
-  const snap = await getDoc(ref);
-  if (!snap.exists()) throw new Error('La propuesta ya no existe.');
-  const n = snap.data();
-  if (n.estado === 'aprobada') throw new Error('Ya estaba aprobada.');
-  const batch = writeBatch(db);
-  const restRef = doc(collection(db, 'restaurants'));
-  batch.set(restRef, {
-    nombre: n.nombre,
-    categorias: n.categorias,
-    precio: n.precio,
-    ciudad: n.ciudad,
-    zona_busqueda: n.zona,
-    direccion_completa: n.direccion,
-    telefono: n.telefono || '',
-    descripcion: n.descripcion || '',
-    imagen_url: n.imagen_url || '',
-    rating_yelp: null,
-    total_resenas_yelp: 0,
-    accesoDiscapacidad: n.accesoDiscapacidad ?? null,
-    menuInfantil: n.menuInfantil ?? null,
-    entornoTranquilo: n.entornoTranquilo ?? null,
-    tronas: n.tronas ?? null,
-    terraza: n.terraza ?? null,
-    alergenos: n.alergenos || '',
-    resenas: [],
-  });
-  batch.update(ref, { estado: 'aprobada' });
-  await batch.commit();
-  return restRef.id;
+  const d = await api.put(`/v1/negocios/${encodeURIComponent(negocioId)}/aprobar`);
+  return d.restaurantId;
 }
 
-/** Rechaza la propuesta (no se borra: queda historial). */
 export async function rechazarNegocio(negocioId) {
-  await updateDoc(doc(getDb(), 'negocios', negocioId), { estado: 'rechazada' });
+  await api.put(`/v1/negocios/${encodeURIComponent(negocioId)}/rechazar`);
 }

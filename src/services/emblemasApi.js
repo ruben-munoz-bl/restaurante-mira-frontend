@@ -1,18 +1,18 @@
 /**
- * Model — emblemas por NÚMERO de reservas válidas (no canceladas) del usuario.
- * Persistencia: `usuarios/{uid}.emblemasDesbloqueados` (array de ids; solo avanza).
+ * Model — emblemas por NÚMERO de reservas válidas (no canceladas).
+ * Sin Firestore: se calcula siempre desde las reservas; desbloqueos
+ * se guardan en localStorage (solo avance) para no re-preguntar.
  * Niveles: 0 → ninguno; 1-4 → foodie; 5-8 → gourmet; 9+ → michelin.
- * Multiplicador de puntos (listo para cuando exista el sistema de puntos):
- *   1.00 | 1.10 | 1.20 | 1.25.
+ * Multiplicador: 1.00 | 1.10 | 1.20 | 1.25.
  */
-import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getDb } from './firebase.js';
 
 export const EMBLEMAS = [
   { id: 'foodie', img: '/emblemas/foodie.png', umbral: 1, multi: 1.1 },
   { id: 'gourmet', img: '/emblemas/gourmet.png', umbral: 5, multi: 1.2 },
   { id: 'michelin', img: '/emblemas/michelin.png', umbral: 9, multi: 1.25 },
 ];
+
+const LS_KEY = 'mira_emblemas';
 
 /** Reservas que cuentan: existen y no están canceladas. */
 export function reservasValidas(reservas = []) {
@@ -33,7 +33,6 @@ export function emblemaPorReservas(total = 0) {
 
 /**
  * Multiplicador de puntos del nivel actual.
- * Uso futuro: puntosFinales = Math.round(base * getPointsMultiplier(reservas)).
  * @returns {number} 1 | 1.1 | 1.2 | 1.25
  */
 export function getPointsMultiplier(reservas = []) {
@@ -70,53 +69,38 @@ export function mayorEmblema(desbloqueados = []) {
   return null;
 }
 
+function leerLocal() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return [];
+    const arr = JSON.parse(raw);
+    return Array.isArray(arr) ? arr.filter((id) => EMBLEMAS.some((e) => e.id === id)) : [];
+  } catch {
+    return [];
+  }
+}
+
+function guardarLocal(ids) {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(ids));
+  } catch {
+    /* modo privado / sin storage: se recalcula en cada carga */
+  }
+}
+
 /**
  * Estado de emblemas para Mi cuenta a partir de las reservas del usuario.
- * Lee `usuarios/{uid}`, persiste SOLO ids nuevos (nunca pisa true con false).
- * @returns {Promise<{
- *   totalReservas: number,
- *   desbloqueados: string[],
- *   emblema: {id:string,img:string,umbral:number,multi:number}|null,
- *   multi: number,
- *   multiTexto: string,
- *   siguiente: {id:string,img:string,umbral:number,multi:number}|null,
- *   faltan: number,
- * }>}
+ * Persiste SOLO ids nuevos en localStorage (nunca retrocede).
  */
-export async function obtenerEmblemasUsuario(uid, reservas = []) {
+export async function obtenerEmblemasUsuario(_uid, reservas = []) {
   const totalReservas = contarReservasValidas(reservas);
   const deberia = emblemasPorReservas(totalReservas);
 
-  let guardados = [];
-  if (uid) {
-    try {
-      const snap = await getDoc(doc(getDb(), 'usuarios', uid));
-      const raw = snap.exists() ? snap.data().emblemasDesbloqueados : null;
-      if (Array.isArray(raw)) {
-        guardados = raw.filter((id) => EMBLEMAS.some((e) => e.id === id));
-      } else if (raw && typeof raw === 'object') {
-        guardados = EMBLEMAS.filter((e) => raw[e.id] === true).map((e) => e.id);
-      }
-    } catch {
-      guardados = [];
-    }
-  }
-
+  const guardados = leerLocal();
   const set = new Set(guardados);
   const nuevos = deberia.filter((id) => !set.has(id));
   const desbloqueados = nuevos.length ? [...guardados, ...nuevos] : guardados;
-
-  if (uid && nuevos.length) {
-    try {
-      await setDoc(
-        doc(getDb(), 'usuarios', uid),
-        { emblemasDesbloqueados: desbloqueados },
-        { merge: true },
-      );
-    } catch {
-      // Sin permisos o red: se reintentará en la próxima carga de Cuenta.
-    }
-  }
+  if (nuevos.length) guardarLocal(desbloqueados);
 
   const emblema = emblemaPorReservas(totalReservas);
   const multi = emblema ? emblema.multi : 1;

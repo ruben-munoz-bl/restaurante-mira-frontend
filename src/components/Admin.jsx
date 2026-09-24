@@ -82,7 +82,7 @@ export default function Admin({ usuario, esAdmin }) {
       <div className="auth-tarjeta tarjeta-ancha">
         <h1 id="admin-titulo">{t('admin.titulo')}</h1>
         {esAdmin && <h2 className="cuenta-sub">{t('admin.incidenciasPendientes')}</h2>}
-        {cargando && <p>Cargando…</p>}
+        {cargando && <p>{t('otros.cargando')}</p>}
         {!cargando && !esAdmin && (
           <p className="auth-error" role="alert">
             {t('admin.sinAcceso')}
@@ -127,12 +127,12 @@ export default function Admin({ usuario, esAdmin }) {
                     {n.descripcion ? ` — ${n.descripcion}` : ''}
                   </div>
                   <div className="registro-detalle">
-                    Acceso: {n.accesoDiscapacidad == null ? '¿?' : n.accesoDiscapacidad ? 'sí' : 'no'}
-                    {' '}· Infantil: {n.menuInfantil == null ? '¿?' : n.menuInfantil ? 'sí' : 'no'}
-                    {' '}· Tronas: {n.tronas == null ? '¿?' : n.tronas ? 'sí' : 'no'}
-                    {' '}· Tranquilo: {n.entornoTranquilo == null ? '¿?' : n.entornoTranquilo ? 'sí' : 'no'}
-                    {' '}· Terraza: {n.terraza == null ? '¿?' : n.terraza ? 'sí' : 'no'}
-                    {n.alergenos ? ` · Alérgenos: ${n.alergenos}` : ''}
+                    {t('detalle.accesoAdaptado')}: {n.accesoDiscapacidad == null ? t('admin.noInfo') : n.accesoDiscapacidad ? t('admin.si') : t('admin.no')}
+                    {' '}· {t('detalle.menuInfantil')}: {n.menuInfantil == null ? t('admin.noInfo') : n.menuInfantil ? t('admin.si') : t('admin.no')}
+                    {' '}· {t('detalle.tronas')}: {n.tronas == null ? t('admin.noInfo') : n.tronas ? t('admin.si') : t('admin.no')}
+                    {' '}· {t('detalle.entornoTranquilo')}: {n.entornoTranquilo == null ? t('admin.noInfo') : n.entornoTranquilo ? t('admin.si') : t('admin.no')}
+                    {' '}· {t('detalle.terraza')}: {n.terraza == null ? t('admin.noInfo') : n.terraza ? t('admin.si') : t('admin.no')}
+                    {n.alergenos ? ` · ${t('detalle.alergenos')}: ${n.alergenos}` : ''}
                   </div>
                 </div>
                 <span style={{ display: 'flex', gap: '0.4rem' }}>

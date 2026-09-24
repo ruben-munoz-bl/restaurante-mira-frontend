@@ -4,7 +4,7 @@
  * En móvil la tabla desliza horizontal (nada de tarjetas sueltas).
  * Todo por props (resúmenes ya calculados); sin lecturas.
  */
-import { resumenRestaurante } from '../models/restaurantModel.js';
+import { resumenRestaurante, imagenParaRestaurante } from '../models/restaurantModel.js';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -74,7 +74,18 @@ export default function Comparador({ restaurantes, dieta, onQuitar }) {
               </th>
               {datos.map(({ s }) => (
                 <th key={s.id} scope="col" className="comparador-col-nombre">
-                  <img src={s.imagen} alt="" loading="lazy" className="comparador-mini-foto" />
+                  <img
+                    src={s.imagen}
+                    alt=""
+                    loading="lazy"
+                    className="comparador-mini-foto"
+                    onError={(e) => {
+                      const el = e.currentTarget;
+                      if (el.dataset.fallback === '1') return;
+                      el.dataset.fallback = '1';
+                      el.src = imagenParaRestaurante(s.cocina, s.id);
+                    }}
+                  />
                   {s.nombre}
                   <button type="button" className="btn-texto" onClick={() => onQuitar(s.id)}>
                     {t('comparador.quitar')}

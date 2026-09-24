@@ -3,11 +3,15 @@
  * más las rutas '#/login' y '#/registro' (hash routing sin dependencias).
  * Es el único que habla con los Controllers (hooks); las Views reciben props.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useRestaurantController } from './controllers/useRestaurantController.js';
 import { useAuth } from './controllers/useAuth.js';
-import { useI18n } from './i18n/index.jsx';
+import { useI18n, useT } from './i18n/index.jsx';
 import { PRECIOS, DISTANCIAS, ORDENES } from './models/restaurantModel.js';
+import usePointsStore from './stores/usePointsStore.js';
+import es from './i18n/es.js';
+import ca from './i18n/ca.js';
+import en from './i18n/en.js';
 import Header from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
 import SearchBar from './components/SearchBar.jsx';
@@ -21,6 +25,7 @@ import Cuenta from './components/Cuenta.jsx';
 import Contacto from './components/Contacto.jsx';
 import Reservas from './components/Reservas.jsx';
 import Admin from './components/Admin.jsx';
+import OpsPanel from './components/ops/OpsPanel.jsx';
 import Negocio from './components/Negocio.jsx';
 import Favoritos from './components/Favoritos.jsx';
 import Mensajes from './components/Mensajes.jsx';
@@ -33,8 +38,16 @@ import CookieBanner from './components/CookieBanner.jsx';
 import Footer from './components/Footer.jsx';
 import BottomNav from './components/BottomNav.jsx';
 import FloatingReservation from './components/FloatingReservation.jsx';
+import DailyStreakPopup from './components/DailyStreakPopup.jsx';
+import WheelModal from './components/WheelModal.jsx';
+import PuntosDashboard from './pages/PuntosDashboard.jsx';
+import HistorialPuntos from './pages/HistorialPuntos.jsx';
+import Invitar from './pages/Invitar.jsx';
+import TicketPage from './pages/TicketPage.jsx';
+import Dashboard from './components/dashboard/Dashboard.jsx';
 import { enviarContacto } from './services/contactoApi.js';
 import { proponerNegocio } from './services/negocioApi.js';
+import useDailyLogin from './hooks/useDailyLogin.js';
 import './App.css';
 import { I18nProvider } from './i18n/index.jsx';
 
@@ -59,6 +72,11 @@ function rutaActual() {
   if (h === '#/mensajes') return 'mensajes';
   if (h === '#/mapa') return 'mapa';
   if (h === '#/privacidad') return 'privacidad';
+  if (h === '#/puntos') return 'puntos';
+  if (h === '#/puntos/historial') return 'historialPuntos';
+  if (h === '#/invitar') return 'invitar';
+  if (h.startsWith('#/ticket/')) return 'ticket';
+  if (h === '#/dashboard') return 'dashboard';
   return 'home';
 }
 
@@ -95,8 +113,25 @@ export default function App() {
 }
 
 function AppContent({ auth, tema, setTema }) {
+  const TRADS = useMemo(() => ({ es, ca, en }), []);
+  const t = useT(TRADS);
   const { lang, setLang } = useI18n();
   const { usuario, crearCuenta, iniciarSesion, iniciarSesionGoogle, cerrarSesion, esAdmin, perfil, recargarPerfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, favoritos, toggleFavorito, noLeidos, recargarMensajes, enviarVerificacion, enviarVerificacionEmail, recargarEmailVerified, guardarLang } = auth;
+  const syncBalance = usePointsStore((s) => s.fetchBalance);
+
+  const [puntosSaldo, setPuntosSaldo] = useState(0);
+  const [inviteCodigo, setInviteCodigo] = useState(() => {
+    try { return new URLSearchParams(window.location.hash.split('?')[1]).get('invite') || null; } catch { return null; }
+  });
+
+  // ── Streak popup state ──
+  const [showStreakPopup, setShowStreakPopup] = useState(false);
+  const [streakData, setStreakData] = useState(null);
+  const [showWheel, setShowWheel] = useState(false);
+  const { claim: claimDaily, claimWheel } = useDailyLogin();
+  const claimedTodayKey = `dailyLogin_shown_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}`;
+  const newUserKey = `streak_newuser_shown_${usuario?.uid}`;
+
 
   useEffect(() => {
     if (perfil?.lang && perfil.lang !== lang) {
@@ -104,9 +139,112 @@ function AppContent({ auth, tema, setTema }) {
     }
   }, [perfil?.lang]);
 
+  useEffect(() => {
+    if (!usuario) return;
+    import('./services/api.js').then(({ pointsApi }) => {
+      Promise.all([
+        pointsApi.getBalance(),
+        pointsApi.isNewUser(),
+      ]).then(([d, isNew]) => {
+        setPuntosSaldo(d.saldoActual || 0);
+        if (isNew && !sessionStorage.getItem(newUserKey)) {
+          openStreakPopup({
+            racha: { dias: 0 },
+            puntos: 0,
+            yaReclamado: false,
+            nuevoSaldo: d.saldoActual,
+          });
+          sessionStorage.setItem(newUserKey, 'true');
+        }
+      }).catch(() => {});
+    });
+  }, [usuario]);
+
+  async function fetchStreakData() {
+    if (!usuario) return { racha: { dias: 0 }, puntos: 0, yaReclamado: false };
+    try {
+      const { pointsApi } = await import('./services/api.js');
+      const bal = await pointsApi.getBalance();
+      const yaReclamado = bal.rachaLogin?.yaReclamado ?? false;
+      // API dice "sin reclamar" → purga caché local para poder reclamar de verdad.
+      if (!yaReclamado) {
+        const { clearDailyLoginCache } = await import('./hooks/useDailyLogin.js');
+        clearDailyLoginCache();
+      }
+      return {
+        racha: bal.rachaLogin || { dias: 0 },
+        puntos: 0,
+        yaReclamado,
+        nuevoSaldo: bal.saldoActual,
+      };
+    } catch {
+      // Error de red ≠ ya reclamado: dejar que el usuario reintente el claim manual.
+      return { racha: { dias: 0 }, puntos: 0, yaReclamado: false };
+    }
+  }
+
+  function openStreakPopup(data) {
+    setStreakData(data);
+    setShowStreakPopup(true);
+  }
+
+  async function handleClaimDaily() {
+    const result = await claimDaily();
+    if (result && result.nuevoSaldo != null) setPuntosSaldo(result.nuevoSaldo);
+
+    const puntosNuevos = typeof result?.puntos === 'number' ? result.puntos : 0;
+    const exito = puntosNuevos > 0 || (result?.nuevoSaldo != null && result?.yaReclamado !== true);
+
+    if (result) {
+      setStreakData((prev) => ({
+        ...prev,
+        racha: result.racha || prev?.racha || { dias: 0 },
+        // "Reclamado" solo si la API lo confirma o acabamos de sumar puntos.
+        yaReclamado: Boolean(result.yaReclamado || puntosNuevos > 0 || exito),
+        puntos: puntosNuevos,
+      }));
+    }
+    // Estado real de Firestore (saldo + racha) para el resto de la UI.
+    syncBalance().catch(() => {});
+    return result;
+  }
+
+  function handleOpenWheel() {
+    setShowStreakPopup(false);
+    setShowWheel(true);
+  }
+
+  async function handleWheelSpin() {
+    const result = await claimWheel();
+    return result;
+  }
+
+  function handleCloseWheel(finalResult) {
+    setShowWheel(false);
+    sessionStorage.setItem(claimedTodayKey, 'true');
+    if (finalResult && finalResult.nuevoSaldo) {
+      setPuntosSaldo(finalResult.nuevoSaldo);
+    }
+    syncBalance().catch(() => {});
+    import('./services/api.js').then(({ pointsApi }) => {
+      pointsApi.getBalance().then((d) => setPuntosSaldo(d.saldoActual || 0)).catch(() => {});
+    });
+  }
+
+  function handleCloseStreakPopup() {
+    setShowStreakPopup(false);
+    sessionStorage.setItem(claimedTodayKey, 'true');
+    syncBalance().catch(() => {});
+    import('./services/api.js').then(({ pointsApi }) => {
+      pointsApi.getBalance().then((d) => setPuntosSaldo(d.saldoActual || 0)).catch(() => {});
+    });
+  }
+
+
   const {
     filtros,
     filtrados,
+    visibles,
     todos,
     total,
     modo,
@@ -134,6 +272,16 @@ function AppContent({ auth, tema, setTema }) {
     elegirCocina,
   } = useRestaurantController({ dieta, accesibilidad });
   const [ruta, setRuta] = useState(rutaActual);
+
+  const opciones = useMemo(() => ({
+    cocinas: cocinasDisponibles,
+    zonas: zonasDisponibles,
+    precios: PRECIOS,
+    distancias: DISTANCIAS,
+    ordenes: ORDENES,
+  }), [cocinasDisponibles, zonasDisponibles]);
+
+  const esFavorito = useCallback((id) => favoritos.includes(id), [favoritos]);
 
   // Floating reservation sheet state
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -186,7 +334,7 @@ function AppContent({ auth, tema, setTema }) {
       <a className="skip-link" href="#buscar">
         Saltar al buscador
       </a>
-      <Header usuario={usuario} esAdmin={esAdmin} perfil={perfil} numFavoritos={favoritos.length} noLeidos={noLeidos} tema={tema} onCambiarTema={() => setTema((t) => (t === 'oscuro' ? 'claro' : 'oscuro'))} onSalir={salir} />
+      <Header usuario={usuario} esAdmin={esAdmin} perfil={perfil} numFavoritos={favoritos.length} noLeidos={noLeidos} puntosSaldo={puntosSaldo} tema={tema} onCambiarTema={() => setTema((t) => (t === 'oscuro' ? 'claro' : 'oscuro'))} onSalir={salir} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
       <main>
         {usuario && !usuario.emailVerified && ruta !== 'login' && ruta !== 'registro' && ruta !== 'recuperar' && ruta !== 'restablecer' && (
           <div className="aviso-email" role="alert" style={{ background: 'var(--naranja)', color: '#fff', padding: '0.7rem 1rem', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
@@ -200,10 +348,11 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'registro' && (
           <Registro onRegistro={crearCuenta} yaTieneSesion={Boolean(usuario)} />
         )}
-        {ruta === 'cuenta' && <Cuenta usuario={usuario} perfil={perfil} dieta={dieta} guardarDieta={guardarDieta} accesibilidad={accesibilidad} guardarAccesibilidad={guardarAccesibilidad} onSalir={salir} onEnviarVerificacion={enviarVerificacionEmail} onRecargarEmailVerified={recargarEmailVerified} />}
+        {ruta === 'cuenta' && <Cuenta usuario={usuario} esAdmin={esAdmin} perfil={perfil} dieta={dieta} guardarDieta={guardarDieta} accesibilidad={accesibilidad} guardarAccesibilidad={guardarAccesibilidad} onSalir={salir} onEnviarVerificacion={enviarVerificacionEmail} onRecargarEmailVerified={recargarEmailVerified} />}
         {ruta === 'contacto' && <Contacto usuario={usuario} onEnviar={enviarContacto} />}
         {ruta === 'reservas' && <Reservas usuario={usuario} esAdmin={esAdmin} />}
-        {ruta === 'admin' && <Admin usuario={usuario} esAdmin={esAdmin} />}
+        {ruta === 'admin' && <OpsPanel usuario={usuario} esAdmin={esAdmin} perfil={perfil} tema={tema} onCambiarTema={() => setTema((v) => (v === 'oscuro' ? 'claro' : 'oscuro'))} todos={todos} />}
+        {ruta === 'dashboard' && <Dashboard usuario={usuario} esAdmin={esAdmin} perfil={perfil} />}
         {ruta === 'negocio' && <Negocio usuario={usuario} perfil={perfil} onProponer={proponerNegocio} />}
         {ruta === 'favoritos' && (
           <Favoritos
@@ -218,17 +367,21 @@ function AppContent({ auth, tema, setTema }) {
         )}
         {ruta === 'mensajes' && <Mensajes usuario={usuario} onLeidos={recargarMensajes} />}
         {ruta === 'privacidad' && <Privacidad />}
+        {ruta === 'puntos' && <PuntosDashboard fetchStreakData={fetchStreakData} onOpenStreak={openStreakPopup} usuario={usuario} />}
+        {ruta === 'historialPuntos' && <HistorialPuntos usuario={usuario} />}
+        {ruta === 'invitar' && <Invitar />}
+        {ruta === 'ticket' && <TicketPage />}
         {ruta === 'mapa' && <Mapa todos={todos} total={total} onVerDetalle={abrirDetalle} />}
         {ruta === 'home' && (
           <>
             <Hero total={total} numZonas={zonasDisponibles.length} />
             <section id="buscar" className="buscar" aria-labelledby="buscar-titulo">
                <h2 id="buscar-titulo" className="buscar-titulo">
-                 Busca tu sitio
+                 {t('busqueda.titulo')}
                </h2>
 
               {estado === 'cargando' && (
-                <div className="grid" role="status" aria-label="Cargando restaurantes">
+                <div className="grid" role="status" aria-label={t('otros.cargando')}>
                   {Array.from({ length: 8 }, (_, i) => (
                     <RestaurantSkeleton key={`skel-${i}`} />
                   ))}
@@ -237,10 +390,10 @@ function AppContent({ auth, tema, setTema }) {
 
               {estado === 'error' && (
                 <div className="error-panel" role="alert">
-                  <p className="vacio-titulo">No se pudo conectar con la base de datos.</p>
+                  <p className="vacio-titulo">{t('otros.error')}</p>
                   <p>{error}</p>
                   <button type="button" className="btn-cta" onClick={recargar}>
-                    Reintentar
+                    {t('otros.reintentar')}
                   </button>
                 </div>
               )}
@@ -249,45 +402,40 @@ function AppContent({ auth, tema, setTema }) {
                 <>
                   <SearchBar
                     filtros={filtros}
-                    opciones={{
-                      cocinas: cocinasDisponibles,
-                      zonas: zonasDisponibles,
-                      precios: PRECIOS,
-                      distancias: DISTANCIAS,
-                      ordenes: ORDENES,
-                    }}
+                    opciones={opciones}
                     hayFiltrosActivos={hayFiltrosActivos}
                     onChange={actualizarFiltro}
                     onClear={limpiarFiltros}
                   />
 
                     <p aria-live="polite" className="contador">
-                      {modo === 'pagina'
-                        ? `Mostrando ${filtrados.length} de ${total} restaurantes`
-                        : `${filtrados.length} de ${total} ${filtrados.length === 1 ? 'restaurante' : 'restaurantes'}`}
-                      {filtros.q && ` para "${filtros.q}"`}
+                      {t('lista.mostrando', {
+                        n: visibles.length,
+                        total: modo === 'pagina' ? total || filtrados.length : filtrados.length,
+                      })}
+                      {filtros.q && ` ${t('lista.de')} "${filtros.q}"`}
                     </p>
                     {ocultosDieta > 0 && !ignorarDieta && (
                       <p className="aviso">
-                        {ocultosDieta} {ocultosDieta === 1 ? 'local oculto' : 'locales ocultos'} por tu
-                        dieta o accesibilidad.{' '}
-                        <a href="#/cuenta">Cambiar en Mi cuenta</a> ·{' '}
+                        {ocultosDieta} {ocultosDieta === 1 ? t('lista.localOculto') : t('lista.localesOcultos')} {t('lista.porTuDieta')}{' '}
+                        <a href="#/cuenta">{t('lista.cambiarCuenta')}</a> ·{' '}
                         <button type="button" className="btn-texto" onClick={verTodosIgual}>
-                          Ver todos igual
+                          {t('lista.verTodos')}
                         </button>
                       </p>
                     )}
                   <RestaurantList
-                    restaurants={filtrados}
+                    restaurants={visibles}
                     filtros={filtros}
                     onClear={limpiarFiltros}
                     onSelect={abrirDetalle}
-                    hayMas={modo === 'pagina' && hayMas}
+                    hayMas={hayMas}
                     cargandoMas={cargandoMas}
                     onLoadMore={cargarMas}
-                    esFavorito={(id) => favoritos.includes(id)}
+                    esFavorito={esFavorito}
                     onToggleFavorito={toggleFavorito}
                     onVerCarta={abrirCarta}
+                    cargandoInicial={estado === 'cargando'}
                   />
                 </>
               )}
@@ -300,7 +448,7 @@ function AppContent({ auth, tema, setTema }) {
       <CookieBanner usuario={usuario} />
       {seleccionado && <RestaurantDetail restaurant={seleccionado} usuario={usuario} onClose={cerrarDetalle} onVerCarta={abrirCarta} />}
       {libro && <LibroCarta restaurant={libro} dieta={dieta} onClose={cerrarCarta} />}
-      <BottomNav ruta={ruta} numFavoritos={favoritos.length} numReservas={0} />
+      <BottomNav ruta={ruta} numFavoritos={favoritos.length} numReservas={0} puntosSaldo={puntosSaldo} esAdmin={esAdmin} perfil={perfil} usuario={usuario} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
       <FloatingReservation
         visible={sheetVisible}
         restaurant={sheetRestaurante}
@@ -308,6 +456,22 @@ function AppContent({ auth, tema, setTema }) {
         onConfirm={handleFloatingConfirm}
         onClose={closeFloatingSheet}
       />
+      {showStreakPopup && streakData && (
+        <DailyStreakPopup
+          racha={streakData.racha}
+          saldo={puntosSaldo}
+          yaReclamado={streakData.yaReclamado}
+          onClaim={handleClaimDaily}
+          onWheel={handleOpenWheel}
+          onClose={handleCloseStreakPopup}
+        />
+      )}
+      {showWheel && (
+        <WheelModal
+          onSpin={handleWheelSpin}
+          onClose={handleCloseWheel}
+        />
+      )}
     </>
   );
 }

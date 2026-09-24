@@ -14,7 +14,8 @@ export default {
     "modoClaro": "Mode clar",
     "modoOscuro": "Mode fosc",
     "abrirMenu": "Obrir menú",
-    "cerrarMenu": "Tancar menú"
+    "cerrarMenu": "Tancar menú",
+    "navegacion": "Navegació principal"
   },
   "hero": {
     "titulo": "Reserva la teva taula perfecta",
@@ -22,7 +23,8 @@ export default {
     "buscar": "Cercar restaurants",
     "restaurantes": "restaurants",
     "zonas": "zones",
-    "resenasPorLocal": "resenyes per local"
+    "resenasPorLocal": "resenyes per local",
+    "cifras": "La guia en xifres"
   },
   "busqueda": {
     "titulo": "Cerca el teu lloc",
@@ -218,19 +220,6 @@ export default {
     "cookiesDescripcion": "Controla quins tipus de cookies acceptes. Es desen al teu perfil i s'apliquen en totes les teves sessions.",
     "enviando": "Enviant…"
   },
-  "emblemas": {
-    "tituloProgreso": "El teu progrés",
-    "tituloNivel": "Emblema {{nombre}}",
-    "foodie": "Foodie",
-    "gourmet": "Gourmet",
-    "michelin": "Michelin",
-    "sinEmblema": "Reserva la teva primera taula per aconseguir l'emblema Foodie.",
-    "faltan": "Et falten {{n}} reserves per aconseguir l'emblema {{siguiente}}.",
-    "faltaUna": "Et falta 1 reserva per aconseguir l'emblema {{siguiente}}.",
-    "maximo": "Has aconseguit l'emblema Michelin.",
-    "multiplicador": "Multiplicador",
-    "multiplicadorValor": "{{multi}}"
-  },
   "registro": {
     "crearCuenta": "Crear compte",
     "gratis": "Gratuït, en menys d'un minut.",
@@ -254,7 +243,10 @@ export default {
     "creando": "Creant…",
     "volver": "Tornar",
     "yaTienesCuenta": "Ja tens compte?",
-    "iniciaSesion": "Inicia sessió"
+    "iniciaSesion": "Inicia sessió",
+    "errorNombre": "Escriu el teu nom (mínim 2 lletres).",
+    "errorCorreo": "Escriu un correu vàlid.",
+    "errorPass": "La contrasenya ha de tenir almenys 6 caràcters."
   },
   "modelos": {
     "locale": "ca-ES",
@@ -299,7 +291,15 @@ export default {
     "personas": "persones",
     "meses": ["Gener","Febrer","Març","Abril","Maig","Juny","Juliol","Agost","Setembre","Octubre","Novembre","Desembre"],
     "diasSemana": ["Dl","Dm","Dx","Dj","Dv","Ds","Dg"],
-    "locale": "ca-ES"
+    "locale": "ca-ES",
+    "cargandoLocales": "Carregant locals…",
+    "localesEnMapa": "{{count}} locals al mapa",
+    "sinZona": "Sense zona",
+    "mapaPorZonas": "Mapa per zones",
+    "todas": "Totes",
+    "noCoordenadas": "Encara no hi ha locals amb coordenades per mostrar.",
+    "cargandoMapa": "Carregant mapa…",
+    "noMapa": "No s'ha pogut carregar el mapa."
   },
   "reservas": {
     "misReservas": "Les meves reserves",
@@ -350,6 +350,7 @@ export default {
     "reservando": "Reservant…",
     "reservar": "Reservar",
     "debesLogin": "Has de <1>iniciar sessió</1> per reservar.",
+    "descuentoPendiente": "Tens un descompte de {{euros}} € pendent. S'aplicarà a la teva propera reserva.",
     "reservaConfirmada": "Reserva confirmada!",
     "codigo": "Codi",
     "verMisReservas": "Veure les meves reserves",
@@ -372,7 +373,14 @@ export default {
     "verResenasYelp": "Veure les {{count}} ressenyes de Yelp",
     "soloLikeMira": "Només les ressenyes MIRA es poden fer like",
     "quitarLike": "Treure like",
-    "darLike": "Donar like"
+    "darLike": "Donar like",
+    "puntuacion": "Puntuació",
+    "estrellas": "estrelles",
+    "eligeFechaHora": "Tria data, hora i comensals.",
+    "fechaNoAnterior": "La data no pot ser anterior a avui.",
+    "iniciaParaLike": "Inicia sessió per donar like.",
+    "especialidades": "Especialitats",
+    "placeholderComentarios": "Trona, aniversari, al·lèrgies…"
   },
   "cookie": {
     "aviso": "Avís de cookies",
@@ -428,7 +436,8 @@ export default {
     "recomendados": "Recomanats per a tu",
     "sinRecomendaciones": "Sense recomanacions per ara: guarda més cuines o carrega més restaurants lliscant al cercador.",
     "deTuCocina": "De la teva mateixa cuina, segons els teus likes.",
-    "anadirComparar": "Afegir a comparar"
+    "anadirComparar": "Afegir a comparar",
+    "cargando": "Carregant…"
   },
   "comparador": {
     "comparando": "Comparant {{count}}",
@@ -450,15 +459,19 @@ export default {
   },
   "libro": {
     "cartaDe": "Carta de {{nombre}}",
-    "cerrarCarta": "Tancar carta",
+    "cerrarCarta": "Tancar",
     "leyenda": "Llegenda",
     "leyendaCarta": "Llegenda de la carta",
     "anterior": "← Anterior",
+    "anteriorCorto": "Anterior",
     "siguiente": "Següent →",
+    "siguienteCorto": "Següent",
     "secciones": "seccions",
     "platos": "plats",
     "aptosParaTi": "Aptes per a tu",
-    "menuInfantil": "Menú infantil"
+    "menuInfantil": "Menú infantil",
+    "abrirMenu": "Toqueu per obrir el menú",
+    "desliza": "Desplaceu o utilitzeu les fletxes per passar la pàgina"
   },
   "recuperar": {
     "titulo": "Recuperar contrasenya",
@@ -501,7 +514,11 @@ export default {
     "localesPropuestos": "Locals proposats",
     "noPropuestas": "No hi ha propostes pendents.",
     "aprobar": "Aprovar",
-    "rechazar": "Rebutjar"
+    "rechazar": "Rebutjar",
+    "cargando": "Carregant…",
+    "si": "sí",
+    "no": "no",
+    "noInfo": "¿?"
   },
   "negocio": {
     "propuestaEnviada": "Proposta enviada",
@@ -539,13 +556,152 @@ export default {
     "vacio": "Sense missatges. Quan tinguis una reserva pròxima, TEAM MIRA t'avisarà aquí.",
     "parking": "Aparcament",
     "recomendado": "recomanat",
-    "comoLlegarParking": "Com arribar a l'aparcament"
+    "comoLlegarParking": "Com arribar a l'aparcament",
+    "cargando": "Carregant…"
   },
   "footer": {
     "titulo": "MIRA — Restaurants reals, reserves reals.",
     "copyright": "© 2026 MIRA. Tots els drets reservats.",
     "hecho": "Espanya",
     "avisoPrivacidad": "Avís de privacitat",
-    "avisoCookies": "Política de cookies"
+    "avisoCookies": "Política de cookies",
+    "direccion": "Carrer del Mercat 12, Madrid",
+    "contactoInfo": "hola@mira.exemple — 910 123 456"
+  },
+  "parkings": {
+    "titulo": "Aparcaments propers",
+    "sinParkings": "Sense aparcaments a 500 m",
+    "gratis": "Gratuït",
+    "pago": "De pagament"
+  },
+  "promo": {
+    "titulo": "Avantatges de MIRA",
+    "notaReal": "Puntuacions reals",
+    "notaDesc": "Mitjanes de Yelp i de la nostra comunitat.",
+    "cerca": "Prop de tu",
+    "cercaDesc": "Distància real des de la teva ubicació.",
+    "gratisTitulo": "Sense cost",
+    "gratisDesc": "Cercar i reservar és sempre gratuït."
+  },
+  "bottomNav": {
+    "explorar": "Explorar",
+    "reservas": "Reserves",
+    "mapa": "Mapa",
+    "favoritos": "Preferits",
+    "perfil": "Perfil",
+    "puntos": "Punts",
+    "navMovil": "Navegació mòbil"
+  },
+  "floating": {
+    "confirmarReserva": "Confirmar reserva",
+    "reserva": "Reserva",
+    "descuentoEpicure": "Descompte Epicure",
+    "descuentoPendiente": "Descompte punts",
+    "totalEstimado": "Total estimat",
+    "confirmar": "Confirmar Reserva"
+  },
+  "sellos": {
+    "vegano": "Vegà",
+    "vegetariano": "Vegetarià",
+    "sinGluten": "Sense gluten",
+    "leyendaSellos": "Llegenda de segells"
+  },
+  "points": {
+    "title": "Els meus Punts MIRA",
+    "subtitle": "Acumula punts amb cada acció i bescanvia'ls per descomptes",
+    "balance": "Punts disponibles",
+    "totalAcumulated": "Total acumulat",
+    "totalRedeemed": "Total bescanviat",
+    "rate": "100 pts = 1,00 €",
+    "history": "Historial de punts",
+    "invite": "Convida amics",
+    "inviteDesc": "Guanya 200 punts per cada amic que faci 2 reserves",
+    "dailyLogin": "Inici de sessió diari",
+    "streak": "Ratxa",
+    "days": "dies",
+    "weeks": "setmanes",
+    "multiplier": "Multiplicador",
+    "redeem": "Bescanviar punts",
+    "redeemInfo": "Mínim 100 pts (1,00 €) · Màxim 50% del tiquet",
+    "redeemSuccess": "Bescanvi exitós",
+    "redeemDiscount": "Descompte aplicat al proper tiquet",
+    "redeemError": "Error en bescanviar",
+    "redeeming": "Bescanviant...",
+    "discountTitle": "Reclamar descompte",
+    "discountInfo": "100 pts = 1 €. El descompte s'aplicarà a la teva propera reserva.",
+    "discountPending": "de descompte pendents",
+    "discountPendingHint": "S'aplicarà a la teva propera reserva",
+    "discountClaimed": "Descompte reclamat. S'aplicarà a la teva propera reserva.",
+    "discountError": "Error en reclamar el descompte",
+    "cancel": "Cancel·lar",
+    "confirm": "Bescanviar",
+    "types": {
+      "reserva": "Reserva completada",
+      "login_diario": "Inici de sessió diari",
+      "racha_reserva_bonus": "Bonus ratxa setmanal",
+      "resena": "Ressenya",
+      "promo_view": "Vista restaurant promocionat",
+      "promo_click": "Click restaurant promocionat",
+      "invitacion": "Invitació acceptada",
+      "canje_descuento": "Bescanvi de punts",
+      "ajuste_admin": "Ajust admin",
+      "ruleta_dia7": "Ruleta dia 7"
+    },
+    "inviteEmailPlaceholder": "Email de l'amic",
+    "inviteSending": "Enviant...",
+    "inviteSend": "Convidar",
+    "inviteInfo": "Guanya <strong>200 pts</strong> quan el teu amic faci 2 reserves. Màxim 5 invitacions per mes.",
+    "inviteSent": "Enviades",
+    "inviteAccepted": "Acceptades",
+    "invitePointsEarned": "Punts guanyats",
+    "inviteCopyLink": "Copiar enllaç",
+    "inviteCopied": "Copiat",
+    "noMovements": "No hi ha moviments encara",
+    "loading": "Carregant historial...",
+    "all": "Tots",
+    "reservas": "Reserves",
+    "reviews": "Ressenyes",
+    "invitations": "Invitacions",
+    "promoViews": "Vistes promo",
+    "promoClicks": "Clicks promo",
+    "redeems": "Bescanvis"
+  },
+  "streak": {
+    "club": "MIRA Club",
+    "dailyReward": "Recompensa Diària",
+    "dayCompleted": "DIA {{n}} COMPLETAT",
+    "streakTitle": "Portes {{n}} Dies de Ratxa!",
+    "streakSubtitle": "Entra cada dia per desbloquejar més MIRA Points i aconseguir descomptes al teu proper sopar.",
+    "foodiePath": "Camí del Foodie",
+    "week": "Setmana 1",
+    "wheelPrize": "Ruleta: fins a 100 MIRA pts!",
+    "yourBalance": "El teu saldo de MIRA Points",
+    "accumulated": "acumulats",
+    "claim": "¡RECLAMAR +{{n}} MIRA!",
+    "spinWheel": "¡GIRAR RULETA!",
+    "rewardObtained": "¡RECOMPENSA OBTINGUDA!",
+    "streakProtector": "Protector de ratxa actiu: si oblides entrar demà, la teva ratxa no es perdrà.",
+    "toastClaimed": "+{{n}} MIRA Points acreditats",
+    "toastNext": "Torna demà per continuar la teva ratxa!",
+    "wheelTitle": "Has completat la ratxa de 7 dies!",
+    "wheelSubtitle": "Gira la ruleta per guanyar entre 20 i 100 MIRA Points",
+    "wheelSpinning": "Girant...",
+    "wheelSpinBtn": "🎡 ¡GIRAR RULETA!",
+    "wheelCongrats": "Enhorabona!",
+    "wheelAdded": "S'han afegit al teu saldo",
+    "milestone7": "x7 Cofre"
+  },
+  "emblemas": {
+    "tituloProgreso": "El teu progrés",
+    "tituloNivel": "Emblema {{nombre}}",
+    "foodie": "Foodie",
+    "gourmet": "Gourmet",
+    "michelin": "Michelin",
+    "sinEmblema": "Reserva la teva primera taula per aconseguir l'emblema Foodie.",
+    "faltan": "Et falten {{n}} reserves per aconseguir l'emblema {{siguiente}}.",
+    "faltaUna": "Et falta 1 reserva per aconseguir l'emblema {{siguiente}}.",
+    "maximo": "Has aconseguit l'emblema Michelin.",
+    "multiplicador": "Multiplicador",
+    "multiplicadorValor": "{{multi}}"
   }
 }

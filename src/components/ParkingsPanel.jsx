@@ -6,6 +6,12 @@
  */
 
 import { formatoDistancia } from '../services/parkingApi.js';
+import { useT } from '../i18n/index.jsx';
+import es from '../i18n/es.js';
+import ca from '../i18n/ca.js';
+import en from '../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 function SkeletonCard() {
   return (
@@ -18,10 +24,11 @@ function SkeletonCard() {
 }
 
 export default function ParkingsPanel({ parkings, cargando, onSeleccionarParking }) {
+  const t = useT(TRADS);
   return (
-    <aside className="parkings-panel" aria-label="Parkings cercanos">
+    <aside className="parkings-panel" aria-label={t('parkings.titulo')}>
       <h3 className="parkings-panel-titulo">
-        Parkings cercanos
+        {t('parkings.titulo')}
         {!cargando && <span className="parkings-panel-cuenta">{parkings.length}</span>}
       </h3>
 
@@ -34,7 +41,7 @@ export default function ParkingsPanel({ parkings, cargando, onSeleccionarParking
       )}
 
       {!cargando && parkings.length === 0 && (
-        <p className="parkings-panel-vacio">Sin parkings a 500 m</p>
+        <p className="parkings-panel-vacio">{t('parkings.sinParkings')}</p>
       )}
 
       {!cargando && parkings.length > 0 && (
@@ -51,9 +58,9 @@ export default function ParkingsPanel({ parkings, cargando, onSeleccionarParking
                 <div className="parking-card-meta">
                   <span className="parking-card-distancia">{formatoDistancia(p.distanciaMetros)}</span>
                   <span className="parking-card-sep">·</span>
-                  <span>{p.gratuito === 'yes' ? '💰 Gratis' : '💰 Pago'}</span>
+                  <span>{p.gratuito === 'yes' ? `💰 ${t('parkings.gratis')}` : `💰 ${t('parkings.pago')}`}</span>
                   <span className="parking-card-sep">·</span>
-                  <span>{p.accesible === 'Sí' ? '♿ Sí' : '♿ —'}</span>
+                  <span>{p.accesible === 'Sí' ? `♿ ${t('otros.si')}` : '♿ —'}</span>
                   <span className="parking-card-sep">·</span>
                   <span>{p.tipo !== '—' ? `🏢 ${p.tipo}` : '🏢 —'}</span>
                 </div>

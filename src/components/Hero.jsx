@@ -19,7 +19,7 @@ export default function Hero({ total, numZonas }) {
           {t('hero.buscar')}
         </a>
         {(total > 0 || numZonas > 0) && (
-          <ul className="hero-stats" aria-label="La guía en cifras">
+          <ul className="hero-stats" aria-label={t('hero.cifras')}>
             {total > 0 && (
               <li>
                 <strong>{total.toLocaleString('es-ES')}</strong> {t('hero.restaurantes')}

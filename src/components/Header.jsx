@@ -10,11 +10,12 @@ import en from '../i18n/en.js';
 
 const TRADS = { es, ca, en };
 
-export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeidos, tema, onCambiarTema, onSalir }) {
+export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeidos, puntosSaldo, tema, onCambiarTema, onSalir, onStreakClick, fetchStreakData }) {
   const t = useT(TRADS);
   const { lang, cycleLang, available } = useI18n();
   const [abierto, setAbierto] = useState(false);
   const [oculto, setOculto] = useState(false);
+  const [loadingStreak, setLoadingStreak] = useState(false);
 
   useEffect(() => {
     if (!abierto) return undefined;
@@ -26,6 +27,16 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
   }, [abierto]);
 
   useEffect(() => {
+    // Solo en móvil el header se oculta al bajar; en desktop/tablet siempre visible.
+    const mq = window.matchMedia('(max-width: 767px)');
+    if (!mq.matches) {
+      setOculto(false);
+      return undefined;
+    }
+    if (abierto) {
+      setOculto(false);
+      return undefined;
+    }
     let ultimo = window.scrollY;
     let turno = false;
     function alDesplazar() {
@@ -33,17 +44,32 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
       turno = true;
       requestAnimationFrame(() => {
         const y = window.scrollY;
-        setOculto(y > 160 && y > ultimo);
+        const delta = y - ultimo;
+        if (y <= 60 || delta < 0) setOculto(false);
+        else if (delta > 0) setOculto(true);
         ultimo = y;
         turno = false;
       });
     }
     window.addEventListener('scroll', alDesplazar, { passive: true });
     return () => window.removeEventListener('scroll', alDesplazar);
-  }, []);
+  }, [abierto]);
 
   function cerrar() {
     setAbierto(false);
+  }
+
+  async function handleStreakTap() {
+    if (loadingStreak || !usuario) return;
+    setLoadingStreak(true);
+    try {
+      const data = await fetchStreakData?.();
+      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: false });
+    } catch {
+      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: false });
+    } finally {
+      setLoadingStreak(false);
+    }
   }
 
   function conmutarMensajes(e) {
@@ -89,7 +115,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
         {abierto ? '✕' : '☰'}
       </button>
       <div id="menu-movil" className={`header-menu${abierto ? ' abierto' : ''}`}>
-        <nav aria-label="Navegación principal" onClick={cerrar}>
+        <nav aria-label={t('nav.navegacion')} onClick={cerrar}>
           <ul className="nav-list">
             <li><a href="#inicio">{t('nav.descubrir')}</a></li>
             <li><a href="#/mapa">{t('nav.mapa')}</a></li>
@@ -100,20 +126,39 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
         <div className="header-cuentas" onClick={cerrar}>
           {usuario ? (
             <>
-              <a href="#/favoritos" className="btn-texto btn-fav" aria-label={`Favoritos (${numFavoritos})`}>
+              <a href="#/puntos" className="header-points-pill" title={t('points.title')}>
+                <img src="/moneda-mira.png" alt="" className="header-points-pill-coin" />
+                {puntosSaldo || 0}
+              </a>
+              <button
+                type="button"
+                className={`header-streak-btn${loadingStreak ? ' header-streak-btn--loading' : ''}`}
+                onClick={handleStreakTap}
+                aria-label="Abrir racha diaria"
+                title="Racha diaria"
+              >
+                <img src="/racha-fuego.png" alt="" className="header-streak-btn-img" />
+              </button>
+              <a href="#/favoritos" className="btn-texto btn-fav" aria-label={`${t('nav.favoritos')} (${numFavoritos})`}>
                 ♥{numFavoritos > 0 ? ` ${numFavoritos}` : ''}
               </a>
-              <a href="#/mensajes" className="btn-texto btn-fav" onClick={conmutarMensajes} aria-label={`Mensajes${noLeidos > 0 ? `, ${noLeidos} sin leer` : ''}`}>
+              <a href="#/mensajes" className="btn-texto btn-fav" onClick={conmutarMensajes} aria-label={`${t('mensajes.titulo')}${noLeidos > 0 ? `, ${noLeidos} ${t('mensajes.sinLeer')}` : ''}`}>
                 ✉{noLeidos > 0 ? ` ${noLeidos}` : ''}
               </a>
               {esAdmin && (
-                <a href="#/admin" className="btn-texto">
-                  {t('nav.admin')}
+                <a href="#/admin" className="header-dashboard-link header-dashboard-admin" title="Panel de Administracion">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                  </svg>
+                  <span>Panel Admin</span>
                 </a>
               )}
               {perfil?.tipo === 'empresa' && (
-                <a href="#/negocio" className="btn-texto">
-                  {t('nav.miRestaurante')}
+                <a href="#/dashboard" className="header-dashboard-link header-dashboard-restaurante" title="Mi Panel de Restaurante">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+                  </svg>
+                  <span>Mi Panel</span>
                 </a>
               )}
               <a href="#/cuenta" className="header-cuenta-link" title={usuario.email}>
@@ -135,7 +180,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
             </>
           ) : (
             <>
-              <a href="#/favoritos" className="btn-texto btn-fav" aria-label={`Favoritos (${numFavoritos})`}>
+              <a href="#/favoritos" className="btn-texto btn-fav" aria-label={`${t('nav.favoritos')} (${numFavoritos})`}>
                 ♥{numFavoritos > 0 ? ` ${numFavoritos}` : ''}
               </a>
               <a href="#/login" className="header-login">
