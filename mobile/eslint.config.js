@@ -8,12 +8,10 @@ module.exports = defineConfig([
     ignores: [
       'dist/*',
       // Copias literales del web aún sin migrar a RN (fases 3–10):
-      'src/components/Cuenta.jsx',
       'src/components/Favoritos.jsx',
       'src/components/Login.jsx',
       'src/components/Negocio.jsx',
       'src/components/Registro.jsx',
-      'src/components/RestaurantDetail.jsx',
       'src/components/dashboard/AdminPanel.jsx',
       'src/components/dashboard/RestaurantPanel.jsx',
       'src/components/dashboard/StatsCard.jsx',

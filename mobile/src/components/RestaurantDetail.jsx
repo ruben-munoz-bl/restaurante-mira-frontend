@@ -39,10 +39,10 @@ import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
 import { useTheme } from '../theme/ThemeContext';
-import { FUENTES, RADIO, GUTTER } from '../theme/tokens';
-import { btnCta, btnSecundario, btnTexto, TITULO_DISPLAY } from '../theme/ui';
-import { CampoEtiqueta } from './ui/SelectCampo';
-import SelectCampo from './ui/SelectCampo';
+import { useAuthContext } from '../context/AuthContext';
+import { FUENTES, RADIO } from '../theme/tokens';
+import { btnCta, btnSecundario, TITULO_DISPLAY } from '../theme/ui';
+import SelectCampo, { CampoEtiqueta } from './ui/SelectCampo';
 
 const TRADS = { es, ca, en };
 const MOSTRAR_INICIAL = 10;
@@ -89,6 +89,64 @@ function StarPicker({ value, onChange, etiqueta }) {
           </Text>
         </Pressable>
       ))}
+    </View>
+  );
+}
+
+/** Fila dato (dt/dd) — definido fuera del render (regla static-components). */
+function Dato({ etiqueta, valor, children }) {
+  const { colores } = useTheme();
+  const { width } = useWindowDimensions();
+  const apilado = width <= 560;
+  if (apilado) {
+    return (
+      <View style={styles.datoApilado}>
+        <Text style={[styles.datoDt, { color: colores.gris }]}>{etiqueta}</Text>
+        <Text style={[styles.datoDd, { color: colores.tinta }]}>{children || valor}</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={styles.dato}>
+      <Text style={[styles.datoDt, { color: colores.gris }]}>{etiqueta}</Text>
+      <Text style={[styles.datoDd, { color: colores.tinta }]}>{children || valor}</Text>
+    </View>
+  );
+}
+
+/** Item de reseña con like — definido fuera del render (regla static-components). */
+function ItemResena({ r, onLike }) {
+  const t = useT(TRADS);
+  const { colores } = useTheme();
+  const { usuario } = useAuthContext();
+  const liked = (r.likedBy || []).includes(usuario?.uid);
+  return (
+    <View style={[styles.resenaItem, { borderTopColor: colores.glassBorder }]}>
+      <View style={styles.resenaCabFila}>
+        <Text style={[styles.resenaCab, { color: colores.tinta }]}>
+          {r.usuarioNombre || r.usuario} ·{' '}
+          {r.fecha || (r.createdAt ? new Date(r.createdAt).toLocaleDateString(t('modelos.locale')) : '')} ·{' '}
+          <Text accessibilityLabel={`${r.puntuacion} de 5`}>★ {r.puntuacion}</Text>
+        </Text>
+        <Pressable
+          onPress={() => onLike(r)}
+          disabled={r.esMock}
+          accessibilityRole="button"
+          accessibilityLabel={r.esMock ? t('detail.soloLikeMira') : liked ? t('detail.quitarLike') : t('detail.darLike')}
+          style={({ pressed }) => [
+            styles.likeBtn,
+            {
+              backgroundColor: liked ? colores.primaryContainer : colores.papel,
+              borderColor: colores.borde,
+              opacity: r.esMock ? 0.5 : pressed ? 0.8 : 1,
+            },
+          ]}
+        >
+          <Text style={{ fontSize: 11.5, color: liked ? '#fff' : colores.tinta }}>♥</Text>
+          <Text style={[styles.likeTxt, { color: liked ? '#fff' : colores.tinta }]}>{r.likes || 0}</Text>
+        </Pressable>
+      </View>
+      <Text style={[styles.resenaTexto, { color: colores.tinta }]}>{r.comentario}</Text>
     </View>
   );
 }
@@ -198,7 +256,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   useEffect(() => {
     if (!usuario?.uid) return;
     fetchBalance();
-  }, [usuario?.uid]);
+  }, [usuario?.uid, fetchBalance]);
 
   useEffect(() => {
     if (!usuario?.uid) return;
@@ -323,63 +381,6 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
         ),
       );
     }
-  }
-
-  function Dato({ etiqueta, valor, children }) {
-    if (apilado) {
-      return (
-        <View style={styles.datoApilado}>
-          <Text style={[styles.datoDt, { color: colores.gris }]}>{etiqueta}</Text>
-          <Text style={[styles.datoDd, { color: colores.tinta }]}>{children || valor}</Text>
-        </View>
-      );
-    }
-    return (
-      <View style={styles.dato}>
-        <Text style={[styles.datoDt, { color: colores.gris }]}>{etiqueta}</Text>
-        <Text style={[styles.datoDd, { color: colores.tinta }]}>{children || valor}</Text>
-      </View>
-    );
-  }
-
-  function ItemResena({ r }) {
-    const liked = (r.likedBy || []).includes(usuario?.uid);
-    return (
-      <View style={[styles.resenaItem, { borderTopColor: colores.glassBorder }]}>
-        <View style={styles.resenaCabFila}>
-          <Text style={[styles.resenaCab, { color: colores.tinta }]}>
-            {r.usuarioNombre || r.usuario} ·{' '}
-            {r.fecha || (r.createdAt ? new Date(r.createdAt).toLocaleDateString(t('modelos.locale')) : '')} ·{' '}
-            <Text accessibilityLabel={`${r.puntuacion} de 5`}>★ {r.puntuacion}</Text>
-          </Text>
-          <Pressable
-            onPress={() => handleLike(r)}
-            disabled={r.esMock}
-            accessibilityRole="button"
-            accessibilityLabel={r.esMock ? t('detail.soloLikeMira') : liked ? t('detail.quitarLike') : t('detail.darLike')}
-            style={({ pressed }) => [
-              styles.likeBtn,
-              {
-                backgroundColor: liked ? colores.primaryContainer : colores.papel,
-                borderColor: colores.borde,
-                opacity: r.esMock ? 0.5 : pressed ? 0.8 : 1,
-              },
-            ]}
-          >
-            <Text style={{ fontSize: 11.5, color: liked ? '#fff' : colores.tinta }}>♥</Text>
-            <Text
-              style={[
-                styles.likeTxt,
-                { color: liked ? '#fff' : colores.tinta },
-              ]}
-            >
-              {r.likes || 0}
-            </Text>
-          </Pressable>
-        </View>
-        <Text style={[styles.resenaTexto, { color: colores.tinta }]}>{r.comentario}</Text>
-      </View>
-    );
   }
 
   const carta = cartaDelLocal(restaurant);
@@ -775,7 +776,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
           )}
           <View style={styles.resenaLista}>
             {visiblesMira.map((r) => (
-              <ItemResena key={r.id} r={r} />
+              <ItemResena key={r.id} r={r} onLike={handleLike} />
             ))}
           </View>
           {resenasMira.length > MOSTRAR_INICIAL && (
@@ -794,7 +795,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
           )}
           <View style={styles.resenaLista}>
             {visiblesYelp.map((r) => (
-              <ItemResena key={r.id} r={r} />
+              <ItemResena key={r.id} r={r} onLike={handleLike} />
             ))}
           </View>
           {resenasYelp.length > MOSTRAR_INICIAL && (

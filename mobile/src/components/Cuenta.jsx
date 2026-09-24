@@ -7,7 +7,7 @@ import { listarMisIncidencias } from '../services/incidenciaApi.js';
 import { listarResenasDeUsuario } from '../services/resenasApi.js';
 import { listarMisNegocios } from '../services/negocioApi.js';
 import { ALERGENOS, normalizarDieta, normalizarAccesibilidad } from '../models/restaurantModel.js';
-import { COOKIE_CATEGORIAS, COOKIE_DEFAULT, leerCookies, guardarCookies, tieneConsentimiento } from '../services/cookieService.js';
+import { COOKIE_CATEGORIAS, COOKIE_DEFAULT, leerCookies, guardarCookies } from '../services/cookieService.js';
 import { useI18n } from '../i18n/index.jsx';
 import usePointsStore from '../stores/usePointsStore.js';
 import es from '../i18n/es.js';
@@ -15,8 +15,6 @@ import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
 
 const TRADS = { es, ca, en };
-
-const LANG_FLAGS = { es: 'ES', ca: 'CA', en: 'EN' };
 
 function hoyISO() {
   const h = new Date();
@@ -87,7 +85,7 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
       }
     })();
     return () => { vivo = false; };
-  }, [usuario]);
+  }, [usuario, fetchBalance]);
 
   const [borradorAcc, setBorradorAcc] = useState(() => normalizarAccesibilidad(accesibilidad));
   const [guardandoAcc, setGuardandoAcc] = useState(false);
