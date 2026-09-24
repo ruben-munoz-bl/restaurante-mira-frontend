@@ -2,7 +2,8 @@
  * Contexto de racha/puntos — lógica extraída del orquestador App.jsx web:
  * saldo para header/bottom-nav, popup de racha diaria, ruleta y bienvenida
  * de usuario nuevo ( sessionStorage con las MISMAS claves del web).
- * Los popups (DailyStreakPopup/WheelModal) se renderizan en AppShell (fase 6).
+ * Los popups (DailyStreakPopup/WheelModal) se renderizan en PopupsRacha
+ * (montado una sola vez en _layout.js).
  */
 import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react';
 import { pointsApi } from '../services/api.js';

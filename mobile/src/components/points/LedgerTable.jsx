@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
+import { View, Text, Pressable, ScrollView, StyleSheet } from 'react-native';
 import usePointsStore from '../../stores/usePointsStore.js';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+import { useTheme } from '../../theme/ThemeContext';
+import { FUENTES, RADIO } from '../../theme/tokens';
+
+const TRADS = { es, ca, en };
 
 const TIPO_LABELS = {
   reserva: 'Reserva completada',
@@ -29,86 +38,218 @@ const TIPO_COLORS = {
   wheel: '#ff6f00',
 };
 
+const FILTROS = [
+  ['', 'Todos'],
+  ['reserva', 'Reservas'],
+  ['login_diario', 'Login diario'],
+  ['resena', 'Reseñas'],
+  ['invitacion', 'Invitaciones'],
+  ['promo_view', 'Vistas promo'],
+  ['promo_click', 'Clicks promo'],
+  ['canje_descuento', 'Canjes'],
+  ['ajuste_admin', 'Ajustes admin'],
+];
+
 function puntosDe(mov) {
-  // La API guarda el importe en `puntos` (no `cantidad`).
   if (typeof mov.puntos === 'number') return mov.puntos;
   if (typeof mov.cantidad === 'number') return mov.cantidad;
   return 0;
 }
 
 export default function LedgerTable({ limit = 10, showFilters = false, usuario }) {
+  const t = useT(TRADS);
+  const { colores } = useTheme();
   const { ledger, fetchLedger, ledgerLoading } = usePointsStore();
   const [filtro, setFiltro] = useState('');
 
   useEffect(() => {
-    // Solo con sesión: `usuario === null` (deslogueado) u `undefined` sin sesión no debe llamar a la API.
     if (usuario) fetchLedger({ tipo: filtro || undefined, limit });
     else if (usuario === undefined) fetchLedger({ tipo: filtro || undefined, limit });
-  }, [usuario, filtro, limit, fetchLedger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usuario, filtro, limit]);
+
+  function etiquetaTipo(mov) {
+    const traducido = t(`points.types.${mov.tipo}`);
+    if (typeof traducido === 'string' && !traducido.startsWith('points.')) return traducido;
+    return TIPO_LABELS[mov.tipo] || mov.tipo;
+  }
 
   if (ledgerLoading) {
-    return <div className="ledger-loading">Cargando historial...</div>;
+    return (
+      <View style={[styles.card, { backgroundColor: colores.glassBg, borderColor: colores.glassBorder }]}>
+        <Text style={[styles.estado, { color: colores.gris }]}>Cargando historial...</Text>
+      </View>
+    );
   }
 
   return (
-    <div className="ledger-table">
+    <View style={[styles.card, { backgroundColor: colores.glassBg, borderColor: colores.glassBorder }]}>
       {showFilters && (
-        <div className="ledger-filters">
-          <select value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-            <option value="">Todos</option>
-            <option value="reserva">Reservas</option>
-            <option value="login_diario">Login diario</option>
-            <option value="resena">Reseñas</option>
-            <option value="invitacion">Invitaciones</option>
-            <option value="promo_view">Vistas promo</option>
-            <option value="promo_click">Clicks promo</option>
-            <option value="canje_descuento">Canjes</option>
-            <option value="ajuste_admin">Ajustes admin</option>
-          </select>
-        </div>
-      )}
-      <table className="ledger-table__table">
-        <thead>
-          <tr>
-            <th>Concepto</th>
-            <th>Puntos</th>
-            <th>Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
-          {ledger.map((mov) => {
-            const pts = puntosDe(mov);
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtros} contentContainerStyle={styles.filtrosContenido}>
+          {FILTROS.map(([valor, etiqueta]) => {
+            const activo = filtro === valor;
             return (
-              <tr key={mov.id}>
-                <td>
-                  <span
-                    className="ledger-badge"
-                    style={{ backgroundColor: TIPO_COLORS[mov.tipo] || '#666' }}
-                  >
-                    {TIPO_LABELS[mov.tipo] || mov.tipo}
-                  </span>
-                  {mov.descripcion ? (
-                    <div className="ledger-desc">{mov.descripcion}</div>
-                  ) : null}
-                </td>
-                <td className={`ledger-puntos ${pts >= 0 ? 'positivo' : 'negativo'}`}>
-                  {pts >= 0 ? '+' : ''}{pts}
-                </td>
-                <td>
-                  {new Date(
-                    mov.createdAt?.seconds
-                      ? mov.createdAt.seconds * 1000
-                      : mov.createdAt,
-                  ).toLocaleDateString('es-ES')}
-                </td>
-              </tr>
+              <Pressable
+                key={etiqueta || 'todos'}
+                onPress={() => setFiltro(valor)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: activo }}
+                style={({ pressed }) => [
+                  styles.chip,
+                  {
+                    backgroundColor: activo ? colores.primaryContainer : colores.papel,
+                    borderColor: activo ? colores.primaryContainer : colores.borde,
+                  },
+                  pressed && { opacity: 0.75 },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipTxt,
+                    { color: activo ? '#fff' : colores.tinta },
+                  ]}
+                >
+                  {etiqueta}
+                </Text>
+              </Pressable>
             );
           })}
-        </tbody>
-      </table>
-      {ledger.length === 0 && (
-        <div className="ledger-empty">No hay movimientos todavía</div>
+        </ScrollView>
       )}
-    </div>
+
+      <View style={[styles.headerRow, { borderBottomColor: colores.borde }]}>
+        <Text style={[styles.th, styles.thConcepto, { color: colores.gris }]}>Concepto</Text>
+        <Text style={[styles.th, styles.thPuntos, { color: colores.gris }]}>Puntos</Text>
+        <Text style={[styles.th, styles.thFecha, { color: colores.gris }]}>Fecha</Text>
+      </View>
+
+      {ledger.map((mov) => {
+        const pts = puntosDe(mov);
+        const fecha = new Date(
+          mov.createdAt?.seconds ? mov.createdAt.seconds * 1000 : mov.createdAt,
+        ).toLocaleDateString('es-ES');
+        return (
+          <View key={mov.id} style={[styles.row, { borderBottomColor: colores.borde }]}>
+            <View style={styles.rowConcepto}>
+              <View style={[styles.badge, { backgroundColor: TIPO_COLORS[mov.tipo] || '#666' }]}>
+                <Text style={styles.badgeTxt}>{etiquetaTipo(mov)}</Text>
+              </View>
+              {mov.descripcion ? (
+                <Text style={[styles.desc, { color: colores.gris }]} numberOfLines={2}>
+                  {mov.descripcion}
+                </Text>
+              ) : null}
+            </View>
+            <Text
+              style={[
+                styles.puntos,
+                styles.thPuntos,
+                { color: pts >= 0 ? colores.verde : colores.rojo },
+              ]}
+            >
+              {pts >= 0 ? '+' : ''}
+              {pts}
+            </Text>
+            <Text style={[styles.fecha, styles.thFecha, { color: colores.tinta }]}>{fecha}</Text>
+          </View>
+        );
+      })}
+
+      {ledger.length === 0 && (
+        <Text style={[styles.estado, { color: colores.gris }]}>No hay movimientos todavía</Text>
+      )}
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    borderWidth: 1,
+    borderRadius: RADIO.xl,
+    padding: 24,
+  },
+  filtros: {
+    marginBottom: 16,
+    marginHorizontal: -4,
+  },
+  filtrosContenido: {
+    gap: 8,
+    paddingHorizontal: 4,
+  },
+  chip: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+  },
+  chipTxt: {
+    fontFamily: FUENTES.textoSemi,
+    fontSize: 13.6,
+    fontWeight: '600',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    paddingBottom: 8,
+    marginBottom: 4,
+  },
+  th: {
+    fontFamily: FUENTES.texto,
+    fontSize: 13.6,
+    fontWeight: '600',
+  },
+  thConcepto: {
+    flex: 1,
+  },
+  thPuntos: {
+    width: 72,
+    textAlign: 'right',
+  },
+  thFecha: {
+    width: 84,
+    textAlign: 'right',
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+  },
+  rowConcepto: {
+    flex: 1,
+    paddingRight: 8,
+  },
+  badge: {
+    alignSelf: 'flex-start',
+    borderRadius: 999,
+    paddingVertical: 3.2,
+    paddingHorizontal: 9.6,
+  },
+  badgeTxt: {
+    color: '#fff',
+    fontSize: 12.5,
+    fontWeight: '500',
+    fontFamily: FUENTES.texto,
+  },
+  desc: {
+    fontFamily: FUENTES.texto,
+    fontSize: 12.5,
+    marginTop: 4,
+    lineHeight: 17,
+  },
+  puntos: {
+    fontFamily: FUENTES.textoBold,
+    fontSize: 15.2,
+    fontWeight: '600',
+  },
+  fecha: {
+    fontFamily: FUENTES.texto,
+    fontSize: 13.6,
+  },
+  estado: {
+    fontFamily: FUENTES.texto,
+    textAlign: 'center',
+    paddingVertical: 32,
+    fontSize: 15,
+  },
+});

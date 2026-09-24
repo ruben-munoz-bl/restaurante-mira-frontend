@@ -1,8 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
+import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
+import { IMG } from '../../theme/imagenes';
+import { useTheme } from '../../theme/ThemeContext';
+import { FUENTES, RADIO } from '../../theme/tokens';
 
 const TOTAL_DAYS = 7;
 
 export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, fetchStreakData }) {
+  const { colores } = useTheme();
   const [loading, setLoading] = useState(false);
   const [localRacha, setLocalRacha] = useState(rachaLogin);
 
@@ -11,7 +16,7 @@ export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, f
   }, [rachaLogin]);
 
   useEffect(() => {
-    if (!fetchStreakData) return;
+    if (!fetchStreakData) return undefined;
     let alive = true;
     fetchStreakData()
       .then((data) => {
@@ -19,15 +24,20 @@ export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, f
         if (data?.racha) setLocalRacha(data.racha);
       })
       .catch(() => {});
-    return () => { alive = false; };
-  }, [fetchStreakData]);
+    return () => {
+      alive = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const dias = localRacha?.dias || 0;
   const multiplicador = rachaReservas?.multiplicador || 1;
   const semanas = rachaReservas?.semanasConsecutivas || 0;
   const yaReclamado = Boolean(localRacha?.yaReclamado);
   const esDia7 = (localRacha?.dia7Disponible ?? dias >= 7) || dias >= 7;
-  const puntosHoy = yaReclamado ? 0 : (localRacha?.puntosHoy ?? (esDia7 ? 0 : Math.min(5 + 3 * Math.max(0, dias), 15)));
+  const puntosHoy = yaReclamado
+    ? 0
+    : (localRacha?.puntosHoy ?? (esDia7 ? 0 : Math.min(5 + 3 * Math.max(0, dias), 15)));
   const diasRestantes = Math.max(0, TOTAL_DAYS - dias);
   const progreso = Math.min((dias / TOTAL_DAYS) * 100, 100);
 
@@ -46,63 +56,257 @@ export default function StreakBadge({ rachaLogin, rachaReservas, onOpenStreak, f
   }, [loading, fetchStreakData, onOpenStreak, localRacha]);
 
   return (
-    <div className="streak-badge" onClick={handleClick} role="button" tabIndex={0} onKeyDown={(e) => e.key === 'Enter' && handleClick()}>
-      <div className="streak-badge__fire-section">
-        <div className={`streak-badge__fire-img-wrap ${esDia7 ? 'streak-badge__fire-img-wrap--ready' : ''}`}>
-          <img src="/racha-fuego.png" alt="Racha" className="streak-badge__fire-img" />
-          {!esDia7 && <span className="streak-badge__fire-count">{dias}</span>}
-          {esDia7 && <span className="streak-badge__fire-count streak-badge__fire-count--wheel">🎡</span>}
-        </div>
-        <div className="streak-badge__fire-info">
-          <span className="streak-badge__fire-title">
+    <Pressable
+      onPress={handleClick}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: loading }}
+      style={({ pressed }) => [
+        styles.card,
+        { backgroundColor: colores.glassBg, borderColor: esDia7 ? '#F59E0B' : colores.glassBorder },
+        pressed && { opacity: 0.9 },
+      ]}
+    >
+      <View style={styles.fireSection}>
+        <View
+          style={[
+            styles.fireWrap,
+            {
+              backgroundColor: esDia7 ? '#FBBF24' : '#FEF3C7',
+              borderColor: '#F59E0B',
+            },
+          ]}
+        >
+          <Image source={IMG.rachaFuego} style={styles.fireImg} resizeMode="contain" />
+          {!esDia7 && (
+            <View style={[styles.fireCount, { backgroundColor: colores.primaryContainer, borderColor: colores.papel }]}>
+              <Text style={styles.fireCountTxt}>{dias}</Text>
+            </View>
+          )}
+          {esDia7 && (
+            <View style={[styles.fireCount, styles.fireCountWheel, { borderColor: colores.papel }]}>
+              <Text style={styles.fireCountTxt}>🎡</Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.fireInfo}>
+          <Text style={[styles.fireTitle, { color: colores.tinta }]}>
             {esDia7 ? '¡Ruleta lista!' : `Racha: ${dias} día${dias !== 1 ? 's' : ''}`}
-          </span>
-          <span className="streak-badge__fire-sub">
+          </Text>
+          <Text style={[styles.fireSub, { color: colores.gris }]}>
             {esDia7
               ? 'Toca para girar la ruleta y ganar hasta 100 MIRA pts'
               : dias === 0
                 ? 'Entra hoy para empezar tu racha'
-                : `+${puntosHoy} MIRA pts hoy${diasRestantes > 0 ? ` · ${diasRestantes} días para la ruleta` : ''}`
-            }
-          </span>
-        </div>
-        <div className="streak-badge__fire-arrow">
-          {loading ? '⏳' : '→'}
-        </div>
-      </div>
+                : `+${puntosHoy} MIRA pts hoy${diasRestantes > 0 ? ` · ${diasRestantes} días para la ruleta` : ''}`}
+          </Text>
+        </View>
 
-      <div className="streak-badge__progress-section">
-        <div className="streak-badge__progress-header">
-          <span className="streak-badge__progress-label">Progreso de racha</span>
-          <span className="streak-badge__progress-count">{dias}/7 días</span>
-        </div>
-        <div className="streak-badge__progress-bar">
-          <div className="streak-badge__progress-fill" style={{ width: `${progreso}%` }} />
+        <Text style={[styles.fireArrow, { color: loading ? colores.gris : colores.gris }]}>
+          {loading ? '⏳' : '→'}
+        </Text>
+      </View>
+
+      <View style={[styles.progressSection, { borderTopColor: colores.glassBorder }]}>
+        <View style={styles.progressHeader}>
+          <Text style={[styles.progressLabel, { color: colores.gris }]}>Progreso de racha</Text>
+          <Text style={[styles.progressCount, { color: colores.primaryContainer }]}>{dias}/7 días</Text>
+        </View>
+
+        <View style={[styles.progressTrack, { backgroundColor: 'rgba(0,0,0,0.06)' }]}>
+          <View
+            style={[
+              styles.progressFill,
+              { width: `${progreso}%`, backgroundColor: colores.primaryContainer },
+            ]}
+          />
+          <View style={styles.progressDots}>
+            {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+              <View
+                key={d}
+                style={[
+                  styles.progressDot,
+                  d <= dias && { backgroundColor: colores.primaryContainer, borderColor: colores.primaryContainer },
+                  d === 7 && esDia7 && { backgroundColor: '#F59E0B', borderColor: '#F59E0B', width: 14, height: 14 },
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.progressDays}>
           {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-            <div
+            <Text
               key={d}
-              className={`streak-badge__progress-dot ${d <= dias ? 'streak-badge__progress-dot--done' : ''} ${d === 7 && esDia7 ? 'streak-badge__progress-dot--wheel' : ''}`}
-            />
-          ))}
-        </div>
-        <div className="streak-badge__progress-days">
-          {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-            <span key={d} className={`streak-badge__progress-day-label ${d <= dias ? 'streak-badge__progress-day-label--done' : ''}`}>
+              style={[
+                styles.progressDayLabel,
+                { color: colores.gris },
+                d <= dias && { color: colores.primaryContainer },
+              ]}
+            >
               {d === 7 ? '🎡' : d}
-            </span>
+            </Text>
           ))}
-        </div>
-      </div>
+        </View>
+      </View>
 
       {semanas > 0 && (
-        <div className="streak-badge__reserva">
-          <span className="streak-badge__icon">⭐</span>
-          <div className="streak-badge__info">
-            <span className="streak-badge__value">x{multiplicador}</span>
-            <span className="streak-badge__label">{semanas} semana{semanas > 1 ? 's' : ''}</span>
-          </div>
-        </div>
+        <View style={[styles.reserva, { borderTopColor: colores.glassBorder }]}>
+          <Text style={styles.reservaIcon}>⭐</Text>
+          <View style={styles.reservaInfo}>
+            <Text style={[styles.reservaValue, { color: colores.primary }]}>x{multiplicador}</Text>
+            <Text style={[styles.reservaLabel, { color: colores.gris }]}>
+              {semanas} semana{semanas > 1 ? 's' : ''}
+            </Text>
+          </View>
+        </View>
       )}
-    </div>
+    </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  card: {
+    borderWidth: 1,
+    borderRadius: RADIO.xl,
+    paddingVertical: 19.2,
+    paddingHorizontal: 22.4,
+    gap: 16,
+  },
+  fireSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  fireWrap: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fireImg: {
+    width: 44,
+    height: 44,
+  },
+  fireCount: {
+    position: 'absolute',
+    bottom: -4,
+    right: -4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  fireCountWheel: {
+    backgroundColor: '#F59E0B',
+  },
+  fireCountTxt: {
+    color: '#fff',
+    fontSize: 10.4,
+    fontWeight: '900',
+  },
+  fireInfo: {
+    flex: 1,
+  },
+  fireTitle: {
+    fontFamily: FUENTES.textoBold,
+    fontSize: 15.2,
+    fontWeight: '800',
+    marginBottom: 1,
+  },
+  fireSub: {
+    fontFamily: FUENTES.texto,
+    fontSize: 12.5,
+    fontWeight: '600',
+    lineHeight: 17.5,
+  },
+  fireArrow: {
+    fontSize: 19.2,
+    fontWeight: '600',
+  },
+  progressSection: {
+    paddingTop: 9.6,
+    borderTopWidth: 1,
+  },
+  progressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  progressLabel: {
+    fontFamily: FUENTES.textoBold,
+    fontSize: 11.5,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+  },
+  progressCount: {
+    fontFamily: FUENTES.textoBold,
+    fontSize: 11.5,
+    fontWeight: '800',
+  },
+  progressTrack: {
+    height: 6,
+    borderRadius: 999,
+    justifyContent: 'center',
+    marginBottom: 6,
+  },
+  progressFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    borderRadius: 999,
+  },
+  progressDots: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 2,
+    zIndex: 1,
+  },
+  progressDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: '#fff',
+    borderWidth: 2,
+    borderColor: 'rgba(0,0,0,0.12)',
+  },
+  progressDays: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  progressDayLabel: {
+    width: 16,
+    textAlign: 'center',
+    fontSize: 9.6,
+    fontWeight: '700',
+  },
+  reserva: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12.8,
+    paddingTop: 9.6,
+    borderTopWidth: 1,
+  },
+  reservaIcon: {
+    fontSize: 24,
+  },
+  reservaInfo: {
+    flexDirection: 'column',
+  },
+  reservaValue: {
+    fontFamily: FUENTES.textoBold,
+    fontSize: 19.2,
+    fontWeight: '700',
+  },
+  reservaLabel: {
+    fontFamily: FUENTES.texto,
+    fontSize: 12.8,
+  },
+});

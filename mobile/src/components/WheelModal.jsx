@@ -1,4 +1,12 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
+import { Modal, View, Text, Pressable, ScrollView, Animated, Easing, Image, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
+import { useTheme } from '../theme/ThemeContext';
+import { IMG } from '../theme/imagenes';
+import { FUENTES } from '../theme/tokens';
+
+const LogoCircular = IMG.logoCircular;
 
 const PRIZES = [
   { puntos: 20, label: '20', color: '#006A55', textColor: '#fff' },
@@ -9,219 +17,374 @@ const PRIZES = [
 ];
 
 const SEGMENT_ANGLE = 360 / PRIZES.length;
+const RUEDA = 268;
+const C = RUEDA / 2; // centro (viewBox escalado 300 → 268)
 
-function createConfetti() {
-  const colors = ['#006A55', '#FFC800', '#FF4B4B', '#10B981', '#F59E0B', '#3B82F6'];
-  for (let i = 0; i < 50; i++) {
-    const el = document.createElement('div');
-    el.className = 'streak-confetti';
-    const size = Math.random() * 10 + 6;
-    el.style.width = size + 'px';
-    el.style.height = (size * 1.4) + 'px';
-    el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-    el.style.left = (window.innerWidth / 2 + (Math.random() * 500 - 250)) + 'px';
-    el.style.top = (window.innerHeight / 2 + (Math.random() * 200 - 100)) + 'px';
-    el.style.transform = `rotate(${Math.random() * 360}deg)`;
-    document.body.appendChild(el);
-
-    const vx = (Math.random() - 0.5) * 700;
-    const vy = -Math.random() * 500 - 200;
-    const vr = (Math.random() - 0.5) * 900;
-    let start = performance.now();
-    const dur = 2500;
-
-    (function anim(t) {
-      const e = (t - start) / dur;
-      if (e < 1) {
-        el.style.left = (window.innerWidth / 2 + vx * e) + 'px';
-        el.style.top = (window.innerHeight / 2 + vy * e + 700 * e * e) + 'px';
-        el.style.transform = `rotate(${vr * e}deg) scale(${1 - e * 0.5})`;
-        el.style.opacity = (1 - e).toString();
-        requestAnimationFrame(anim);
-      } else {
-        el.remove();
-      }
-    })(performance.now());
-  }
+function punto(anguloDeg, radio) {
+  const rad = ((anguloDeg - 90) * Math.PI) / 180;
+  return [C + radio * Math.cos(rad), C + radio * Math.sin(rad)];
 }
 
 export default function WheelModal({ onSpin, onClose }) {
+  const { colores } = useTheme();
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
   const [showResult, setShowResult] = useState(false);
-  const [rotation, setRotation] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
   const [error, setError] = useState(false);
-  const wheelRef = useRef(null);
+  const [objetivo, setObjetivo] = useState(0);
+  const [rot] = useState(() => new Animated.Value(0));
 
-  useEffect(() => {
-    requestAnimationFrame(() => setIsVisible(true));
-  }, []);
+  const girar = useCallback(
+    async (event) => {
+      if (spinning || result) return;
+      if (event?.stopPropagation) event.stopPropagation();
+      setSpinning(true);
+      setError(false);
 
-  const handleSpin = useCallback(async () => {
-    if (spinning || result) return;
-    setSpinning(true);
-    setError(false);
+      let prize;
+      try {
+        prize = await onSpin?.();
+      } catch {
+        setError(true);
+        setSpinning(false);
+        return;
+      }
 
-    let prize;
-    try {
-      prize = await onSpin?.();
-    } catch {
-      setError(true);
-      setSpinning(false);
-      return;
-    }
+      if (!prize) {
+        setError(true);
+        setSpinning(false);
+        return;
+      }
 
-    if (!prize) {
-      setError(true);
-      setSpinning(false);
-      return;
-    }
+      const prizeIndex = PRIZES.findIndex((p) => p.puntos === prize.puntos);
+      const matchedPrize = prizeIndex >= 0 ? PRIZES[prizeIndex] : PRIZES[0];
+      const idx = prizeIndex >= 0 ? prizeIndex : 0;
 
-    const prizeIndex = PRIZES.findIndex((p) => p.puntos === prize.puntos);
-    const matchedPrize = prizeIndex >= 0 ? PRIZES[prizeIndex] : PRIZES[0];
-    const idx = prizeIndex >= 0 ? prizeIndex : 0;
+      const baseAngle = idx * SEGMENT_ANGLE + SEGMENT_ANGLE / 2;
+      const extraRotations = 5 * 360 + (360 - baseAngle);
+      const total = objetivo + extraRotations;
+      setObjetivo(total);
 
-    const baseAngle = idx * SEGMENT_ANGLE + SEGMENT_ANGLE / 2;
-    const extraRotations = 5 * 360 + (360 - baseAngle);
-    const totalRotation = rotation + extraRotations;
+      Animated.timing(rot, {
+        toValue: total,
+        duration: 5000,
+        easing: Easing.bezier(0.17, 0.67, 0.12, 0.99),
+        useNativeDriver: true,
+      }).start();
 
-    setRotation(totalRotation);
-
-    if (wheelRef.current) {
-      wheelRef.current.style.transition = 'transform 5s cubic-bezier(0.17, 0.67, 0.12, 0.99)';
-      wheelRef.current.style.transform = `rotate(${totalRotation}deg)`;
-    }
-
-    setTimeout(() => {
-      setResult(matchedPrize);
-      setSpinning(false);
-      setShowResult(true);
-      createConfetti();
       setTimeout(() => {
-        onClose?.({ ...matchedPrize, nuevoSaldo: prize.nuevoSaldo });
-      }, 4000);
-    }, 5200);
-  }, [spinning, result, rotation, onSpin, onClose]);
+        setResult(matchedPrize);
+        setSpinning(false);
+        setShowResult(true);
+        setTimeout(() => {
+          onClose?.({ ...matchedPrize, nuevoSaldo: prize.nuevoSaldo });
+        }, 4000);
+      }, 5200);
+    },
+    [spinning, result, objetivo, rot, onSpin, onClose],
+  );
+
+  const rotacion = rot.interpolate({
+    inputRange: [0, Math.max(objetivo, 1)],
+    outputRange: ['0deg', `${Math.max(objetivo, 1)}deg`],
+    extrapolate: 'extend',
+  });
 
   return (
-    <div className={`wheel-overlay ${isVisible ? 'wheel-overlay--visible' : ''}`}>
-      <div className={`wheel-modal ${isVisible ? 'wheel-modal--visible' : ''}`}>
+    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={() => onClose?.(null)}>
+      <View style={styles.overlay}>
+        <View style={styles.modal}>
+          <ScrollView contentContainerStyle={styles.contenido} showsVerticalScrollIndicator={false}>
+            {/* Cintillo */}
+            <View style={styles.header}>
+              <View style={styles.brand}>
+                <View style={[styles.brandIcono, { backgroundColor: colores.primaryContainer }]}>
+                  <LogoCircular width={22} height={22} />
+                </View>
+                <View>
+                  <Text style={[styles.brandNombre, { color: colores.primaryContainer }]}>MIRA CLUB</Text>
+                  <Text style={[styles.brandSub, { color: colores.gris }]}>Ruleta del Día 7</Text>
+                </View>
+              </View>
+            </View>
 
-        <div className="wheel-modal__header">
-          <div className="wheel-modal__brand">
-            <div className="wheel-modal__brand-icon">
-              <img src="/mira_logo_3_circular_lente.svg" alt="MIRA" className="wheel-modal__brand-logo" />
-            </div>
-            <div>
-              <span className="wheel-modal__brand-name">MIRA Club</span>
-              <span className="wheel-modal__brand-sub">Ruleta del Día 7</span>
-            </div>
-          </div>
-        </div>
+            <View style={styles.body}>
+              <Text style={[styles.titulo, { color: '#181c1a' }]}>¡Completaste la racha de 7 días! 🎉</Text>
+              <Text style={[styles.subtitulo, { color: '#414844' }]}>
+                Gira la ruleta para ganar entre <Text style={styles.bold}>20 y 100 MIRA Points</Text>
+              </Text>
 
-        <div className="wheel-modal__body">
-          <div className="wheel-modal__sunburst" />
+              <View style={styles.contenedor}>
+                <Text style={styles.puntero}>▼</Text>
+                <View style={styles.outer}>
+                  <Animated.View style={{ width: RUEDA, height: RUEDA, transform: [{ rotate: rotacion }] }}>
+                    <Svg width={RUEDA} height={RUEDA} viewBox="0 0 300 300">
+                      {PRIZES.map((prize, i) => {
+                        const startAngle = i * SEGMENT_ANGLE;
+                        const endAngle = startAngle + SEGMENT_ANGLE;
+                        const [x1, y1] = punto(startAngle, 140);
+                        const [x2, y2] = punto(endAngle, 140);
+                        const largeArc = SEGMENT_ANGLE > 180 ? 1 : 0;
 
-          <h2 className="wheel-modal__title">
-            ¡Completaste la racha de 7 días! 🎉
-          </h2>
-          <p className="wheel-modal__subtitle">
-            Gira la ruleta para ganar entre <strong>20 y 100 MIRA Points</strong>
-          </p>
+                        return (
+                          <Path
+                            key={i}
+                            d={`M150,150 L${x1},${y1} A140,140 0 ${largeArc},1 ${x2},${y2} Z`}
+                            fill={prize.color}
+                            stroke="#fff"
+                            strokeWidth="2"
+                          />
+                        );
+                      })}
+                      {PRIZES.map((prize, i) => {
+                        const midAngle = (i * SEGMENT_ANGLE + SEGMENT_ANGLE / 2);
+                        const [tx, ty] = punto(midAngle, 95);
+                        return (
+                          <SvgText
+                            key={`t-${i}`}
+                            x={tx}
+                            y={ty}
+                            fill={prize.textColor}
+                            fontSize="22"
+                            fontWeight="900"
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            rotation={midAngle}
+                            origin={`${tx}, ${ty}`}
+                          >
+                            {prize.label}
+                          </SvgText>
+                        );
+                      })}
+                      <Circle cx="150" cy="150" r="30" fill="#fff" stroke="#e5e7eb" strokeWidth="2" />
+                      <Circle cx="150" cy="150" r="12" fill={colores.primaryContainer} />
+                    </Svg>
+                  </Animated.View>
+                </View>
+              </View>
 
-          <div className="wheel-container">
-            {/* Puntero */}
-            <div className="wheel-pointer">▼</div>
+              {!result && !error && (
+                <Pressable onPress={girar} disabled={spinning} accessibilityRole="button">
+                  <LinearGradient
+                    colors={spinning ? ['#D1D5DB', '#D1D5DB'] : ['#FBBF24', '#F59E0B']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 0, y: 1 }}
+                    style={styles.spinBtn}
+                  >
+                    <Text style={[styles.spinTxt, spinning && { color: '#6B7280' }]}>
+                      {spinning ? 'Girando...' : '🎡 ¡GIRAR RULETA!'}
+                    </Text>
+                  </LinearGradient>
+                </Pressable>
+              )}
 
-            {/* Ruleta */}
-            <div className="wheel-outer">
-              <div
-                ref={wheelRef}
-                className="wheel-spin"
-                style={{ transform: `rotate(${rotation}deg)` }}
-              >
-                <svg viewBox="0 0 300 300" className="wheel-svg">
-                  {PRIZES.map((prize, i) => {
-                    const startAngle = i * SEGMENT_ANGLE;
-                    const endAngle = startAngle + SEGMENT_ANGLE;
-                    const startRad = (startAngle - 90) * Math.PI / 180;
-                    const endRad = (endAngle - 90) * Math.PI / 180;
-                    const x1 = 150 + 140 * Math.cos(startRad);
-                    const y1 = 150 + 140 * Math.sin(startRad);
-                    const x2 = 150 + 140 * Math.cos(endRad);
-                    const y2 = 150 + 140 * Math.sin(endRad);
-                    const largeArc = SEGMENT_ANGLE > 180 ? 1 : 0;
-                    const midAngle = ((startAngle + endAngle) / 2 - 90) * Math.PI / 180;
-                    const textX = 150 + 95 * Math.cos(midAngle);
-                    const textY = 150 + 95 * Math.sin(midAngle);
-                    const textRotation = (startAngle + endAngle) / 2;
+              {error && (
+                <View style={styles.error}>
+                  <Text style={[styles.errorTxt, { color: '#c62828' }]}>
+                    Error al girar la ruleta. Inténtalo de nuevo.
+                  </Text>
+                  <Pressable onPress={girar} accessibilityRole="button">
+                    <LinearGradient
+                      colors={['#FBBF24', '#F59E0B']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 0, y: 1 }}
+                      style={styles.spinBtn}
+                    >
+                      <Text style={styles.spinTxt}>Reintentar</Text>
+                    </LinearGradient>
+                  </Pressable>
+                </View>
+              )}
+            </View>
 
-                    return (
-                      <g key={i}>
-                        <path
-                          d={`M150,150 L${x1},${y1} A140,140 0 ${largeArc},1 ${x2},${y2} Z`}
-                          fill={prize.color}
-                          stroke="#fff"
-                          strokeWidth="2"
-                        />
-                        <text
-                          x={textX}
-                          y={textY}
-                          fill={prize.textColor}
-                          fontSize="22"
-                          fontWeight="900"
-                          textAnchor="middle"
-                          dominantBaseline="central"
-                          transform={`rotate(${textRotation}, ${textX}, ${textY})`}
-                          style={{ fontFamily: 'var(--fuente-display, sans-serif)' }}
-                        >
-                          {prize.label}
-                        </text>
-                      </g>
-                    );
-                  })}
-                  {/* Centro */}
-                  <circle cx="150" cy="150" r="30" fill="#fff" stroke="#e5e7eb" strokeWidth="2" />
-                  <circle cx="150" cy="150" r="12" fill="var(--primary-container, #006A55)" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {!result && !error && (
-            <button
-              className={`wheel-spin-btn ${spinning ? 'wheel-spin-btn--spinning' : ''}`}
-              onClick={handleSpin}
-              disabled={spinning}
-            >
-              {spinning ? 'Girando...' : '🎡 ¡GIRAR RULETA!'}
-            </button>
-          )}
-
-          {error && (
-            <div className="wheel-error">
-              <p>Error al girar la ruleta. Inténtalo de nuevo.</p>
-              <button className="wheel-spin-btn" onClick={handleSpin}>
-                Reintentar
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Resultado */}
-        {showResult && result && (
-          <div className="wheel-result">
-            <div className="wheel-result__icon">🎉</div>
-            <h3 className="wheel-result__title">¡Felicidades!</h3>
-            <div className="wheel-result__prize">
-              <img src="/moneda-mira.png" alt="" className="wheel-result__coin" />
-              <span>+{result.puntos} MIRA Points</span>
-            </div>
-            <p className="wheel-result__sub">Se han añadido a tu saldo</p>
-          </div>
-        )}
-      </div>
-    </div>
+            {showResult && result && (
+              <View style={styles.resultado}>
+                <Text style={styles.resultadoIcono}>🎉</Text>
+                <Text style={[styles.resultadoTitulo, { color: '#181c1a' }]}>¡Felicidades!</Text>
+                <View style={styles.resultadoPremio}>
+                  <Image source={IMG.moneda} style={styles.resultadoMoneda} resizeMode="contain" />
+                  <Text style={styles.resultadoPuntos}>+{result.puntos} MIRA Points</Text>
+                </View>
+                <Text style={[styles.resultadoSub, { color: '#414844' }]}>Se han añadido a tu saldo</Text>
+              </View>
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 20, 15, 0.7)',
+    padding: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modal: {
+    width: '100%',
+    maxWidth: 520,
+    maxHeight: '92%',
+    backgroundColor: '#FCFBF8',
+    borderRadius: 32,
+    borderWidth: 4,
+    borderColor: 'rgba(251, 191, 36, 0.2)',
+    overflow: 'hidden',
+  },
+  contenido: {
+    paddingBottom: 24,
+  },
+  header: {
+    paddingHorizontal: 25.6,
+    paddingTop: 19.2,
+  },
+  brand: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 9.6,
+  },
+  brandIcono: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  brandNombre: {
+    fontSize: 11.2,
+    fontWeight: '900',
+    letterSpacing: 0.9,
+    fontFamily: FUENTES.textoExtra,
+  },
+  brandSub: {
+    fontSize: 10.4,
+    fontWeight: '700',
+    fontFamily: FUENTES.textoBold,
+    marginTop: -1,
+  },
+  body: {
+    paddingHorizontal: 25.6,
+    paddingBottom: 16,
+    alignItems: 'center',
+  },
+  titulo: {
+    fontFamily: FUENTES.display,
+    fontSize: 22.4,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  subtitulo: {
+    fontSize: 13.6,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 16,
+    fontFamily: FUENTES.textoMedio,
+  },
+  bold: {
+    fontWeight: '800',
+    fontFamily: FUENTES.textoExtra,
+  },
+  contenedor: {
+    width: 280,
+    height: 280,
+    marginBottom: 19.2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  puntero: {
+    position: 'absolute',
+    top: -10,
+    zIndex: 10,
+    fontSize: 29,
+    color: '#F59E0B',
+    textShadowColor: 'rgba(245, 158, 11, 0.5)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+  outer: {
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    borderWidth: 6,
+    borderColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 15,
+    elevation: 6,
+  },
+  spinBtn: {
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#B45309',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 0,
+    elevation: 4,
+    minWidth: 220,
+  },
+  spinTxt: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+    fontFamily: FUENTES.textoExtra,
+  },
+  error: {
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+  },
+  errorTxt: {
+    fontSize: 13.6,
+    fontWeight: '700',
+    textAlign: 'center',
+    fontFamily: FUENTES.textoBold,
+  },
+  resultado: {
+    alignItems: 'center',
+    paddingHorizontal: 25.6,
+    paddingTop: 16,
+  },
+  resultadoIcono: {
+    fontSize: 48,
+    marginBottom: 5,
+  },
+  resultadoTitulo: {
+    fontFamily: FUENTES.display,
+    fontSize: 25.6,
+    fontWeight: '900',
+    marginBottom: 8,
+  },
+  resultadoPremio: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 4,
+  },
+  resultadoMoneda: {
+    width: 40,
+    height: 40,
+  },
+  resultadoPuntos: {
+    fontSize: 22.4,
+    fontWeight: '900',
+    color: '#D97706',
+    fontFamily: FUENTES.textoExtra,
+  },
+  resultadoSub: {
+    fontSize: 13.6,
+    fontWeight: '600',
+    fontFamily: FUENTES.textoMedio,
+  },
+});

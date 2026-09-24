@@ -26,6 +26,7 @@ import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { I18nProvider } from '../i18n/index.jsx';
 import { AuthProvider, useAuthContext } from '../context/AuthContext';
 import { StreakProvider } from '../context/StreakContext';
+import PopupsRacha from '../components/PopupsRacha';
 
 function I18nConAuth({ children }) {
   const auth = useAuthContext();
@@ -120,6 +121,7 @@ export default function RootLayout() {
               <I18nConAuth>
                 <View style={{ flex: 1 }}>
                   <RootStack />
+                  <PopupsRacha />
                 </View>
               </I18nConAuth>
             </StreakConAuth>

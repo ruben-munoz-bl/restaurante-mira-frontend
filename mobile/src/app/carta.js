@@ -3,7 +3,8 @@
  * detalle): carga el restaurante por id y monta el LibroCarta 3D.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { View, Text, Pressable, StyleSheet, ActivityIndicator, BlurView } from 'react-native';
+import { View, Text, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
+import { BlurView } from 'expo-blur';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAuthContext } from '../context/AuthContext';
 import { fetchRestaurantePorId } from '../services/restaurantApi.js';
