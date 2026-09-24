@@ -690,5 +690,18 @@ export default {
     "wheelCongrats": "Congratulations!",
     "wheelAdded": "Added to your balance",
     "milestone7": "x7 Chest"
+  },
+  "emblemas": {
+    "tituloProgreso": "Your progress",
+    "tituloNivel": "{{nombre}} badge",
+    "foodie": "Foodie",
+    "gourmet": "Gourmet",
+    "michelin": "Michelin",
+    "sinEmblema": "Book your first table to unlock the Foodie badge.",
+    "faltan": "You need {{n}} more bookings to unlock the {{siguiente}} badge.",
+    "faltaUna": "You need 1 more booking to unlock the {{siguiente}} badge.",
+    "maximo": "You've reached the Michelin badge.",
+    "multiplicador": "Multiplier",
+    "multiplicadorValor": "{{multi}}"
   }
 }

@@ -1395,6 +1395,218 @@ button.btn-texto {
   margin: 0;
 }
 
+/* ---------- Emblemas: progreso + marco avatar ---------- */
+.avatar-wrapper {
+  --avatar-size: 4rem;
+  position: relative;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  display: grid;
+  place-items: center;
+  overflow: visible;
+}
+
+.avatar-wrapper--lg {
+  --avatar-size: 5.5rem;
+}
+
+.avatar-wrapper--lg .cuenta-avatar {
+  font-size: 2.4rem;
+}
+
+.emblema-svg-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.emblema-marco {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  z-index: 3;
+  object-fit: fill;
+  overflow: visible;
+  max-width: none;
+  max-height: none;
+  image-rendering: auto;
+  filter: none;
+}
+
+.emblema-marco.emblema-gourmet,
+.emblema-marco.emblema-michelin {
+  filter: url(#emblema-engordar);
+}
+
+.emblema-marco.emblema-foodie {
+  width: calc(var(--avatar-size) * 1.023709);
+  height: calc(var(--avatar-size) * 1.005983);
+  transform: translate(calc(-50% + 0.007755 * var(--avatar-size)), calc(-50% - 0.002216 * var(--avatar-size)));
+}
+
+.emblema-marco.emblema-gourmet {
+  width: calc(var(--avatar-size) * 1.619527);
+  height: calc(var(--avatar-size) * 1.49167);
+  transform: translate(calc(-50% - 0.001937 * var(--avatar-size)), calc(-50% - 0.089113 * var(--avatar-size)));
+}
+
+.emblema-marco.emblema-michelin {
+  width: calc(var(--avatar-size) * 1.196256);
+  height: calc(var(--avatar-size) * 1.096812);
+  transform: translate(calc(-50% - 0.007312 * var(--avatar-size)), calc(-50% - 0.017549 * var(--avatar-size)));
+}
+
+.emblema-progreso {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  width: 100%;
+  margin: 0.2rem 0 0.4rem;
+  text-align: center;
+}
+
+.emblema-progreso-label {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--texto-sec);
+}
+
+.emblema-progreso-label::before,
+.emblema-progreso-label::after {
+  content: '';
+  width: 1.35rem;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--borde));
+  flex-shrink: 0;
+}
+
+.emblema-progreso-label::after {
+  background: linear-gradient(90deg, var(--borde), transparent);
+}
+
+.emblema-progreso-titulo {
+  margin: 0;
+  min-height: 1.2em;
+  font-family: var(--fuente-display);
+  font-size: clamp(1.5rem, 4vw, 1.9rem);
+  font-weight: 700;
+  color: var(--tinta);
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+}
+
+.emblema-progreso-titulo--activo {
+  position: relative;
+  padding-bottom: 0.35rem;
+}
+
+.emblema-progreso-titulo--activo::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: min(70%, 11rem);
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--dorado-claro) 20%,
+    var(--secondary-container) 50%,
+    var(--dorado-claro) 80%,
+    transparent
+  );
+}
+
+.emblema-progreso-titulo--foodie::after {
+  background: linear-gradient(90deg, transparent, #c4884a 20%, #8b5a2b 50%, #c4884a 80%, transparent);
+}
+
+.emblema-progreso-titulo--gourmet::after {
+  background: linear-gradient(90deg, transparent, #e8e8e8 20%, #b0b0b0 50%, #e8e8e8 80%, transparent);
+}
+
+.emblema-progreso-titulo--michelin::after {
+  background: linear-gradient(90deg, transparent, #f0d78c 20%, #d4af37 50%, #f0d78c 80%, transparent);
+}
+
+.emblema-progreso-texto {
+  margin: 0.15rem 0 0;
+  max-width: 18rem;
+  font-size: 0.95rem;
+  color: var(--gris);
+  line-height: 1.45;
+}
+
+.emblema-progreso-racha {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0;
+  padding: 0.45rem 1.1rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--dorado);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.28)),
+    linear-gradient(135deg, rgba(254, 214, 91, 0.32), rgba(198, 146, 75, 0.14));
+  border: 1px solid rgba(198, 146, 75, 0.55);
+  box-shadow:
+    0 1px 2px rgba(115, 92, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+.emblema-progreso-racha-icono {
+  font-size: 0.95rem;
+  line-height: 1;
+  filter: saturate(1.15);
+}
+
+.emblema-progreso-racha-nombre {
+  color: var(--gris);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.emblema-progreso-racha-valor {
+  font-family: var(--fuente-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--dorado);
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+[data-theme='dark'] .emblema-progreso-racha {
+  color: var(--secondary-container);
+  background: linear-gradient(135deg, rgba(254, 214, 91, 0.14), rgba(115, 92, 0, 0.28));
+  border-color: rgba(254, 214, 91, 0.42);
+  box-shadow: inset 0 1px 0 rgba(254, 214, 91, 0.12);
+}
+
+[data-theme='dark'] .emblema-progreso-racha-nombre {
+  color: var(--gris);
+}
+
+[data-theme='dark'] .emblema-progreso-racha-valor {
+  color: var(--secondary-container);
+}
+
 .cuenta-datos {
   display: grid;
   gap: 0.6rem;

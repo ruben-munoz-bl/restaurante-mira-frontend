@@ -766,5 +766,18 @@ export default {
     "restaurantes": "Restaurantes",
     "sinRestaurantes": "Sin restaurantes",
     "reservas": "reservas"
+  },
+  "emblemas": {
+    "tituloProgreso": "Tu progreso",
+    "tituloNivel": "Emblema {{nombre}}",
+    "foodie": "Foodie",
+    "gourmet": "Gourmet",
+    "michelin": "Michelin",
+    "sinEmblema": "Reserva tu primera mesa para conseguir el emblema Foodie.",
+    "faltan": "Te faltan {{n}} reservas para conseguir el emblema {{siguiente}}.",
+    "faltaUna": "Te falta 1 reserva para conseguir el emblema {{siguiente}}.",
+    "maximo": "Has alcanzado el emblema Michelin.",
+    "multiplicador": "Multiplicador",
+    "multiplicadorValor": "{{multi}}"
   }
 }
