@@ -5,7 +5,7 @@
  * del web), BottomNav (móvil) y CookieBanner. Oculta el header al bajar
  * (solo móvil, igual que .site-header.oculto).
  */
-import { useRef, useState, useCallback } from 'react';
+import { createContext, useContext, useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { View, ScrollView, Text, Pressable, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
@@ -18,7 +18,20 @@ import Footer from '../Footer';
 import CookieBanner from '../CookieBanner';
 import { rutaDesdePath, RUTAS_AUTH } from './rutas';
 
-export function AppShell({ children, scroll = true, ocultarFooter = false, ocultarBottomNav = false }) {
+/** Acceso al scroll interno del shell (Hero → buscador, scroll infinito). */
+const ShellContext = createContext({ scrollRef: { current: null }, headerH: 96 });
+
+export function useShell() {
+  return useContext(ShellContext);
+}
+
+export function AppShell({
+  children,
+  scroll = true,
+  ocultarFooter = false,
+  ocultarBottomNav = false,
+  onCercaFinal,
+}) {
   const { colores } = useTheme();
   const auth = useAuthContext();
   const router = useRouter();
@@ -27,6 +40,13 @@ export function AppShell({ children, scroll = true, ocultarFooter = false, ocult
   const [oculto, setOculto] = useState(false);
   const [headerH, setHeaderH] = useState(96);
   const ultimoY = useRef(0);
+  const scrollRef = useRef(null);
+  const cercaRef = useRef(false);
+  const ultimoDisparo = useRef(0);
+  const cercaRefCb = useRef(onCercaFinal);
+  useEffect(() => {
+    cercaRefCb.current = onCercaFinal;
+  }, [onCercaFinal]);
 
   const ruta = rutaDesdePath(pathname);
   const mostrarAviso =
@@ -36,8 +56,20 @@ export function AppShell({ children, scroll = true, ocultarFooter = false, ocult
 
   const onScroll = useCallback(
     (e) => {
+      const { contentOffset, contentSize, layoutMeasurement } = e.nativeEvent;
+      // Scroll infinito: espejo del IntersectionObserver rootMargin 600px del web.
+      if (cercaRefCb.current) {
+        const dist = contentSize.height - layoutMeasurement.height - contentOffset.y;
+        const cerca = dist < 600;
+        const ahora = Date.now();
+        if (cerca && !cercaRef.current && ahora - ultimoDisparo.current > 500) {
+          ultimoDisparo.current = ahora;
+          cercaRefCb.current();
+        }
+        cercaRef.current = cerca;
+      }
       if (!esMovil) return;
-      const y = e.nativeEvent.contentOffset.y;
+      const y = contentOffset.y;
       const delta = y - ultimoY.current;
       if (y <= 60 || delta < 0) setOculto(false);
       else if (delta > 0) setOculto(true);
@@ -57,32 +89,37 @@ export function AppShell({ children, scroll = true, ocultarFooter = false, ocult
 
   const onHeaderLayout = useCallback((h) => setHeaderH(h), []);
 
+  const shellValue = useMemo(() => ({ scrollRef, headerH }), [headerH]);
+
   return (
-    <View style={[styles.raiz, { backgroundColor: colores.fondo }]}>
-      <Header oculto={oculto} onAltoChange={onHeaderLayout} />
-      {scroll ? (
-        <ScrollView
-          style={styles.contenido}
-          contentContainerStyle={[styles.scrollContenido, { paddingTop: headerH }]}
-          onScroll={onScroll}
-          scrollEventThrottle={32}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator
-        >
-          {aviso}
-          {children}
-          {!ocultarFooter && <Footer />}
-          <View style={{ height: 24 }} />
-        </ScrollView>
-      ) : (
-        <View style={[styles.contenido, { paddingTop: headerH }]}>
-          {aviso}
-          <View style={styles.fijo}>{children}</View>
-        </View>
-      )}
-      {!ocultarBottomNav && <BottomNav />}
-      <CookieBanner usuario={auth.usuario} />
-    </View>
+    <ShellContext.Provider value={shellValue}>
+      <View style={[styles.raiz, { backgroundColor: colores.fondo }]}>
+        <Header oculto={oculto} onAltoChange={onHeaderLayout} />
+        {scroll ? (
+          <ScrollView
+            ref={scrollRef}
+            style={styles.contenido}
+            contentContainerStyle={[styles.scrollContenido, { paddingTop: headerH }]}
+            onScroll={onScroll}
+            scrollEventThrottle={32}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator
+          >
+            {aviso}
+            {children}
+            {!ocultarFooter && <Footer />}
+            <View style={{ height: 24 }} />
+          </ScrollView>
+        ) : (
+          <View style={[styles.contenido, { paddingTop: headerH }]}>
+            {aviso}
+            <View style={styles.fijo}>{children}</View>
+          </View>
+        )}
+        {!ocultarBottomNav && <BottomNav />}
+        <CookieBanner usuario={auth.usuario} />
+      </View>
+    </ShellContext.Provider>
   );
 }
 

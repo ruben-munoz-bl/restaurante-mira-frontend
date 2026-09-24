@@ -1,12 +1,35 @@
 /**
- * Modal detalle premium: info + reservas + mapa + reseñas con likes.
+ * Detalle premium — espejo de RestaurantDetail.jsx web (modal):
+ * info + acciones + carta + reserva + mapa/parkings + reseñas con likes.
+ * En RN es una pantalla a pantalla completa (ruta /detalle, presentación modal).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  Pressable,
+  TextInput,
+  ScrollView,
+  Linking,
+  StyleSheet,
+  useWindowDimensions,
+} from 'react-native';
+import { useRouter } from 'expo-router';
 import { crearReserva, getDisponibilidad, SLOTS } from '../services/reservaApi.js';
 import { crearResena, listarResenasDeRestaurante, darLikeResena, quitarLikeResena } from '../services/resenasApi.js';
-import { semillaLikes, parseFechaLocal, hoyLocalISO, ordenarResenas, cartaDelLocal, flagsPlato, imagenParaRestaurante } from '../models/restaurantModel.js';
+import {
+  semillaLikes,
+  parseFechaLocal,
+  hoyLocalISO,
+  ordenarResenas,
+  cartaDelLocal,
+  flagsPlato,
+  imagenParaRestaurante,
+} from '../models/restaurantModel.js';
 import { pronosticoDia, alertaTerraza } from '../services/meteoApi.js';
 import { fetchNearbyParkings } from '../services/parkingApi.js';
+import { interactionsApi } from '../services/api.js';
 import RestaurantMap from './RestaurantMap.jsx';
 import ParkingsPanel from './ParkingsPanel.jsx';
 import { Sellos, MiniLeyenda } from './Sellos.jsx';
@@ -15,16 +38,20 @@ import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
+import { useTheme } from '../theme/ThemeContext';
+import { FUENTES, RADIO, GUTTER } from '../theme/tokens';
+import { btnCta, btnSecundario, btnTexto, TITULO_DISPLAY } from '../theme/ui';
+import { CampoEtiqueta } from './ui/SelectCampo';
+import SelectCampo from './ui/SelectCampo';
 
 const TRADS = { es, ca, en };
+const MOSTRAR_INICIAL = 10;
 
 function marcaInfo(valor, t) {
   if (valor === true) return t('detail.si');
   if (valor === false) return t('detail.no');
   return t('detail.sinInfo');
 }
-
-const MOSTRAR_INICIAL = 10;
 
 function googleLink(coords, direccion) {
   if (coords && Number.isFinite(Number(coords.lat)) && Number.isFinite(Number(coords.lng))) {
@@ -35,28 +62,47 @@ function googleLink(coords, direccion) {
 }
 
 function coordsValidas(coords) {
-  return Boolean(coords)
-    && Number.isFinite(Number(coords.lat))
-    && Number.isFinite(Number(coords.lng));
+  return Boolean(coords) && Number.isFinite(Number(coords.lat)) && Number.isFinite(Number(coords.lng));
+}
+
+function StarPicker({ value, onChange, etiqueta }) {
+  const { colores } = useTheme();
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel={etiqueta} style={styles.stars}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <Pressable
+          key={n}
+          onPress={() => onChange(n)}
+          accessibilityRole="radio"
+          accessibilityState={{ selected: value === n }}
+          accessibilityLabel={`${n} ${etiqueta}`}
+          hitSlop={4}
+        >
+          <Text
+            style={{
+              fontSize: 23.2,
+              lineHeight: 26,
+              color: n <= value ? colores.estrella : colores.borde,
+            }}
+          >
+            ★
+          </Text>
+        </Pressable>
+      ))}
+    </View>
+  );
 }
 
 export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCarta }) {
   const t = useT(TRADS);
+  const { colores } = useTheme();
+  const router = useRouter();
+  const { width } = useWindowDimensions();
   const { descuentoPendiente, fetchBalance } = usePointsStore();
 
-  function StarPicker({ value, onChange }) {
-    return (
-      <div style={{ display: 'flex', gap: '0.15rem' }} role="radiogroup" aria-label={t('detail.puntuacion')}>
-        {[1, 2, 3, 4, 5].map(n => (
-          <button key={n} type="button" role="radio" aria-checked={value === n} aria-label={`${n} ${t('detail.estrellas')}`}
-            onClick={() => onChange(n)}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: n <= value ? 'var(--estrella)' : 'var(--borde)', fontSize: '1.45rem', lineHeight: 1 }}>
-            ★
-          </button>
-        ))}
-      </div>
-    );
-  }
+  const apilado = width <= 560;
+  const mapaEnFila = width >= 1024;
+
   const [verTodas, setVerTodas] = useState(false);
   const [verTodasYelp, setVerTodasYelp] = useState(false);
   const [ordenResenas, setOrdenResenas] = useState('populares');
@@ -77,30 +123,27 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   const [cargandoParkings, setCargandoParkings] = useState(false);
   const [parkingSeleccionado, setParkingSeleccionado] = useState(null);
 
+  const [uri, setUri] = useState(restaurant.imagen);
+  const fallback = useMemo(
+    () => imagenParaRestaurante(restaurant.cocina, restaurant.id),
+    [restaurant.cocina, restaurant.id],
+  );
+  useEffect(() => setUri(restaurant.imagen || fallback), [restaurant.imagen, fallback]);
+
   const media = restaurant.media;
-  const mockResenas = (restaurant.resenas ?? []).map((r, i) => ({ ...r, id: `mock-${i}`, likes: (r.likes ?? semillaLikes(restaurant.id, i)), likedBy: [], esMock: true, puntuacion: r.puntuacion }));
+  const mockResenas = (restaurant.resenas ?? []).map((r, i) => ({
+    ...r,
+    id: `mock-${i}`,
+    likes: r.likes ?? semillaLikes(restaurant.id, i),
+    likedBy: [],
+    esMock: true,
+    puntuacion: r.puntuacion,
+  }));
   const resenasMira = ordenarResenas(resenasFs, ordenResenas);
   const resenasYelp = ordenarResenas(mockResenas, ordenResenas);
   const visiblesMira = verTodas ? resenasMira : resenasMira.slice(0, MOSTRAR_INICIAL);
   const visiblesYelp = verTodasYelp ? resenasYelp : resenasYelp.slice(0, MOSTRAR_INICIAL);
 
-  function ItemResena({ r }) {
-    const liked = (r.likedBy || []).includes(usuario?.uid);
-    return (
-      <li>
-        <p className="resena-cab">
-          <strong>{r.usuarioNombre || r.usuario}</strong> · {(r.fecha || (r.createdAt ? new Date(r.createdAt).toLocaleDateString(t('modelos.locale')) : ''))} · <span aria-label={`${r.puntuacion} de 5`}>★ {r.puntuacion}</span>
-          <span style={{ float: 'right', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-            <button type="button" onClick={() => handleLike(r)} disabled={r.esMock} title={r.esMock ? t('detail.soloLikeMira') : liked ? t('detail.quitarLike') : t('detail.darLike')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: liked ? 'var(--primary-container)' : 'var(--papel)', color: liked ? '#fff' : 'var(--tinta)', border: '1px solid var(--borde)', borderRadius: '999px', padding: '0.15rem 0.5rem', cursor: r.esMock ? 'not-allowed' : 'pointer', fontSize: '0.78rem', fontWeight: 700, opacity: r.esMock ? 0.5 : 1 }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
-              {r.likes || 0}
-            </button>
-          </span>
-        </p>
-        <p className="resena-texto">{r.comentario}</p>
-      </li>
-    );
-  }
   const externalMapUrl = googleLink(restaurant.coords, restaurant.direccion);
 
   useEffect(() => {
@@ -108,9 +151,15 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     setDisponibilidad(null);
     if (!reserva.fecha || !reserva.hora) return undefined;
     getDisponibilidad(restaurant, reserva.fecha, reserva.hora)
-      .then((d) => { if (vivo) setDisponibilidad(d); })
-      .catch(() => { if (vivo) setDisponibilidad(null); });
-    return () => { vivo = false; };
+      .then((d) => {
+        if (vivo) setDisponibilidad(d);
+      })
+      .catch(() => {
+        if (vivo) setDisponibilidad(null);
+      });
+    return () => {
+      vivo = false;
+    };
   }, [restaurant, reserva.fecha, reserva.hora]);
 
   useEffect(() => {
@@ -119,22 +168,31 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     if (restaurant.terraza !== true) return undefined;
     if (!reserva.fecha || !coordsValidas(restaurant.coords)) return undefined;
     pronosticoDia(Number(restaurant.coords.lat), Number(restaurant.coords.lng), reserva.fecha)
-      .then((p) => { if (vivo) setMeteoReserva(p); })
+      .then((p) => {
+        if (vivo) setMeteoReserva(p);
+      })
       .catch(() => {});
-    return () => { vivo = false; };
+    return () => {
+      vivo = false;
+    };
   }, [restaurant, reserva.fecha]);
 
   const avisoTerraza = alertaTerraza(restaurant.terraza, meteoReserva);
 
-  function cerrarDesdeFondo(e) { if (e.target === e.currentTarget) onClose(); }
-
   useEffect(() => {
     let vivo = true;
     setCargandoResenas(true);
-    listarResenasDeRestaurante(restaurant.id).then(list => {
-      if (vivo) { setResenasFs(list); setCargandoResenas(false); }
-    }).catch(() => vivo && setCargandoResenas(false));
-    return () => { vivo = false; };
+    listarResenasDeRestaurante(restaurant.id)
+      .then((list) => {
+        if (vivo) {
+          setResenasFs(list);
+          setCargandoResenas(false);
+        }
+      })
+      .catch(() => vivo && setCargandoResenas(false));
+    return () => {
+      vivo = false;
+    };
   }, [restaurant.id]);
 
   useEffect(() => {
@@ -144,9 +202,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
 
   useEffect(() => {
     if (!usuario?.uid) return;
-    import('../services/api.js').then(({ interactionsApi }) => {
-      interactionsApi.track(restaurant.id, 'view').catch(() => {});
-    });
+    interactionsApi.track(restaurant.id, 'view').catch(() => {});
   }, [restaurant.id, usuario?.uid]);
 
   useEffect(() => {
@@ -159,253 +215,960 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     }
     setCargandoParkings(true);
     fetchNearbyParkings(Number(coords.lat), Number(coords.lng))
-      .then((list) => { if (vivo) setParkings(list); })
-      .finally(() => { if (vivo) setCargandoParkings(false); });
-    return () => { vivo = false; };
+      .then((list) => {
+        if (vivo) setParkings(list);
+      })
+      .finally(() => {
+        if (vivo) setCargandoParkings(false);
+      });
+    return () => {
+      vivo = false;
+    };
   }, [restaurant.coords]);
 
-  async function handleReserva(e) {
-    e.preventDefault();
-    setErrorReserva(''); setConfirmacion(null);
-    if (!usuario?.uid) { window.location.hash = '#/login'; return; }
-    if (!reserva.fecha || !reserva.hora || !reserva.comensales) { setErrorReserva(t('detail.eligeFechaHora')); return; }
+  async function handleReserva() {
+    setErrorReserva('');
+    setConfirmacion(null);
+    if (!usuario?.uid) {
+      router.push('/login');
+      return;
+    }
+    const fechaOk = /^\d{4}-\d{2}-\d{2}$/.test(reserva.fecha);
+    if (!fechaOk || !reserva.hora || !reserva.comensales) {
+      setErrorReserva(t('detail.eligeFechaHora'));
+      return;
+    }
     const hoy = parseFechaLocal(hoyLocalISO());
-    if (parseFechaLocal(reserva.fecha) < hoy) { setErrorReserva(t('detail.fechaNoAnterior')); return; }
+    if (parseFechaLocal(reserva.fecha) < hoy) {
+      setErrorReserva(t('detail.fechaNoAnterior'));
+      return;
+    }
     setCargandoReserva(true);
     try {
-      const r = await crearReserva({ restaurante: restaurant, usuario, fecha: reserva.fecha, hora: reserva.hora, comensales: reserva.comensales, comentarios: reserva.comentarios });
+      const r = await crearReserva({
+        restaurante: restaurant,
+        usuario,
+        fecha: reserva.fecha,
+        hora: reserva.hora,
+        comensales: reserva.comensales,
+        comentarios: reserva.comentarios,
+      });
       setConfirmacion(r);
       const d = await getDisponibilidad(restaurant, reserva.fecha, reserva.hora);
       setDisponibilidad(d);
-    } catch (err) { setErrorReserva(err.message); }
-    finally { setCargandoReserva(false); }
-  }
-
-  async function handleCrearResena(e) {
-    e.preventDefault();
-    setErrorResena('');
-    if (!usuario?.uid) { setErrorResena(t('detail.debesLoginResena')); return; }
-    setEnviandoResena(true);
-    try {
-      await crearResena({ restauranteId: restaurant.id, usuario, puntuacion: nuevaResena.puntuacion, comentario: nuevaResena.comentario });
-      setNuevaResena({ puntuacion: 5, comentario: '' });
-      const list = await listarResenasDeRestaurante(restaurant.id);
-      setResenasFs(list);
-    } catch (err) { setErrorResena(err.message); }
-    finally { setEnviandoResena(false); }
-  }
-
-  async function handleLike(r) {
-    if (!usuario?.uid) { setErrorResena(t('detail.iniciaParaLike')); return; }
-    const ya = (r.likedBy || []).includes(usuario.uid);
-    setResenasFs(prev => prev.map(x => x.id === r.id ? { ...x, likes: (x.likes || 0) + (ya ? -1 : 1), likedBy: ya ? x.likedBy.filter(id => id !== usuario.uid) : [...(x.likedBy || []), usuario.uid] } : x));
-    try {
-      if (ya) await quitarLikeResena(r.id, usuario.uid);
-      else await darLikeResena(r.id, usuario.uid);
-    } catch {
-      setResenasFs(prev => prev.map(x => x.id === r.id ? { ...x, likes: (x.likes || 0) + (ya ? 1 : -1), likedBy: ya ? [...(x.likedBy || []), usuario.uid] : x.likedBy.filter(id => id !== usuario.uid) } : x));
+    } catch (err) {
+      setErrorReserva(err.message);
+    } finally {
+      setCargandoReserva(false);
     }
   }
 
+  async function handleCrearResena() {
+    setErrorResena('');
+    if (!usuario?.uid) {
+      setErrorResena(t('detail.debesLoginResena'));
+      return;
+    }
+    setEnviandoResena(true);
+    try {
+      await crearResena({
+        restauranteId: restaurant.id,
+        puntuacion: nuevaResena.puntuacion,
+        comentario: nuevaResena.comentario,
+      });
+      setNuevaResena({ puntuacion: 5, comentario: '' });
+      const list = await listarResenasDeRestaurante(restaurant.id);
+      setResenasFs(list);
+    } catch (err) {
+      setErrorResena(err.message);
+    } finally {
+      setEnviandoResena(false);
+    }
+  }
+
+  async function handleLike(r) {
+    if (!usuario?.uid) {
+      setErrorResena(t('detail.iniciaParaLike'));
+      return;
+    }
+    const ya = (r.likedBy || []).includes(usuario.uid);
+    setResenasFs((prev) =>
+      prev.map((x) =>
+        x.id === r.id
+          ? {
+              ...x,
+              likes: (x.likes || 0) + (ya ? -1 : 1),
+              likedBy: ya
+                ? x.likedBy.filter((id) => id !== usuario.uid)
+                : [...(x.likedBy || []), usuario.uid],
+            }
+          : x,
+      ),
+    );
+    try {
+      if (ya) await quitarLikeResena(r.id);
+      else await darLikeResena(r.id);
+    } catch {
+      setResenasFs((prev) =>
+        prev.map((x) =>
+          x.id === r.id
+            ? {
+                ...x,
+                likes: (x.likes || 0) + (ya ? 1 : -1),
+                likedBy: ya
+                  ? [...(x.likedBy || []), usuario.uid]
+                  : x.likedBy.filter((id) => id !== usuario.uid),
+              }
+            : x,
+        ),
+      );
+    }
+  }
+
+  function Dato({ etiqueta, valor, children }) {
+    if (apilado) {
+      return (
+        <View style={styles.datoApilado}>
+          <Text style={[styles.datoDt, { color: colores.gris }]}>{etiqueta}</Text>
+          <Text style={[styles.datoDd, { color: colores.tinta }]}>{children || valor}</Text>
+        </View>
+      );
+    }
+    return (
+      <View style={styles.dato}>
+        <Text style={[styles.datoDt, { color: colores.gris }]}>{etiqueta}</Text>
+        <Text style={[styles.datoDd, { color: colores.tinta }]}>{children || valor}</Text>
+      </View>
+    );
+  }
+
+  function ItemResena({ r }) {
+    const liked = (r.likedBy || []).includes(usuario?.uid);
+    return (
+      <View style={[styles.resenaItem, { borderTopColor: colores.glassBorder }]}>
+        <View style={styles.resenaCabFila}>
+          <Text style={[styles.resenaCab, { color: colores.tinta }]}>
+            {r.usuarioNombre || r.usuario} ·{' '}
+            {r.fecha || (r.createdAt ? new Date(r.createdAt).toLocaleDateString(t('modelos.locale')) : '')} ·{' '}
+            <Text accessibilityLabel={`${r.puntuacion} de 5`}>★ {r.puntuacion}</Text>
+          </Text>
+          <Pressable
+            onPress={() => handleLike(r)}
+            disabled={r.esMock}
+            accessibilityRole="button"
+            accessibilityLabel={r.esMock ? t('detail.soloLikeMira') : liked ? t('detail.quitarLike') : t('detail.darLike')}
+            style={({ pressed }) => [
+              styles.likeBtn,
+              {
+                backgroundColor: liked ? colores.primaryContainer : colores.papel,
+                borderColor: colores.borde,
+                opacity: r.esMock ? 0.5 : pressed ? 0.8 : 1,
+              },
+            ]}
+          >
+            <Text style={{ fontSize: 11.5, color: liked ? '#fff' : colores.tinta }}>♥</Text>
+            <Text
+              style={[
+                styles.likeTxt,
+                { color: liked ? '#fff' : colores.tinta },
+              ]}
+            >
+              {r.likes || 0}
+            </Text>
+          </Pressable>
+        </View>
+        <Text style={[styles.resenaTexto, { color: colores.tinta }]}>{r.comentario}</Text>
+      </View>
+    );
+  }
+
+  const carta = cartaDelLocal(restaurant);
+
   return (
-    <div className="modal-fondo" onClick={cerrarDesdeFondo}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="detalle-titulo" style={{ '--acento': restaurant.acento }}>
-        <button type="button" className="modal-cerrar" onClick={onClose} aria-label={t('otros.cerrar')} autoFocus>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-        </button>
-        <img
-          className="modal-foto"
-          src={restaurant.imagen}
-          alt={`${restaurant.nombre} — cocina ${restaurant.cocina}`}
-          onError={(e) => {
-            const el = e.currentTarget;
-            if (el.dataset.fallback === '1') return;
-            el.dataset.fallback = '1';
-            el.src = imagenParaRestaurante(restaurant.cocina, restaurant.id);
-          }}
-        />
-        <div className="modal-cuerpo">
-          <p className="card-meta" style={{ color: 'var(--gris)', fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.3rem' }}>{restaurant.cocina}</p>
-          <h2 id="detalle-titulo" className="modal-titulo">{restaurant.nombre}</h2>
+    <View style={[styles.raiz, { backgroundColor: colores.papel }]}>
+      <View style={[styles.barraDorada, { backgroundColor: colores.dorado }]} />
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <View style={styles.fotoWrap}>
+          <Image
+            source={{ uri }}
+            style={styles.foto}
+            resizeMode="cover"
+            accessibilityLabel={`${restaurant.nombre} — cocina ${restaurant.cocina}`}
+            onError={() => {
+              if (uri !== fallback) setUri(fallback);
+            }}
+          />
+          <Pressable
+            onPress={onClose}
+            accessibilityRole="button"
+            accessibilityLabel={t('otros.cerrar')}
+            style={({ pressed }) => [styles.cerrar, { backgroundColor: colores.primaryContainer, opacity: pressed ? 0.85 : 1 }]}
+          >
+            <Text style={styles.cerrarTxt}>✕</Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.cuerpo}>
+          <Text
+            style={{
+              color: colores.gris,
+              fontSize: 13.12,
+              fontWeight: '700',
+              textTransform: 'uppercase',
+              letterSpacing: 0.96,
+              marginBottom: 4.8,
+              fontFamily: FUENTES.textoBold,
+            }}
+          >
+            {restaurant.cocina}
+          </Text>
+          <Text style={[TITULO_DISPLAY, styles.titulo, { color: colores.tinta, fontSize: apilado ? 22.4 : 28.8 }]}>
+            {restaurant.nombre}
+          </Text>
+
           {(restaurant.categorias?.length > 1) && (
-            <ul className="modal-chips" aria-label={t('detail.especialidades')}>
-              {restaurant.categorias.map((c) => (<li key={c}>{c}</li>))}
-            </ul>
-          )}
-          <dl className="modal-datos">
-            <div><dt>{t('detail.notaYelp')}</dt><dd>★ {restaurant.valoracion.toLocaleString(t('modelos.locale'))} ({restaurant.totalResenasYelp ?? 0} {t('card.resenas')})</dd></div>
-            {media != null && (<div><dt>{t('detail.notaMira')}</dt><dd>★ {media.toLocaleString(t('modelos.locale'))}</dd></div>)}
-            <div><dt>{t('detail.precio')}</dt><dd>{restaurant.precio}</dd></div>
-            {restaurant.direccion && (<div><dt>{t('detail.direccion')}</dt><dd>{restaurant.direccion}</dd></div>)}
-            {restaurant.telefono && (<div><dt>{t('detail.telefono')}</dt><dd><a href={`tel:${restaurant.telefono.replace(/\s/g, '')}`}>{restaurant.telefono}</a></dd></div>)}
-            <div><dt>{t('detail.accesoAdaptado')}</dt><dd>{marcaInfo(restaurant.accesoDiscapacidad, t)}</dd></div>
-            <div><dt>{t('detail.menuInfantil')}</dt><dd>{marcaInfo(restaurant.menuInfantil, t)}</dd></div>
-            <div><dt>{t('detail.tronas')}</dt><dd>{marcaInfo(restaurant.tronas, t)}</dd></div>
-            <div><dt>{t('detail.terraza')}</dt><dd>{marcaInfo(restaurant.terraza, t)}</dd></div>
-            <div><dt>{t('detail.entornoTranquilo')}</dt><dd>{marcaInfo(restaurant.entornoTranquilo, t)}</dd></div>
-            <div><dt>{t('detail.alergenos')}</dt><dd>{restaurant.alergenos || t('detail.sinInfoAlrgenos')}</dd></div>
-          </dl>
-          <p className="modal-acciones">
-            {onVerCarta && (
-              <button type="button" className="btn-cta btn-peq" onClick={() => onVerCarta(restaurant)}>
-                {t('detail.verCarta')}
-              </button>
-            )}
-            {externalMapUrl && (<a className="btn-secundario" href={externalMapUrl} target="_blank" rel="noreferrer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ verticalAlign: '-2px', marginRight: 6 }}><path d="M12 21s7-6.5 7-11a7 7 0 10-14 0c0 4.5 7 11 7 11z" /><circle cx="12" cy="10" r="3" /></svg>{t('detail.comoLlegar')}</a>)}
-            {restaurant.yelpUrl && (<a className="btn-secundario" href={restaurant.yelpUrl} target="_blank" rel="noreferrer">{t('detail.verEnYelp')}</a>)}
-          </p>
-
-          <section aria-labelledby="carta-titulo">
-            <h3 id="carta-titulo" className="modal-sub">{t('detail.laCarta')}</h3>
-            <MiniLeyenda />
-            <ul className="carta-lista">
-              {cartaDelLocal(restaurant).map((p) => (
-                <li key={p.nombre}>
-                  <span>{p.nombre} <Sellos plato={{ ...p, ...flagsPlato(p.nombre) }} /></span>
-                  <span className="carta-precio">{p.precio} €</span>
-                </li>
+            <View style={styles.chips} accessibilityLabel={t('detail.especialidades')}>
+              {restaurant.categorias.map((c) => (
+                <View key={c} style={[styles.chip, { backgroundColor: colores.verdeSuave }]}>
+                  <Text style={[styles.chipTxt, { color: colores.primaryContainer }]}>{c}</Text>
+                </View>
               ))}
-            </ul>
+            </View>
+          )}
+
+          <View style={styles.datos}>
+            <Dato etiqueta={t('detail.notaYelp')}>
+              ★ {restaurant.valoracion.toLocaleString(t('modelos.locale'))} ({restaurant.totalResenasYelp ?? 0}{' '}
+              {t('card.resenas')})
+            </Dato>
+            {media != null && <Dato etiqueta={t('detail.notaMira')}>★ {media.toLocaleString(t('modelos.locale'))}</Dato>}
+            <Dato etiqueta={t('detail.precio')} valor={restaurant.precio} />
+            {restaurant.direccion && <Dato etiqueta={t('detail.direccion')} valor={restaurant.direccion} />}
+            {restaurant.telefono && (
+              <Dato etiqueta={t('detail.telefono')}>
+                <Text
+                  onPress={() => Linking.openURL(`tel:${restaurant.telefono.replace(/\s/g, '')}`)}
+                  style={{ textDecorationLine: 'underline', color: colores.tinta }}
+                >
+                  {restaurant.telefono}
+                </Text>
+              </Dato>
+            )}
+            <Dato etiqueta={t('detail.accesoAdaptado')}>{marcaInfo(restaurant.accesoDiscapacidad, t)}</Dato>
+            <Dato etiqueta={t('detail.menuInfantil')}>{marcaInfo(restaurant.menuInfantil, t)}</Dato>
+            <Dato etiqueta={t('detail.tronas')}>{marcaInfo(restaurant.tronas, t)}</Dato>
+            <Dato etiqueta={t('detail.terraza')}>{marcaInfo(restaurant.terraza, t)}</Dato>
+            <Dato etiqueta={t('detail.entornoTranquilo')}>{marcaInfo(restaurant.entornoTranquilo, t)}</Dato>
+            <Dato etiqueta={t('detail.alergenos')}>
+              {restaurant.alergenos || t('detail.sinInfoAlrgenos')}
+            </Dato>
+          </View>
+
+          <View style={styles.acciones}>
             {onVerCarta && (
-              <button type="button" className="btn-secundario" onClick={() => onVerCarta(restaurant)}>
-                {t('detail.verCartaCompleta')}
-              </button>
+              <Pressable
+                onPress={() => onVerCarta(restaurant)}
+                style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+              >
+                <Text style={btnCta(colores, { peq: true })}>{t('detail.verCarta')}</Text>
+              </Pressable>
             )}
-          </section>
+            {externalMapUrl && (
+              <Pressable
+                onPress={() => Linking.openURL(externalMapUrl)}
+                style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+              >
+                <Text style={[btnSecundario(colores), styles.btnSinMargen]}>📍 {t('detail.comoLlegar')}</Text>
+              </Pressable>
+            )}
+            {restaurant.yelpUrl && (
+              <Pressable
+                onPress={() => Linking.openURL(restaurant.yelpUrl)}
+                style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+              >
+                <Text style={[btnSecundario(colores), styles.btnSinMargen]}>{t('detail.verEnYelp')}</Text>
+              </Pressable>
+            )}
+          </View>
 
-          <section className="reserva-bloque" aria-labelledby="reserva-titulo">
-            <h3 id="reserva-titulo" className="modal-sub" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" /></svg>
-              {t('detail.reservarMesa')}
-            </h3>
-            <div className="detail-points-preview">
-              <img src="/moneda-mira.png" alt="" className="detail-points-preview__coin" />
-              +100 pts por reserva
-              <span className="detail-points-preview__racha">x1.2 si mantienes racha</span>
-            </div>
+          {/* La carta */}
+          <Text style={[styles.sub, { color: colores.tinta }]}>{t('detail.laCarta')}</Text>
+          <MiniLeyenda />
+          <View style={styles.cartaLista}>
+            {carta.map((p) => (
+              <View key={p.nombre} style={[styles.cartaFila, { borderBottomColor: colores.borde }]}>
+                <View style={styles.cartaNombreFila}>
+                  <Text style={[styles.cartaNombre, { color: colores.tinta }]}>{p.nombre}</Text>
+                  <Sellos plato={{ ...p, ...flagsPlato(p.nombre) }} />
+                </View>
+                <Text style={[styles.cartaPrecio, { color: colores.tinta }]}>{p.precio} €</Text>
+              </View>
+            ))}
+          </View>
+          {onVerCarta && (
+            <Pressable
+              onPress={() => onVerCarta(restaurant)}
+              style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
+            >
+              <Text style={btnSecundario(colores)}>{t('detail.verCartaCompleta')}</Text>
+            </Pressable>
+          )}
+
+          {/* Reserva */}
+          <View style={[styles.reservaBloque, { backgroundColor: colores.fondoSuave, borderColor: colores.glassBorder }]}>
+            <View style={styles.subFila}>
+              <Text style={[styles.sub, { color: colores.tinta, marginTop: 0, marginBottom: 0 }]}>
+                📅 {t('detail.reservarMesa')}
+              </Text>
+            </View>
+
+            <View style={[styles.puntosPill, { backgroundColor: colores.primaryContainer }]}>
+              <Image source={require('../../assets/images/moneda-mira.png')} style={styles.puntosCoin} />
+              <Text style={styles.puntosTxt}>+100 pts por reserva</Text>
+              <View style={styles.puntosRacha}>
+                <Text style={styles.puntosRachaTxt}>x1.2 si mantienes racha</Text>
+              </View>
+            </View>
+
             {descuentoPendiente?.euros > 0 && (
-              <p className="reserva-aviso-descuento" role="status">
-                {t('detail.descuentoPendiente', { euros: descuentoPendiente.euros })}
-              </p>
+              <View
+                style={[
+                  styles.avisoDescuento,
+                  { backgroundColor: colores.verdeSuave, borderColor: colores.verde },
+                ]}
+                accessibilityRole="status"
+              >
+                <Text style={{ fontSize: 14.08, color: colores.tinta, fontFamily: FUENTES.texto }}>
+                  {t('detail.descuentoPendiente', { euros: descuentoPendiente.euros })}
+                </Text>
+              </View>
             )}
-            <form className="reserva-form" onSubmit={handleReserva} noValidate>
-              <div className="reserva-grid">
-                <label className="campo"><span>{t('detail.fecha')}</span><input type="date" value={reserva.fecha} onChange={e => setReserva(s => ({ ...s, fecha: e.target.value }))} min={hoyLocalISO()} /></label>
-                <label className="campo"><span>{t('detail.hora')}</span>
-                  <select value={reserva.hora} onChange={e => setReserva(s => ({ ...s, hora: e.target.value }))}>
-                    <option value="">{t('detail.eligeHora')}</option>
-                    {SLOTS.map(h => <option key={h} value={h}>{h}</option>)}
-                  </select>
-                </label>
-                <label className="campo"><span>{t('detail.comensales')}</span><select value={reserva.comensales} onChange={e => setReserva(s => ({ ...s, comensales: e.target.value }))}>{[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => <option key={n} value={n}>{n} {n === 1 ? t('modelos.persona') : t('modelos.personas')}</option>)}</select></label>
-              </div>
-              <label className="campo" style={{ marginTop: '0.6rem' }}><span>{t('detail.comentarios')}</span><textarea value={reserva.comentarios} onChange={e => setReserva(s => ({ ...s, comentarios: e.target.value }))} maxLength={500} rows={2} placeholder={t('detail.placeholderComentarios')} /></label>
-              {reserva.fecha && reserva.hora && disponibilidad && (
-                <p className="reserva-plazas" role="status">
-                  {disponibilidad.libres > 0
-                    ? t('detail.plazasLibres', { libres: disponibilidad.libres, limite: disponibilidad.limite })
-                    : t('detail.completo')}
-                </p>
-              )}
-              {avisoTerraza && (
-                <p className="reserva-aviso-meteo" role="status">
+
+            <View style={styles.reservaGrid}>
+              <View style={[styles.campo, apilado ? { width: '100%' } : { flex: 1, minWidth: 150 }]}>
+                <CampoEtiqueta>{t('detail.fecha')}</CampoEtiqueta>
+                <TextInput
+                  value={reserva.fecha}
+                  onChangeText={(v) => setReserva((s) => ({ ...s, fecha: v }))}
+                  placeholder="YYYY-MM-DD"
+                  placeholderTextColor={colores.gris}
+                  maxLength={10}
+                  autoCapitalize="none"
+                  style={[
+                    styles.input,
+                    { backgroundColor: colores.fondo, borderColor: colores.borde, color: colores.tinta },
+                  ]}
+                />
+              </View>
+              <View style={[styles.campo, apilado ? { width: '100%' } : { flex: 1, minWidth: 150 }]}>
+                <SelectCampo
+                  label={t('detail.hora')}
+                  value={reserva.hora}
+                  placeholder={t('detail.eligeHora')}
+                  opciones={SLOTS}
+                  onChange={(v) => setReserva((s) => ({ ...s, hora: v }))}
+                />
+              </View>
+              <View style={[styles.campo, apilado ? { width: '100%' } : { flex: 1, minWidth: 150 }]}>
+                <SelectCampo
+                  label={t('detail.comensales')}
+                  value={reserva.comensales}
+                  opciones={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => ({
+                    valor: String(n),
+                    etiqueta: `${n} ${n === 1 ? t('modelos.persona') : t('modelos.personas')}`,
+                  }))}
+                  onChange={(v) => setReserva((s) => ({ ...s, comensales: v }))}
+                />
+              </View>
+            </View>
+
+            <View style={[styles.campo, { marginTop: 9.6 }]}>
+              <CampoEtiqueta>{t('detail.comentarios')}</CampoEtiqueta>
+              <TextInput
+                value={reserva.comentarios}
+                onChangeText={(v) => setReserva((s) => ({ ...s, comentarios: v }))}
+                maxLength={500}
+                multiline
+                placeholder={t('detail.placeholderComentarios')}
+                placeholderTextColor={colores.gris}
+                style={[
+                  styles.textarea,
+                  { backgroundColor: colores.fondo, borderColor: colores.borde, color: colores.tinta },
+                ]}
+              />
+            </View>
+
+            {reserva.fecha && reserva.hora && disponibilidad && (
+              <Text style={[styles.plazas, { color: colores.primaryContainer }]} accessibilityRole="status">
+                {disponibilidad.libres > 0
+                  ? t('detail.plazasLibres', { libres: disponibilidad.libres, limite: disponibilidad.limite })
+                  : t('detail.completo')}
+              </Text>
+            )}
+
+            {avisoTerraza && (
+              <View style={styles.avisoMeteo} accessibilityRole="status">
+                <Text style={styles.avisoMeteoTxt}>
                   {avisoTerraza}
-                  {meteoReserva && ` (${meteoReserva.resumen})`}
-                </p>
-              )}
-              {errorReserva && <p className="reserva-error" role="alert">{errorReserva}</p>}
-              <button type="submit" className="btn-cta" style={{ width: '100%', marginTop: '0.7rem' }} disabled={cargandoReserva || (disponibilidad && disponibilidad.libres <= 0)}>
-                {cargandoReserva ? t('detail.reservando') : t('detail.reservar')}
-              </button>
-              {!usuario && <p style={{ fontSize: '0.82rem', color: 'var(--gris)', margin: '0.5rem 0 0' }}>{t('otros.debes')} <a href="#/login">{t('otros.iniciarSesion')}</a> {t('detail.reservar')}.</p>}
-            </form>
-            {confirmacion && (
-              <div className="reserva-confirm" role="status">
-                <strong>{t('detail.reservaConfirmada')}</strong>
-                <p>{t('detail.codigo')}: <code>{confirmacion.codigo}</code> — {confirmacion.fecha} a las {confirmacion.hora} para {confirmacion.comensales} {t('modelos.personas')} en <em>{confirmacion.restauranteNombre}</em>.</p>
-                <p><a href="#/reservas">{t('detail.verMisReservas')}</a></p>
-              </div>
+                  {meteoReserva ? ` (${meteoReserva.resumen})` : ''}
+                </Text>
+              </View>
             )}
-          </section>
 
+            {errorReserva ? (
+              <View style={[styles.errorReserva, { borderColor: colores.rojo }]} accessibilityRole="alert">
+                <Text style={styles.errorReservaTxt}>{errorReserva}</Text>
+              </View>
+            ) : null}
+
+            <Pressable
+              onPress={handleReserva}
+              disabled={cargandoReserva || (disponibilidad && disponibilidad.libres <= 0)}
+              style={({ pressed }) => [
+                {
+                  marginTop: 11.2,
+                  opacity: cargandoReserva || (disponibilidad && disponibilidad.libres <= 0) ? 0.45 : pressed ? 0.85 : 1,
+                },
+              ]}
+            >
+              <Text style={btnCta(colores)}>
+                {cargandoReserva ? t('detail.reservando') : t('detail.reservar')}
+              </Text>
+            </Pressable>
+
+            {!usuario && (
+              <Text style={[styles.sinSesion, { color: colores.gris }]}>
+                {t('otros.debes')}{' '}
+                <Text
+                  onPress={() => router.push('/login')}
+                  style={{ color: colores.primaryContainer, textDecorationLine: 'underline' }}
+                >
+                  {t('otros.iniciarSesion')}
+                </Text>{' '}
+                {t('detail.reservar')}.
+              </Text>
+            )}
+
+            {confirmacion && (
+              <View style={[styles.confirm, { backgroundColor: colores.verdeSuave, borderColor: colores.primaryContainer }]}>
+                <Text style={[styles.confirmTitulo, { color: colores.tinta }]}>{t('detail.reservaConfirmada')}</Text>
+                <Text style={[styles.confirmTxt, { color: colores.tinta }]}>
+                  {t('detail.codigo')}: <Text style={[styles.code, { backgroundColor: colores.fondo, borderColor: colores.borde, color: colores.tinta }]}>{confirmacion.codigo}</Text> — {confirmacion.fecha} a las{' '}
+                  {confirmacion.hora} para {confirmacion.comensales} {t('modelos.personas')} en{' '}
+                  <Text style={{ fontStyle: 'italic' }}>{confirmacion.restauranteNombre}</Text>.
+                </Text>
+                <Text
+                  onPress={() => router.push('/reservas')}
+                  style={{ color: colores.primaryContainer, textDecorationLine: 'underline', marginTop: 6.4 }}
+                >
+                  {t('detail.verMisReservas')}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Mapa + parkings */}
           {coordsValidas(restaurant.coords) ? (
-            <section className="parking-section" aria-label={`${t('otros.mapaPorZonas')} — ${restaurant.nombre}`}>
-              <div className="parking-grid">
-                <RestaurantMap
-                  restaurant={restaurant}
-                  parkings={parkings}
-                  selectedIndex={parkingSeleccionado}
-                />
-                <ParkingsPanel
-                  parkings={parkings}
-                  cargando={cargandoParkings}
-                  onSeleccionarParking={(i) => setParkingSeleccionado(i)}
-                />
-              </div>
-              <p className="mapa-mini-pie">{restaurant.direccion || restaurant.ciudad}</p>
-            </section>
-          ) : (<p className="modal-mapa-vacio">{t('detail.esteLocalSinCoord')}</p>)}
+            <View style={[styles.parkingSection, { marginTop: 19.2 }]}>
+              <View style={[styles.parkingGrid, mapaEnFila && styles.parkingGridFila]}>
+                <View style={mapaEnFila ? { flex: 1 } : { width: '100%' }}>
+                  <RestaurantMap
+                    restaurant={restaurant}
+                    parkings={parkings}
+                    selectedIndex={parkingSeleccionado}
+                  />
+                </View>
+                <View style={mapaEnFila ? { width: 320 } : { width: '100%' }}>
+                  <ParkingsPanel
+                    parkings={parkings}
+                    cargando={cargandoParkings}
+                    onSeleccionarParking={(i) => setParkingSeleccionado(i)}
+                  />
+                </View>
+              </View>
+              <Text style={[styles.mapaPie, { color: colores.gris }]}>
+                {restaurant.direccion || restaurant.ciudad}
+              </Text>
+            </View>
+          ) : (
+            <Text style={[styles.mapaVacio, { color: colores.gris }]}>{t('detail.esteLocalSinCoord')}</Text>
+          )}
 
-          <section aria-labelledby="resenas-titulo">
-            <h3 id="resenas-titulo" className="modal-sub">{t('detail.resenas', { count: resenasMira.length + resenasYelp.length })}</h3>
-            <div className="tabs" role="group" aria-label={t('detail.resenas', { count: resenasMira.length + resenasYelp.length })} style={{ marginBottom: '1rem' }}>
-              {[
-                ['populares', t('detail.populares')],
-                ['recientes', t('detail.masRecientes')],
-              ].map(([valor, etiqueta]) => (
-                <button
-                  key={valor}
-                  type="button"
-                  aria-pressed={ordenResenas === valor}
-                  className={ordenResenas === valor ? 'btn-cta btn-peq' : 'btn-secundario btn-peq'}
-                  onClick={() => setOrdenResenas(valor)}
+          {/* Reseñas */}
+          <Text style={[styles.sub, { color: colores.tinta }]}>
+            {t('detail.resenas', { count: resenasMira.length + resenasYelp.length })}
+          </Text>
+          <View style={styles.tabs}>
+            {[
+              ['populares', t('detail.populares')],
+              ['recientes', t('detail.masRecientes')],
+            ].map(([valor, etiqueta]) => (
+              <Pressable
+                key={valor}
+                onPress={() => setOrdenResenas(valor)}
+                accessibilityRole="button"
+                accessibilityState={{ selected: ordenResenas === valor }}
+                style={({ pressed }) => [{ opacity: pressed ? 0.85 : 1 }]}
+              >
+                <Text
+                  style={
+                    ordenResenas === valor
+                      ? btnCta(colores, { peq: true })
+                      : [btnSecundario(colores, { peq: true }), { marginTop: 0 }]
+                  }
                 >
                   {etiqueta}
-                </button>
-              ))}
-            </div>
+                </Text>
+              </Pressable>
+            ))}
+          </View>
 
-            <h4 className="modal-sub2">{t('detail.resenasMira', { count: resenasMira.length })}</h4>
-            <form onSubmit={handleCrearResena} className="resena-form" style={{ background: 'var(--fondo-suave)', border: '1px solid var(--glass-border)', borderRadius: 'var(--radio-peq)', padding: '0.9rem', marginBottom: '1rem' }}>
-              <StarPicker value={nuevaResena.puntuacion} onChange={v => setNuevaResena(s => ({ ...s, puntuacion: v }))} />
-              <label className="campo" style={{ marginTop: '0.5rem' }}><span>{t('detail.tuComentario')}</span><textarea value={nuevaResena.comentario} onChange={e => setNuevaResena(s => ({ ...s, comentario: e.target.value }))} placeholder={t('detail.cuentaExperiencia')} rows={3} /></label>
-              {errorResena && <p className="reserva-error">{errorResena}</p>}
-              <button type="submit" className="btn-secundario" disabled={enviandoResena} style={{ marginTop: '0.5rem', width: '100%' }}>{enviandoResena ? t('detail.enviando') : t('detail.publicarResena')}</button>
-              {!usuario && <p style={{ fontSize: '0.82rem', color: 'var(--gris)', margin: '0.4rem 0 0' }}>{t('detail.debesLoginResena')}</p>}
-            </form>
-
-            {cargandoResenas && <p>{t('detail.cargandoResenas')}</p>}
-            {!cargandoResenas && resenasMira.length === 0 && (
-              <p className="vacio-texto">{t('detail.resenasMiraVacias')}</p>
+          <Text style={[styles.sub2, { color: colores.tinta }]}>
+            {t('detail.resenasMira', { count: resenasMira.length })}
+          </Text>
+          <View style={[styles.resenaForm, { backgroundColor: colores.fondoSuave, borderColor: colores.glassBorder }]}>
+            <StarPicker
+              value={nuevaResena.puntuacion}
+              onChange={(v) => setNuevaResena((s) => ({ ...s, puntuacion: v }))}
+              etiqueta={t('detail.puntuacion')}
+            />
+            <View style={[styles.campo, { marginTop: 8 }]}>
+              <CampoEtiqueta>{t('detail.tuComentario')}</CampoEtiqueta>
+              <TextInput
+                value={nuevaResena.comentario}
+                onChangeText={(v) => setNuevaResena((s) => ({ ...s, comentario: v }))}
+                placeholder={t('detail.cuentaExperiencia')}
+                placeholderTextColor={colores.gris}
+                multiline
+                style={[
+                  styles.textarea,
+                  { backgroundColor: colores.fondo, borderColor: colores.borde, color: colores.tinta },
+                ]}
+              />
+            </View>
+            {errorResena ? (
+              <View style={[styles.errorReserva, { borderColor: colores.rojo }]}>
+                <Text style={styles.errorReservaTxt}>{errorResena}</Text>
+              </View>
+            ) : null}
+            <Pressable
+              onPress={handleCrearResena}
+              disabled={enviandoResena}
+              style={({ pressed }) => [{ marginTop: 8, opacity: enviandoResena ? 0.45 : pressed ? 0.75 : 1 }]}
+            >
+              <Text style={btnSecundario(colores)}>
+                {enviandoResena ? t('detail.enviando') : t('detail.publicarResena')}
+              </Text>
+            </Pressable>
+            {!usuario && (
+              <Text style={[styles.sinSesion, { color: colores.gris, marginTop: 6.4 }]}>
+                {t('detail.debesLoginResena')}
+              </Text>
             )}
-            <ul className="modal-resenas">
-              {visiblesMira.map((r) => (
-                <ItemResena key={r.id} r={r} />
-              ))}
-            </ul>
-            {resenasMira.length > MOSTRAR_INICIAL && (
-              <button type="button" className="btn-secundario" onClick={() => setVerTodas((v) => !v)}>
+          </View>
+
+          {cargandoResenas && (
+            <Text style={[styles.vacioTexto, { color: colores.gris }]}>{t('detail.cargandoResenas')}</Text>
+          )}
+          {!cargandoResenas && resenasMira.length === 0 && (
+            <Text style={[styles.vacioTexto, { color: colores.gris }]}>{t('detail.resenasMiraVacias')}</Text>
+          )}
+          <View style={styles.resenaLista}>
+            {visiblesMira.map((r) => (
+              <ItemResena key={r.id} r={r} />
+            ))}
+          </View>
+          {resenasMira.length > MOSTRAR_INICIAL && (
+            <Pressable onPress={() => setVerTodas((v) => !v)} style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}>
+              <Text style={btnSecundario(colores)}>
                 {verTodas ? t('detail.verMenos') : t('detail.verResenasMira', { count: resenasMira.length })}
-              </button>
-            )}
+              </Text>
+            </Pressable>
+          )}
 
-            <h4 className="modal-sub2">{t('detail.resenasYelp', { count: resenasYelp.length })}</h4>
-            {resenasYelp.length === 0 && (
-              <p className="vacio-texto">{t('detail.resenasYelpVacias')}</p>
-            )}
-            <ul className="modal-resenas">
-              {visiblesYelp.map((r) => (
-                <ItemResena key={r.id} r={r} />
-              ))}
-            </ul>
-            {resenasYelp.length > MOSTRAR_INICIAL && (
-              <button type="button" className="btn-secundario" onClick={() => setVerTodasYelp((v) => !v)}>
+          <Text style={[styles.sub2, { color: colores.tinta }]}>
+            {t('detail.resenasYelp', { count: resenasYelp.length })}
+          </Text>
+          {resenasYelp.length === 0 && (
+            <Text style={[styles.vacioTexto, { color: colores.gris }]}>{t('detail.resenasYelpVacias')}</Text>
+          )}
+          <View style={styles.resenaLista}>
+            {visiblesYelp.map((r) => (
+              <ItemResena key={r.id} r={r} />
+            ))}
+          </View>
+          {resenasYelp.length > MOSTRAR_INICIAL && (
+            <Pressable onPress={() => setVerTodasYelp((v) => !v)} style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}>
+              <Text style={btnSecundario(colores)}>
                 {verTodasYelp ? t('detail.verMenos') : t('detail.verResenasYelp', { count: resenasYelp.length })}
-              </button>
-            )}
-          </section>
-        </div>
-      </div>
-    </div>
+              </Text>
+            </Pressable>
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  raiz: {
+    flex: 1,
+  },
+  barraDorada: {
+    height: 6,
+    width: '100%',
+  },
+  scroll: {
+    paddingBottom: 48,
+  },
+  fotoWrap: {
+    width: '100%',
+    height: 280,
+    position: 'relative',
+    backgroundColor: '#ecefeb',
+  },
+  foto: {
+    width: '100%',
+    height: '100%',
+  },
+  cerrar: {
+    position: 'absolute',
+    top: 9.6,
+    right: 9.6,
+    width: 35.2,
+    height: 35.2,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  cerrarTxt: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  cuerpo: {
+    padding: 19.2,
+    paddingHorizontal: 24,
+    gap: 4,
+  },
+  titulo: {
+    fontFamily: FUENTES.display,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  chips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6.4,
+    marginBottom: 16,
+  },
+  chip: {
+    borderRadius: 999,
+    paddingVertical: 4,
+    paddingHorizontal: 13.6,
+  },
+  chipTxt: {
+    fontSize: 12.8,
+    fontWeight: '600',
+    fontFamily: FUENTES.textoSemi,
+  },
+  datos: {
+    gap: 8,
+    marginBottom: 16,
+  },
+  dato: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  datoApilado: {
+    gap: 1.6,
+  },
+  datoDt: {
+    fontWeight: '600',
+    fontSize: 14.08,
+    width: 176,
+    fontFamily: FUENTES.textoSemi,
+  },
+  datoDd: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: FUENTES.texto,
+  },
+  acciones: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9.6,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  btnSinMargen: {
+    marginTop: 0,
+  },
+  sub: {
+    fontFamily: FUENTES.display,
+    fontWeight: '700',
+    fontSize: 20,
+    marginTop: 19.2,
+    marginBottom: 9.6,
+  },
+  subFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  sub2: {
+    fontSize: 16.32,
+    fontWeight: '700',
+    marginTop: 17.6,
+    marginBottom: 9.6,
+    fontFamily: FUENTES.textoBold,
+  },
+  cartaLista: {
+    gap: 5.6,
+    marginBottom: 8,
+  },
+  cartaFila: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 16,
+    borderBottomWidth: 1,
+    borderBottomStyle: 'dotted',
+    paddingBottom: 5.6,
+  },
+  cartaNombreFila: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6.4,
+    flexShrink: 1,
+  },
+  cartaNombre: {
+    fontSize: 14.88,
+    fontFamily: FUENTES.texto,
+    flexShrink: 1,
+  },
+  cartaPrecio: {
+    fontWeight: '700',
+    fontSize: 14.88,
+    fontFamily: FUENTES.textoBold,
+  },
+  reservaBloque: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    padding: 16,
+    marginTop: 16,
+    gap: 8,
+  },
+  puntosPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6.4,
+    borderRadius: 999,
+    paddingVertical: 5.6,
+    paddingHorizontal: 8,
+    paddingLeft: 8,
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  puntosCoin: {
+    width: 18,
+    height: 18,
+    resizeMode: 'contain',
+  },
+  puntosTxt: {
+    color: '#fff',
+    fontSize: 13.6,
+    fontWeight: '600',
+    fontFamily: FUENTES.textoSemi,
+  },
+  puntosRacha: {
+    backgroundColor: 'rgba(255, 255, 255, 0.14)',
+    borderRadius: 999,
+    paddingVertical: 1.6,
+    paddingHorizontal: 8,
+    marginLeft: 2.4,
+  },
+  puntosRachaTxt: {
+    color: '#fff',
+    fontSize: 12.48,
+    fontWeight: '600',
+    fontFamily: FUENTES.textoSemi,
+  },
+  avisoDescuento: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    paddingVertical: 8.8,
+    paddingHorizontal: 12,
+    marginTop: 9.6,
+  },
+  reservaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 9.6,
+  },
+  campo: {
+    gap: 2,
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    paddingHorizontal: 12,
+    paddingVertical: 9.6,
+    fontFamily: FUENTES.texto,
+    fontSize: 15,
+    width: '100%',
+  },
+  textarea: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    paddingHorizontal: 12,
+    paddingVertical: 9.6,
+    minHeight: 72,
+    fontFamily: FUENTES.texto,
+    fontSize: 15,
+    textAlignVertical: 'top',
+  },
+  plazas: {
+    fontWeight: '700',
+    fontSize: 14.72,
+    marginTop: 9.6,
+    fontFamily: FUENTES.textoBold,
+  },
+  avisoMeteo: {
+    backgroundColor: '#fef9c3',
+    borderWidth: 1,
+    borderColor: '#eab308',
+    borderRadius: RADIO.peq,
+    paddingVertical: 8.8,
+    paddingHorizontal: 12,
+    marginTop: 9.6,
+  },
+  avisoMeteoTxt: {
+    fontSize: 14.08,
+    color: '#713f12',
+    fontFamily: FUENTES.texto,
+  },
+  errorReserva: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    backgroundColor: '#fdecea',
+    paddingVertical: 8,
+    paddingHorizontal: 11.2,
+    marginTop: 8,
+  },
+  errorReservaTxt: {
+    fontSize: 14.08,
+    color: '#8f1d14',
+    fontFamily: FUENTES.texto,
+  },
+  sinSesion: {
+    fontSize: 13.12,
+    marginTop: 8,
+    fontFamily: FUENTES.texto,
+  },
+  confirm: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    padding: 11.2,
+    marginTop: 12.8,
+    gap: 4,
+  },
+  confirmTitulo: {
+    fontWeight: '700',
+    fontFamily: FUENTES.textoBold,
+  },
+  confirmTxt: {
+    fontSize: 14.4,
+    lineHeight: 21,
+    fontFamily: FUENTES.texto,
+  },
+  code: {
+    borderWidth: 1,
+    borderRadius: 4,
+    paddingHorizontal: 5.6,
+    paddingVertical: 1.6,
+    fontWeight: '700',
+    fontFamily: FUENTES.textoBold,
+  },
+  parkingSection: {
+    gap: 7.2,
+  },
+  parkingGrid: {
+    gap: 12,
+    alignItems: 'stretch',
+  },
+  parkingGridFila: {
+    flexDirection: 'row',
+  },
+  mapaPie: {
+    fontSize: 13.12,
+    fontFamily: FUENTES.texto,
+  },
+  mapaVacio: {
+    marginTop: 16,
+    marginBottom: 16,
+    fontSize: 14.72,
+    fontFamily: FUENTES.texto,
+  },
+  tabs: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  resenaForm: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    padding: 14.4,
+    marginBottom: 16,
+    gap: 4,
+  },
+  stars: {
+    flexDirection: 'row',
+    gap: 2.4,
+  },
+  resenaLista: {
+    gap: 11.2,
+    marginBottom: 16,
+  },
+  resenaItem: {
+    borderTopWidth: 1,
+    paddingTop: 9.6,
+  },
+  resenaCabFila: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 2.4,
+  },
+  resenaCab: {
+    fontSize: 13.6,
+    flex: 1,
+    fontFamily: FUENTES.texto,
+  },
+  likeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingVertical: 2.4,
+    paddingHorizontal: 8,
+  },
+  likeTxt: {
+    fontSize: 12.48,
+    fontWeight: '700',
+    fontFamily: FUENTES.textoBold,
+  },
+  resenaTexto: {
+    fontSize: 14.88,
+    lineHeight: 21,
+    fontFamily: FUENTES.texto,
+  },
+  vacioTexto: {
+    fontSize: 14.72,
+    fontFamily: FUENTES.texto,
+    marginBottom: 8,
+  },
+});

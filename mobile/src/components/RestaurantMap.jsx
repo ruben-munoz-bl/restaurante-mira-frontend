@@ -1,130 +1,229 @@
 /**
- * Mapa Leaflet del restaurante + parkings cercanos (react-leaflet).
- * - Marker rojo restaurante, markers azules parkings
- * - Marker seleccionado resaltado (borde dorado)
- * - fitBounds automático con padding 40px, maxZoom 16
- * - Atribución OSM + Geoapify (requerida en plan gratis)
+ * Mapa del restaurante + parkings — espejo de .restaurant-map (react-leaflet):
+ * marcador rojo local, azules parkings, seleccionado con borde dorado,
+ * fitBounds con padding 40 y tiles OpenStreetMap.
  */
-import { useEffect, useRef } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import L from 'leaflet';
+import { useEffect, useMemo, useRef } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import MapView, { UrlTile, Marker, Callout } from 'react-native-maps';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
+import { useTheme } from '../theme/ThemeContext';
+import { FUENTES, RADIO } from '../theme/tokens';
 
 const TRADS = { es, ca, en };
 
-function crearIcono(color, selected) {
-  const size = selected ? 34 : 28;
-  const border = selected ? '3px solid #f59e0b' : '2px solid #fff';
-  return L.divIcon({
-    className: '',
-    html: `<span style="display:inline-grid;place-items:center;width:${size}px;height:${size}px;border-radius:50%;background:${color};border:${border};box-shadow:0 1px 6px rgba(0,0,0,0.35);transition:all .2s;"><span style="width:${selected ? 12 : 10}px;height:${selected ? 12 : 10}px;border-radius:50%;background:#fff;display:block"></span></span>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -(size / 2)],
-  });
+function coordsValidas(coords) {
+  return (
+    Boolean(coords) && Number.isFinite(Number(coords.lat)) && Number.isFinite(Number(coords.lng))
+  );
 }
 
-const iconoRestaurante = crearIcono('#d92d20', false);
-const iconoParking = crearIcono('#2563eb', false);
-const iconoParkingSeleccionado = crearIcono('#2563eb', true);
-
-function esLatLngValido(p) {
-  return Array.isArray(p)
-    && Number.isFinite(Number(p[0]))
-    && Number.isFinite(Number(p[1]));
+function Circulo({ color, tam = 28, seleccionado = false }) {
+  return (
+    <View
+      style={{
+        width: tam,
+        height: tam,
+        borderRadius: tam / 2,
+        backgroundColor: color,
+        borderWidth: seleccionado ? 3 : 2,
+        borderColor: seleccionado ? '#f59e0b' : '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.35,
+        shadowRadius: 3,
+        elevation: 4,
+      }}
+    >
+      <View
+        style={{
+          width: seleccionado ? 12 : 10,
+          height: seleccionado ? 12 : 10,
+          borderRadius: 6,
+          backgroundColor: '#fff',
+        }}
+      />
+    </View>
+  );
 }
 
-function FitBounds({ puntos }) {
-  const map = useMap();
-  useEffect(() => {
-    const validos = puntos.filter(esLatLngValido);
-    if (!validos.length) return;
-    try {
-      if (validos.length === 1) {
-        map.setView(validos[0], 15);
-      } else {
-        map.fitBounds(validos, { padding: [40, 40], maxZoom: 16 });
-      }
-      setTimeout(() => {
-        try { map.invalidateSize(); } catch { /* mapa ya desmontado */ }
-      }, 100);
-    } catch { /* contenedor aún no listo */ }
-  }, [map, puntos]);
-  return null;
-}
-
-function FlyToPunto({ punto }) {
-  const map = useMap();
-  useEffect(() => {
-    if (punto && esLatLngValido(punto)) {
-      try { map.flyTo(punto, 16, { duration: 0.8 }); } catch { /* noop */ }
-    }
-  }, [map, punto]);
-  return null;
-}
-
-export default function RestaurantMap({ restaurant, parkings = [], selectedIndex, onMapReady }) {
+export default function RestaurantMap({ restaurant, parkings = [], selectedIndex, alto = 380 }) {
   const t = useT(TRADS);
-  const coords = restaurant?.coords;
+  const { colores } = useTheme();
   const mapRef = useRef(null);
+  const coords = restaurant?.coords;
 
+  const centroValido = coordsValidas(coords);
+  const parkingsValidos = useMemo(
+    () => parkings.filter((p) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lon))),
+    [parkings],
+  );
+
+  const puntos = useMemo(() => {
+    if (!centroValido) return [];
+    const lista = [
+      { latitude: Number(coords.lat), longitude: Number(coords.lng) },
+      ...parkingsValidos.map((p) => ({ latitude: Number(p.lat), longitude: Number(p.lon) })),
+    ];
+    return lista;
+  }, [centroValido, coords, parkingsValidos]);
+
+  const regionCentro = centroValido
+    ? {
+        latitude: Number(coords.lat),
+        longitude: Number(coords.lng),
+        latitudeDelta: 0.03,
+        longitudeDelta: 0.03,
+      }
+    : null;
+
+  // fitBounds (padding 40, maxZoom ~16) al cargar parkings o cambiar datos.
   useEffect(() => {
-    if (onMapReady && mapRef.current) onMapReady(mapRef.current);
-  }, [onMapReady]);
+    const mapa = mapRef.current;
+    if (!mapa || !puntos.length) return;
+    const timer = setTimeout(() => {
+      try {
+        if (puntos.length > 1) {
+          mapa.fitToSuppliedCoordinates(puntos, {
+            edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+            animated: true,
+          });
+        } else {
+          mapa.animateToRegion(
+            { ...puntos[0], latitudeDelta: 0.03, longitudeDelta: 0.03 },
+            400,
+          );
+        }
+      } catch {
+        /* mapa aún no listo */
+      }
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [puntos]);
 
-  const centroValido = coords
-    && Number.isFinite(Number(coords.lat))
-    && Number.isFinite(Number(coords.lng));
+  // flyTo del parking seleccionado (zoom 16).
+  useEffect(() => {
+    const mapa = mapRef.current;
+    if (!mapa || selectedIndex == null) return;
+    const p = parkingsValidos[selectedIndex];
+    if (!p) return;
+    const timer = setTimeout(() => {
+      try {
+        mapa.animateToRegion(
+          { latitude: Number(p.lat), longitude: Number(p.lon), latitudeDelta: 0.015, longitudeDelta: 0.015 },
+          800,
+        );
+      } catch {
+        /* noop */
+      }
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [selectedIndex, parkingsValidos]);
+
   if (!centroValido) return null;
 
-  const centro = [Number(coords.lat), Number(coords.lng)];
-  const parkingsValidos = parkings.filter((p) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lon)));
-  const puntos = [centro, ...parkingsValidos.map((p) => [Number(p.lat), Number(p.lon)])];
-  const seleccionado = selectedIndex != null ? parkingsValidos[selectedIndex] : null;
-
   return (
-    <div className="restaurant-map" role="application" aria-label={`${t('otros.mapaPorZonas')} — ${restaurant.nombre}`}>
-      <MapContainer
-        center={centro}
-        zoom={15}
-        scrollWheelZoom={false}
-        style={{ height: '100%', width: '100%' }}
+    <View
+      style={[styles.wrap, { height: alto, borderColor: colores.glassBorder, backgroundColor: colores.fondoSuave, borderRadius: RADIO.peq }]}
+      accessibilityLabel={`${t('otros.mapaPorZonas')} — ${restaurant.nombre}`}
+    >
+      <MapView
         ref={mapRef}
+        style={styles.mapa}
+        initialRegion={regionCentro}
+        showsUserLocation={false}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | POIs by <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Geoapify</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <Marker position={centro} icon={iconoRestaurante}>
-          <Popup>
-            <strong>{restaurant.nombre}</strong>
-            <br />
-            {restaurant.direccion || restaurant.ciudad || ''}
-          </Popup>
+        <UrlTile urlTemplate="https://tile.openstreetmap.org/{z}/{x}/{y}.png" maximumZ={19} />
+        <Marker
+          coordinate={{ latitude: Number(coords.lat), longitude: Number(coords.lng) }}
+          anchor={{ x: 0.5, y: 0.5 }}
+          tracksViewChanges={false}
+        >
+          <Circulo color="#d92d20" />
+          <Callout tooltip>
+            <View style={styles.callout}>
+              <Text style={styles.calloutTitulo}>{restaurant.nombre}</Text>
+              <Text style={styles.calloutTexto}>{restaurant.direccion || restaurant.ciudad || ''}</Text>
+            </View>
+          </Callout>
         </Marker>
         {parkingsValidos.map((p, i) => (
           <Marker
             key={p.id}
-            position={[Number(p.lat), Number(p.lon)]}
-            icon={i === selectedIndex ? iconoParkingSeleccionado : iconoParking}
+            coordinate={{ latitude: Number(p.lat), longitude: Number(p.lon) }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
           >
-            <Popup>
-              <strong>{p.nombre}</strong>
-              <br />
-              {p.direccion}
-              <br />
-              {p.gratuito === 'yes' ? t('otros.gratis') : t('otros.pago')}
-              {p.tipo !== '—' ? ` · ${p.tipo}` : ''}
-              {p.distanciaMetros != null ? ` · ${p.distanciaMetros} m` : ''}
-            </Popup>
+            <Circulo color="#2563eb" tam={i === selectedIndex ? 34 : 28} seleccionado={i === selectedIndex} />
+            <Callout tooltip>
+              <View style={styles.callout}>
+                <Text style={styles.calloutTitulo}>{p.nombre}</Text>
+                <Text style={styles.calloutTexto}>{p.direccion}</Text>
+                <Text style={styles.calloutTexto}>
+                  {p.gratuito === 'yes' ? t('otros.gratis') : t('otros.pago')}
+                  {p.tipo !== '—' ? ` · ${p.tipo}` : ''}
+                  {p.distanciaMetros != null ? ` · ${p.distanciaMetros} m` : ''}
+                </Text>
+              </View>
+            </Callout>
           </Marker>
         ))}
-        <FitBounds puntos={puntos} />
-        {seleccionado && <FlyToPunto punto={[Number(seleccionado.lat), Number(seleccionado.lon)]} />}
-      </MapContainer>
-    </div>
+      </MapView>
+      <Text style={styles.atribucion} pointerEvents="none">
+        © OpenStreetMap
+      </Text>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: {
+    borderWidth: 1,
+    overflow: 'hidden',
+    width: '100%',
+  },
+  mapa: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  callout: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    maxWidth: 220,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  calloutTitulo: {
+    fontWeight: '700',
+    fontSize: 13.5,
+    fontFamily: FUENTES.textoBold,
+    color: '#181c1a',
+  },
+  calloutTexto: {
+    fontSize: 12.5,
+    fontFamily: FUENTES.texto,
+    color: '#414844',
+    marginTop: 2,
+  },
+  atribucion: {
+    position: 'absolute',
+    right: 6,
+    bottom: 4,
+    fontSize: 10,
+    color: '#414844',
+    backgroundColor: 'rgba(255,255,255,0.75)',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 3,
+    overflow: 'hidden',
+    fontFamily: FUENTES.texto,
+  },
+});
