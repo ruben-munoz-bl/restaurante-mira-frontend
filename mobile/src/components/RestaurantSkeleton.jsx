@@ -56,7 +56,7 @@ export default function RestaurantSkeleton({ anchoCard }) {
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <View style={[styles.media, { height: media, backgroundColor: colores.fondoSuave, opacity: anim }]} />
+      <Animated.View style={[styles.media, { height: media, backgroundColor: colores.fondoSuave, opacity: anim }]} />
       <View style={styles.cuerpo}>
         <Barra ancho="70%" alto={16.8} anim={anim} />
         <Barra ancho="50%" alto={13.6} anim={anim} />
