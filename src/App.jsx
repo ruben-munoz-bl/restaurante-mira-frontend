@@ -368,7 +368,7 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'mensajes' && <Mensajes usuario={usuario} onLeidos={recargarMensajes} />}
         {ruta === 'privacidad' && <Privacidad />}
         {ruta === 'puntos' && <PuntosDashboard fetchStreakData={fetchStreakData} onOpenStreak={openStreakPopup} usuario={usuario} />}
-        {ruta === 'historialPuntos' && <HistorialPuntos />}
+        {ruta === 'historialPuntos' && <HistorialPuntos usuario={usuario} />}
         {ruta === 'invitar' && <Invitar />}
         {ruta === 'ticket' && <TicketPage />}
         {ruta === 'mapa' && <Mapa todos={todos} total={total} onVerDetalle={abrirDetalle} />}

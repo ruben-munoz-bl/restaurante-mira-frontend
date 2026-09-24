@@ -10,6 +10,7 @@ import { fetchNearbyParkings } from '../services/parkingApi.js';
 import RestaurantMap from './RestaurantMap.jsx';
 import ParkingsPanel from './ParkingsPanel.jsx';
 import { Sellos, MiniLeyenda } from './Sellos.jsx';
+import usePointsStore from '../stores/usePointsStore.js';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -26,13 +27,22 @@ function marcaInfo(valor, t) {
 const MOSTRAR_INICIAL = 10;
 
 function googleLink(coords, direccion) {
-  if (coords) return `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`;
+  if (coords && Number.isFinite(Number(coords.lat)) && Number.isFinite(Number(coords.lng))) {
+    return `https://www.google.com/maps/search/?api=1&query=${Number(coords.lat)},${Number(coords.lng)}`;
+  }
   if (direccion) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`;
   return null;
 }
 
+function coordsValidas(coords) {
+  return Boolean(coords)
+    && Number.isFinite(Number(coords.lat))
+    && Number.isFinite(Number(coords.lng));
+}
+
 export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCarta }) {
   const t = useT(TRADS);
+  const { descuentoPendiente, fetchBalance } = usePointsStore();
 
   function StarPicker({ value, onChange }) {
     return (
@@ -106,8 +116,9 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   useEffect(() => {
     let vivo = true;
     setMeteoReserva(null);
-    if (restaurant.terraza !== true || !reserva.fecha || !restaurant.coords) return undefined;
-    pronosticoDia(restaurant.coords.lat, restaurant.coords.lng, reserva.fecha)
+    if (restaurant.terraza !== true) return undefined;
+    if (!reserva.fecha || !coordsValidas(restaurant.coords)) return undefined;
+    pronosticoDia(Number(restaurant.coords.lat), Number(restaurant.coords.lng), reserva.fecha)
       .then((p) => { if (vivo) setMeteoReserva(p); })
       .catch(() => {});
     return () => { vivo = false; };
@@ -128,6 +139,11 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
 
   useEffect(() => {
     if (!usuario?.uid) return;
+    fetchBalance();
+  }, [usuario?.uid]);
+
+  useEffect(() => {
+    if (!usuario?.uid) return;
     import('../services/api.js').then(({ interactionsApi }) => {
       interactionsApi.track(restaurant.id, 'view').catch(() => {});
     });
@@ -136,13 +152,13 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   useEffect(() => {
     let vivo = true;
     const coords = restaurant.coords;
-    if (!coords || typeof coords.lat !== 'number' || typeof coords.lng !== 'number') {
+    if (!coordsValidas(coords)) {
       setParkings([]);
       setCargandoParkings(false);
       return undefined;
     }
     setCargandoParkings(true);
-    fetchNearbyParkings(coords.lat, coords.lng)
+    fetchNearbyParkings(Number(coords.lat), Number(coords.lng))
       .then((list) => { if (vivo) setParkings(list); })
       .finally(() => { if (vivo) setCargandoParkings(false); });
     return () => { vivo = false; };
@@ -263,10 +279,15 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
               {t('detail.reservarMesa')}
             </h3>
             <div className="detail-points-preview">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v12M6 12h12" /></svg>
+              <img src="/moneda-mira.png" alt="" className="detail-points-preview__coin" />
               +100 pts por reserva
               <span className="detail-points-preview__racha">x1.2 si mantienes racha</span>
             </div>
+            {descuentoPendiente?.euros > 0 && (
+              <p className="reserva-aviso-descuento" role="status">
+                {t('detail.descuentoPendiente', { euros: descuentoPendiente.euros })}
+              </p>
+            )}
             <form className="reserva-form" onSubmit={handleReserva} noValidate>
               <div className="reserva-grid">
                 <label className="campo"><span>{t('detail.fecha')}</span><input type="date" value={reserva.fecha} onChange={e => setReserva(s => ({ ...s, fecha: e.target.value }))} min={hoyLocalISO()} /></label>
@@ -307,7 +328,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
             )}
           </section>
 
-          {restaurant.coords ? (
+          {coordsValidas(restaurant.coords) ? (
             <section className="parking-section" aria-label={`${t('otros.mapaPorZonas')} — ${restaurant.nombre}`}>
               <div className="parking-grid">
                 <RestaurantMap

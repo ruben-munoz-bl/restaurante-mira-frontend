@@ -9,6 +9,23 @@ export const TAMANO_PAGINA = 27;
 
 const PRECIOS_VALIDOS = ['€', '€€', '€€€'];
 
+function toCoordNumber(v) {
+  if (typeof v === 'number' && Number.isFinite(v)) return v;
+  if (typeof v === 'string' && v.trim() !== '') {
+    const n = Number(v);
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+function extraerCoords(d) {
+  const c = d.coordenadas || {};
+  const lat = toCoordNumber(c.latitud ?? c.lat ?? d.lat);
+  const lng = toCoordNumber(c.longitud ?? c.lng ?? c.lon ?? d.lng);
+  if (lat == null || lng == null) return null;
+  return { lat, lng };
+}
+
 function mapearDoc(id, d) {
   const categorias = Array.isArray(d.categorias) ? d.categorias : [];
   const resenas = Array.isArray(d.resenas) ? d.resenas : [];
@@ -19,10 +36,7 @@ function mapearDoc(id, d) {
     categorias,
     precio: PRECIOS_VALIDOS.includes(d.precio) ? d.precio : '€€',
     distanciaKm: null,
-    coords:
-      typeof d.coordenadas?.latitud === 'number' && typeof d.coordenadas?.longitud === 'number'
-        ? { lat: d.coordenadas.latitud, lng: d.coordenadas.longitud }
-        : null,
+    coords: extraerCoords(d),
     valoracion: typeof d.rating_yelp === 'number' ? d.rating_yelp : 0,
     totalResenasYelp: d.total_resenas_yelp ?? 0,
     imagen: d.imagen_url || imagenParaRestaurante(categorias[0] ?? 'Mediterránea', id),

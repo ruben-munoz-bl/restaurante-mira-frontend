@@ -43,6 +43,8 @@ export const pointsApi = {
 
   redeem: async (puntos) => api.post('/v1/points/redeem', { puntos }),
 
+  claimDiscount: async (euros) => api.post('/v1/points/discount/claim', { euros }),
+
   review: async () => api.post('/v1/points/review', {}),
 };
 

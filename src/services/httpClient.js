@@ -24,7 +24,14 @@ export async function apiFetch(path, { method = 'GET', body, headers = {}, auth 
   }
   if (auth) {
     const token = await getToken();
-    if (token) finalHeaders.Authorization = `Bearer ${token}`;
+    // Sin sesión: no llamar a la API autenticada (evita 401 MISSING_TOKEN en consola).
+    if (!token) {
+      const err = new Error('No hay sesión activa');
+      err.status = 401;
+      err.noSession = true;
+      throw err;
+    }
+    finalHeaders.Authorization = `Bearer ${token}`;
   }
 
   const res = await fetch(url, {

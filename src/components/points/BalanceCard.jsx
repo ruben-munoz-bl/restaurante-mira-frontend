@@ -1,12 +1,8 @@
-import { useEffect } from 'react';
 import usePointsStore from '../../stores/usePointsStore.js';
 
+// El balance lo carga el padre (PuntosDashboard/Cuenta) cuando hay sesión.
 export default function BalanceCard() {
-  const { saldoActual, rachaLogin, rachaReservas, fetchBalance, balanceLoading } = usePointsStore();
-
-  useEffect(() => {
-    fetchBalance();
-  }, []);
+  const { saldoActual, rachaLogin, rachaReservas, balanceLoading } = usePointsStore();
 
   if (balanceLoading) {
     return (

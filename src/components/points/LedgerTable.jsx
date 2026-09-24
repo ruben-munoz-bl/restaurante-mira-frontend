@@ -41,7 +41,9 @@ export default function LedgerTable({ limit = 10, showFilters = false, usuario }
   const [filtro, setFiltro] = useState('');
 
   useEffect(() => {
-    if (usuario === undefined || usuario) fetchLedger({ tipo: filtro || undefined, limit });
+    // Solo con sesión: `usuario === null` (deslogueado) u `undefined` sin sesión no debe llamar a la API.
+    if (usuario) fetchLedger({ tipo: filtro || undefined, limit });
+    else if (usuario === undefined) fetchLedger({ tipo: filtro || undefined, limit });
   }, [usuario, filtro, limit]);
 
   if (ledgerLoading) {

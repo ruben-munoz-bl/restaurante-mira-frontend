@@ -3,6 +3,7 @@ import BalanceCard from '../components/points/BalanceCard';
 import StreakBadge from '../components/points/StreakBadge';
 import LedgerTable from '../components/points/LedgerTable';
 import InvitePanel from '../components/points/InvitePanel';
+import DiscountPanel from '../components/points/DiscountPanel';
 import usePointsStore from '../stores/usePointsStore';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
@@ -38,6 +39,7 @@ export default function PuntosDashboard({ fetchStreakData, onOpenStreak, usuario
           <LedgerTable limit={5} usuario={usuario} />
         </div>
         <div className="puntos-page__sidebar">
+          <DiscountPanel usuario={usuario} />
           <InvitePanel />
         </div>
       </div>

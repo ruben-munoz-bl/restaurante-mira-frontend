@@ -352,6 +352,7 @@ export default {
     "reservando": "Booking…",
     "reservar": "Reserve",
     "debesLogin": "You need to <1>sign in</1> to reserve.",
+    "descuentoPendiente": "You have a {{euros}} € discount pending. It will be applied to your next reservation.",
     "reservaConfirmada": "Reservation confirmed!",
     "codigo": "Code",
     "verMisReservas": "View my reservations",
@@ -458,15 +459,19 @@ export default {
   },
   "libro": {
     "cartaDe": "Menu of {{nombre}}",
-    "cerrarCarta": "Close menu",
+    "cerrarCarta": "Close",
     "leyenda": "Legend",
     "leyendaCarta": "Menu legend",
     "anterior": "← Previous",
+    "anteriorCorto": "Previous",
     "siguiente": "Next →",
+    "siguienteCorto": "Next",
     "secciones": "sections",
     "platos": "dishes",
     "aptosParaTi": "Suitable for you",
-    "menuInfantil": "Kids menu"
+    "menuInfantil": "Kids menu",
+    "abrirMenu": "Tap to open menu",
+    "desliza": "Swipe or use arrows to turn the page"
   },
   "recuperar": {
     "titulo": "Reset password",
@@ -591,6 +596,7 @@ export default {
     "confirmarReserva": "Confirm reservation",
     "reserva": "Booking",
     "descuentoEpicure": "Epicure discount",
+    "descuentoPendiente": "Points discount",
     "totalEstimado": "Estimated total",
     "confirmar": "Confirm Booking"
   },
@@ -621,6 +627,12 @@ export default {
     "redeemDiscount": "Discount applied to your next ticket",
     "redeemError": "Error redeeming points",
     "redeeming": "Redeeming...",
+    "discountTitle": "Claim discount",
+    "discountInfo": "100 pts = 1 €. The discount will be applied to your next reservation.",
+    "discountPending": "of discount pending",
+    "discountPendingHint": "Will be applied on your next reservation",
+    "discountClaimed": "Discount claimed. It will be applied to your next reservation.",
+    "discountError": "Error claiming the discount",
     "cancel": "Cancel",
     "confirm": "Redeem",
     "types": {

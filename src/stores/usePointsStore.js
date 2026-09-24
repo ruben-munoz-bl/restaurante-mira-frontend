@@ -10,6 +10,7 @@ const usePointsStore = create((set, get) => ({
   ledger: [],
   ledgerLoading: false,
   balanceLoading: false,
+  descuentoPendiente: null,
 
   fetchBalance: async () => {
     set({ balanceLoading: true });
@@ -17,7 +18,10 @@ const usePointsStore = create((set, get) => ({
       const data = await pointsApi.getBalance();
       set({ ...data, balanceLoading: false });
     } catch (err) {
-      console.error('Failed to fetch balance:', err);
+      // Sin sesión / 401: estado esperado, no es un error.
+      if (!err.noSession && err.status !== 401) {
+        console.error('Failed to fetch balance:', err);
+      }
       set({ balanceLoading: false });
     }
   },
@@ -28,7 +32,9 @@ const usePointsStore = create((set, get) => ({
       const data = await pointsApi.getLedger(params);
       set({ ledger: data.data, ledgerLoading: false });
     } catch (err) {
-      console.error('Failed to fetch ledger:', err);
+      if (!err.noSession && err.status !== 401) {
+        console.error('Failed to fetch ledger:', err);
+      }
       set({ ledgerLoading: false });
     }
   },
@@ -59,6 +65,21 @@ const usePointsStore = create((set, get) => ({
       return result;
     } catch (err) {
       console.error('Failed to redeem:', err);
+      throw err;
+    }
+  },
+
+  claimDiscount: async (euros) => {
+    try {
+      const result = await pointsApi.claimDiscount(euros);
+      set((state) => ({
+        saldoActual: result.nuevoSaldo ?? state.saldoActual,
+        totalCanjeado: state.totalCanjeado + (result.descuentoPendiente?.puntos || 0),
+        descuentoPendiente: result.descuentoPendiente || null,
+      }));
+      return result;
+    } catch (err) {
+      console.error('Failed to claim discount:', err);
       throw err;
     }
   },

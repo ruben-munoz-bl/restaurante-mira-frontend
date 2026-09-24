@@ -6,7 +6,7 @@ import en from '../i18n/en.js';
 
 const TRADS = { es, ca, en };
 
-export default function HistorialPuntos() {
+export default function HistorialPuntos({ usuario }) {
   const t = useT(TRADS);
 
   return (
@@ -14,7 +14,7 @@ export default function HistorialPuntos() {
       <div className="puntos-page__header">
         <h1>{t('points.history') || 'Historial de puntos'}</h1>
       </div>
-      <LedgerTable limit={50} showFilters />
+      <LedgerTable limit={50} showFilters usuario={usuario} />
     </div>
   );
 }

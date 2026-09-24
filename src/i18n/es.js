@@ -352,6 +352,7 @@ export default {
     "reservando": "Reservando…",
     "reservar": "Reservar",
     "debesLogin": "Debes <1>iniciar sesión</1> para reservar.",
+    "descuentoPendiente": "Tienes un descuento de {{euros}} € pendiente. Se aplicará a tu próxima reserva.",
     "reservaConfirmada": "¡Reserva confirmada!",
     "codigo": "Código",
     "verMisReservas": "Ver mis reservas",
@@ -458,15 +459,19 @@ export default {
   },
   "libro": {
     "cartaDe": "Carta de {{nombre}}",
-    "cerrarCarta": "Cerrar carta",
+    "cerrarCarta": "Cerrar",
     "leyenda": "Leyenda",
     "leyendaCarta": "Leyenda de la carta",
     "anterior": "← Anterior",
+    "anteriorCorto": "Anterior",
     "siguiente": "Siguiente →",
+    "siguienteCorto": "Siguiente",
     "secciones": "secciones",
     "platos": "platos",
     "aptosParaTi": "Aptos para ti",
-    "menuInfantil": "Menú infantil"
+    "menuInfantil": "Menú infantil",
+    "abrirMenu": "Toca para abrir menú",
+    "desliza": "Desliza o usa las flechas para pasar la página"
   },
   "recuperar": {
     "titulo": "Recuperar contraseña",
@@ -591,6 +596,7 @@ export default {
     "confirmarReserva": "Confirmar reserva",
     "reserva": "Reserva",
     "descuentoEpicure": "Descuento Epicure",
+    "descuentoPendiente": "Descuento puntos",
     "totalEstimado": "Total estimado",
     "confirmar": "Confirmar Reserva"
   },
@@ -621,6 +627,12 @@ export default {
     "redeemDiscount": "Descuento aplicado a tu próximo ticket",
     "redeemError": "Error al canjear",
     "redeeming": "Canjeando...",
+    "discountTitle": "Reclamar descuento",
+    "discountInfo": "100 pts = 1 €. El descuento se aplicará a tu próxima reserva.",
+    "discountPending": "de descuento pendientes",
+    "discountPendingHint": "Se aplicará en tu próxima reserva",
+    "discountClaimed": "Descuento reclamado. Se aplicará a tu próxima reserva.",
+    "discountError": "Error al reclamar el descuento",
     "cancel": "Cancelar",
     "confirm": "Canjear",
     "types": {

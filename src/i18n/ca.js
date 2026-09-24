@@ -350,6 +350,7 @@ export default {
     "reservando": "Reservant…",
     "reservar": "Reservar",
     "debesLogin": "Has de <1>iniciar sessió</1> per reservar.",
+    "descuentoPendiente": "Tens un descompte de {{euros}} € pendent. S'aplicarà a la teva propera reserva.",
     "reservaConfirmada": "Reserva confirmada!",
     "codigo": "Codi",
     "verMisReservas": "Veure les meves reserves",
@@ -458,15 +459,19 @@ export default {
   },
   "libro": {
     "cartaDe": "Carta de {{nombre}}",
-    "cerrarCarta": "Tancar carta",
+    "cerrarCarta": "Tancar",
     "leyenda": "Llegenda",
     "leyendaCarta": "Llegenda de la carta",
     "anterior": "← Anterior",
+    "anteriorCorto": "Anterior",
     "siguiente": "Següent →",
+    "siguienteCorto": "Següent",
     "secciones": "seccions",
     "platos": "plats",
     "aptosParaTi": "Aptes per a tu",
-    "menuInfantil": "Menú infantil"
+    "menuInfantil": "Menú infantil",
+    "abrirMenu": "Toqueu per obrir el menú",
+    "desliza": "Desplaceu o utilitzeu les fletxes per passar la pàgina"
   },
   "recuperar": {
     "titulo": "Recuperar contrasenya",
@@ -591,6 +596,7 @@ export default {
     "confirmarReserva": "Confirmar reserva",
     "reserva": "Reserva",
     "descuentoEpicure": "Descompte Epicure",
+    "descuentoPendiente": "Descompte punts",
     "totalEstimado": "Total estimat",
     "confirmar": "Confirmar Reserva"
   },
@@ -621,6 +627,12 @@ export default {
     "redeemDiscount": "Descompte aplicat al proper tiquet",
     "redeemError": "Error en bescanviar",
     "redeeming": "Bescanviant...",
+    "discountTitle": "Reclamar descompte",
+    "discountInfo": "100 pts = 1 €. El descompte s'aplicarà a la teva propera reserva.",
+    "discountPending": "de descompte pendents",
+    "discountPendingHint": "S'aplicarà a la teva propera reserva",
+    "discountClaimed": "Descompte reclamat. S'aplicarà a la teva propera reserva.",
+    "discountError": "Error en reclamar el descompte",
     "cancel": "Cancel·lar",
     "confirm": "Bescanviar",
     "types": {

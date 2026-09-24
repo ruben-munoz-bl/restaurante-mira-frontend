@@ -2,6 +2,7 @@
  * Floating reservation bottom sheet — slides up when a time slot is selected.
  */
 import { useEffect, useRef } from 'react';
+import usePointsStore from '../stores/usePointsStore.js';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -12,6 +13,7 @@ const TRADS = { es, ca, en };
 export default function FloatingReservation({ visible, restaurant, reserva, onConfirm, onClose }) {
   const t = useT(TRADS);
   const sheetRef = useRef(null);
+  const descuentoPendiente = usePointsStore((s) => s.descuentoPendiente);
 
   useEffect(() => {
     if (!visible) return;
@@ -28,7 +30,8 @@ export default function FloatingReservation({ visible, restaurant, reserva, onCo
   const ahorroPct = reserva.ahorro || 0;
   const precioBase = comensales * 18;
   const ahorro = Math.round(precioBase * ahorroPct / 100);
-  const total = precioBase - ahorro;
+  const descuentoEuros = descuentoPendiente?.euros > 0 ? descuentoPendiente.euros : 0;
+  const total = Math.max(0, precioBase - ahorro - descuentoEuros);
 
   return (
     <div
@@ -53,11 +56,22 @@ export default function FloatingReservation({ visible, restaurant, reserva, onCo
               <span>-{ahorro} €</span>
             </div>
           )}
+          {descuentoEuros > 0 && (
+            <div className="floating-sheet-row floating-sheet-discount">
+              <span>{t('floating.descuentoPendiente')}</span>
+              <span>-{descuentoEuros} €</span>
+            </div>
+          )}
           <div className="floating-sheet-row floating-sheet-total">
             <span>{t('floating.totalEstimado')}</span>
             <span>{total} €</span>
           </div>
         </div>
+        {descuentoEuros > 0 && (
+          <p className="floating-sheet-discount-hint">
+            {t('detail.descuentoPendiente', { euros: descuentoEuros })}
+          </p>
+        )}
         <button type="button" className="btn-cta floating-sheet-btn" onClick={onConfirm}>
           {t('floating.confirmar')}
         </button>
