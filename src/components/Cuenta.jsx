@@ -1,6 +1,8 @@
 /** Página "Mi cuenta": datos + preferencias + idioma + dieta + accesibilidad + 2FA + cookies + negocio + reservas + incidencias + reseñas. */
 import { useEffect, useState } from 'react';
 import { listarMisReservas } from '../services/reservaApi.js';
+import { obtenerEmblemasUsuario } from '../services/emblemasApi.js';
+import EmblemaAvatar from './EmblemaAvatar.jsx';
 import { listarMisIncidencias } from '../services/incidenciaApi.js';
 import { listarResenasDeUsuario } from '../services/resenasApi.js';
 import { listarMisNegocios } from '../services/negocioApi.js';
@@ -23,11 +25,24 @@ function hoyISO() {
 
 export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, onSalir, onEnviarVerificacion, onRecargarEmailVerified }) {
   const { lang, setLang, available } = useI18n();
-  function t(key) {
+  function t(key, params) {
     const dict = TRADS[lang] || TRADS.es;
-    return key.split('.').reduce((o, k) => (o && o[k] != null ? o[k] : key), dict);
+    let val = key.split('.').reduce((o, k) => (o && o[k] != null ? o[k] : key), dict);
+    if (params && typeof val === 'string') {
+      val = val.replace(/\{\{(\w+)\}\}/g, (_, k) => (params[k] != null ? params[k] : `{{${k}}}`));
+    }
+    return val;
   }
   const [proximas, setProximas] = useState([]);
+  const [emblemaEstado, setEmblemaEstado] = useState({
+    totalReservas: 0,
+    desbloqueados: [],
+    emblema: null,
+    multi: 1,
+    multiTexto: 'x1.00',
+    siguiente: null,
+    faltan: 0,
+  });
   const [incidencias, setIncidencias] = useState([]);
   const [misResenas, setMisResenas] = useState([]);
   const [misNegocios, setMisNegocios] = useState([]);
@@ -42,22 +57,46 @@ export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibil
       return;
     }
     let vivo = true;
-    Promise.all([
-      listarMisReservas(usuario.uid),
-      listarMisIncidencias({ uid: usuario.uid, email: usuario.email }),
-      listarResenasDeUsuario(usuario.uid),
-      listarMisNegocios(usuario.uid).catch(() => []),
-    ])
-      .then(([todas, inc, res, neg]) => {
-        if (!vivo) return;
-        const hoy = hoyISO();
-        setProximas(todas.filter((r) => r.estado === 'activa' && r.fecha >= hoy).slice(0, 3));
-        setIncidencias(inc.slice(0, 5));
-        setMisResenas(res.slice(0, 5));
-        setMisNegocios(neg.slice(0, 5));
-        setCargando(false);
-      })
-      .catch(() => vivo && setCargando(false));
+
+    (async () => {
+      // Cada consulta es independiente: un fallo en incidencias/reseñas
+      // no debe impedir cargar reservas ni emblemas.
+      const [todasRes, incRes, resRes, negRes] = await Promise.allSettled([
+        listarMisReservas(usuario.uid),
+        listarMisIncidencias({ uid: usuario.uid, email: usuario.email }),
+        listarResenasDeUsuario(usuario.uid),
+        listarMisNegocios(usuario.uid),
+      ]);
+      if (!vivo) return;
+
+      const todas = todasRes.status === 'fulfilled' ? todasRes.value : [];
+      const inc = incRes.status === 'fulfilled' ? incRes.value : [];
+      const res = resRes.status === 'fulfilled' ? resRes.value : [];
+      const neg = negRes.status === 'fulfilled' ? negRes.value : [];
+
+      const hoy = hoyISO();
+      setProximas(todas.filter((r) => r.estado === 'activa' && r.fecha >= hoy).slice(0, 3));
+      setIncidencias(inc.slice(0, 5));
+      setMisResenas(res.slice(0, 5));
+      setMisNegocios(neg.slice(0, 5));
+      setCargando(false);
+
+      if (todasRes.status !== 'fulfilled') return;
+
+      try {
+        const emb = await obtenerEmblemasUsuario(usuario.uid, todas);
+        if (vivo) setEmblemaEstado(emb);
+      } catch {
+        // Fallback local si Firestore de usuarios falla: al menos contar reservas.
+        try {
+          const emb = await obtenerEmblemasUsuario(null, todas);
+          if (vivo) setEmblemaEstado(emb);
+        } catch {
+          // Emblemas opcionales: no rompen la página.
+        }
+      }
+    })();
+
     return () => { vivo = false; };
   }, [usuario]);
 
@@ -136,10 +175,39 @@ export default function Cuenta({ usuario, perfil, dieta, guardarDieta, accesibil
     ? new Date(usuario.creado).toLocaleDateString(t('modelos.locale'), { day: 'numeric', month: 'long', year: 'numeric' })
     : '—';
 
+  const { totalReservas, emblema, multiTexto, siguiente, faltan } = emblemaEstado;
+  const nombreEmblema = emblema ? t(`emblemas.${emblema.id}`) : '';
+  const nombreSiguiente = siguiente ? t(`emblemas.${siguiente.id}`) : '';
+
+  let textoProgreso;
+  if (totalReservas === 0) {
+    textoProgreso = t('emblemas.sinEmblema');
+  } else if (siguiente && faltan > 0) {
+    textoProgreso = faltan === 1
+      ? t('emblemas.faltaUna', { siguiente: nombreSiguiente })
+      : t('emblemas.faltan', { n: faltan, siguiente: nombreSiguiente });
+  } else {
+    textoProgreso = t('emblemas.maximo');
+  }
+
   return (
     <section className="auth-pagina" aria-labelledby="cuenta-titulo">
       <div className="auth-tarjeta">
-        <p className="cuenta-avatar" aria-hidden="true">{inicial}</p>
+        {/* --- PROGRESIÓN DE EMBLEMA --- */}
+        <div className="emblema-progreso" aria-live="polite">
+          <p className="emblema-progreso-label">{t('emblemas.tituloProgreso')}</p>
+          <p className={`emblema-progreso-titulo${emblema ? ` emblema-progreso-titulo--activo emblema-progreso-titulo--${emblema.id}` : ''}`}>
+            {emblema ? t('emblemas.tituloNivel', { nombre: nombreEmblema }) : ' '}
+          </p>
+          <EmblemaAvatar inicial={inicial} emblema={emblema} size="lg" />
+          <p className="emblema-progreso-texto">{textoProgreso}</p>
+          <p className="emblema-progreso-racha" title={t('emblemas.multiplicador', { multi: multiTexto })}>
+            <span className="emblema-progreso-racha-icono" aria-hidden="true">🔥</span>
+            <span className="emblema-progreso-racha-nombre">{t('emblemas.multiplicador')}</span>
+            <strong className="emblema-progreso-racha-valor">{multiTexto}</strong>
+          </p>
+        </div>
+
         <h1 id="cuenta-titulo">{usuario.nombre || t('cuenta.miCuenta')}</h1>
         <dl className="cuenta-datos">
           <div><dt>{t('cuenta.email')}</dt><dd>{usuario.email}</dd></div>

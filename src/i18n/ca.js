@@ -218,6 +218,19 @@ export default {
     "cookiesDescripcion": "Controla quins tipus de cookies acceptes. Es desen al teu perfil i s'apliquen en totes les teves sessions.",
     "enviando": "Enviant…"
   },
+  "emblemas": {
+    "tituloProgreso": "El teu progrés",
+    "tituloNivel": "Emblema {{nombre}}",
+    "foodie": "Foodie",
+    "gourmet": "Gourmet",
+    "michelin": "Michelin",
+    "sinEmblema": "Reserva la teva primera taula per aconseguir l'emblema Foodie.",
+    "faltan": "Et falten {{n}} reserves per aconseguir l'emblema {{siguiente}}.",
+    "faltaUna": "Et falta 1 reserva per aconseguir l'emblema {{siguiente}}.",
+    "maximo": "Has aconseguit l'emblema Michelin.",
+    "multiplicador": "Multiplicador",
+    "multiplicadorValor": "{{multi}}"
+  },
   "registro": {
     "crearCuenta": "Crear compte",
     "gratis": "Gratuït, en menys d'un minut.",
