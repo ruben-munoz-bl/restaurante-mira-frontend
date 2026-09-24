@@ -1,46 +1,76 @@
 /** OpsAjustes — tema, sesión y referencias operativas. */
+import { View, Text, Linking } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useOpsStyles } from './OpsTokens';
+import { OpsCard, OpsBtn, OpsCode } from './OpsUi';
+import { Simbolo } from '../shell/Simbolo';
+
 export default function OpsAjustes({ usuario, tema, onCambiarTema }) {
+  const { s, op } = useOpsStyles();
+  const router = useRouter();
+  const oscuro = tema === 'oscuro';
+
+  const items = [
+    {
+      titulo: 'Modo visual',
+      sub: 'Claro / oscuro (igual que la app, se guarda en este navegador)',
+      accion: (
+        <OpsBtn sm onPress={onCambiarTema} icono={oscuro ? 'dark_mode' : 'light_mode'}>
+          {oscuro ? 'Oscuro' : 'Claro'}
+        </OpsBtn>
+      ),
+    },
+    {
+      titulo: 'Sesión',
+      sub: null,
+      subComponente: (
+        <Text style={s.muted}>
+          {usuario?.email} · rol operador (allowlist <OpsCode>admins</OpsCode>)
+        </Text>
+      ),
+      accion: (
+        <OpsBtn sm onPress={() => router.push('/cuenta')}>
+          Mi cuenta
+        </OpsBtn>
+      ),
+    },
+    {
+      titulo: 'Reglas de Firestore',
+      sub: 'Reservas, aforo, contactos, reseñas y mensajes: solo dueño o admin',
+      accion: (
+        <OpsBtn sm onPress={() => Linking.openURL('https://console.firebase.google.com/')}>
+          Abrir consola
+        </OpsBtn>
+      ),
+    },
+    {
+      titulo: 'Volver a la web',
+      sub: 'Salir del panel operativo sin cerrar sesión',
+      accion: (
+        <OpsBtn sm onPress={() => router.push('/')}>
+          Ir a MIRA
+        </OpsBtn>
+      ),
+    },
+  ];
+
   return (
-    <div className="ops-card">
-      <div className="ops-card-head">
-        <div>
-          <h2>Ajustes &amp; Auditoría</h2>
-          <p className="ops-card-sub">Preferencias del panel y accesos rápidos</p>
-        </div>
-      </div>
-      <div className="ops-list">
-        <div className="ops-list-item">
-          <div>
-            <strong>Modo visual</strong>
-            <div className="ops-muted">Claro / oscuro (igual que la app, se guarda en este navegador)</div>
-          </div>
-          <button type="button" className="ops-btn soft sm" onClick={onCambiarTema}>
-            <span className="material-symbols-outlined">{tema === 'oscuro' ? 'dark_mode' : 'light_mode'}</span>
-            {tema === 'oscuro' ? 'Oscuro' : 'Claro'}
-          </button>
-        </div>
-        <div className="ops-list-item">
-          <div>
-            <strong>Sesión</strong>
-            <div className="ops-muted">{usuario?.email} · rol operador (allowlist <code className="ops-code">admins</code>)</div>
-          </div>
-          <a className="ops-btn soft sm" href="#/cuenta">Mi cuenta</a>
-        </div>
-        <div className="ops-list-item">
-          <div>
-            <strong>Reglas de Firestore</strong>
-            <div className="ops-muted">Reservas, aforo, contactos, reseñas y mensajes: solo dueño o admin</div>
-          </div>
-          <a className="ops-btn soft sm" href="https://console.firebase.google.com/" target="_blank" rel="noreferrer">Abrir consola</a>
-        </div>
-        <div className="ops-list-item">
-          <div>
-            <strong>Volver a la web</strong>
-            <div className="ops-muted">Salir del panel operativo sin cerrar sesión</div>
-          </div>
-          <a className="ops-btn soft sm" href="#/">Ir a MIRA</a>
-        </div>
-      </div>
-    </div>
+    <OpsCard titulo="Ajustes & Auditoría" sub="Preferencias del panel y accesos rápidos">
+      <View style={s.list}>
+        {items.map((it) => (
+          <View key={it.titulo} style={s.listItem}>
+            <View style={s.listItemCuerpo}>
+              <Text style={s.listItemTitulo}>{it.titulo}</Text>
+              {it.sub ? <Text style={s.muted}>{it.sub}</Text> : null}
+              {it.subComponente}
+            </View>
+            {it.accion}
+          </View>
+        ))}
+      </View>
+      <Text style={[s.muted, { marginTop: 12 }]}>
+        <Simbolo name="settings" size={12} color={op.onVariant} /> Panel Operator Hub · MIRA
+      </Text>
+    </OpsCard>
   );
 }

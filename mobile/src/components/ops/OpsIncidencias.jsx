@@ -1,9 +1,13 @@
 /** OpsIncidencias — contactos pendientes (resolver) + negocios propuestos (aprobar/rechazar). */
 import { useEffect, useState } from 'react';
+import { View, Text } from 'react-native';
 import { listarPendientes, resolverIncidencia } from '../../services/incidenciaApi.js';
 import { listarNegociosPendientes, aprobarNegocio, rechazarNegocio } from '../../services/negocioApi.js';
+import { useOpsStyles } from './OpsTokens';
+import { OpsCard, OpsBtn, OpsEmpty, OpsError } from './OpsUi';
 
 export default function OpsIncidencias() {
+  const { s } = useOpsStyles();
   const [contactos, setContactos] = useState([]);
   const [negocios, setNegocios] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -13,9 +17,22 @@ export default function OpsIncidencias() {
   useEffect(() => {
     let vivo = true;
     Promise.all([listarPendientes().catch(() => []), listarNegociosPendientes().catch(() => [])])
-      .then(([c, n]) => { if (vivo) { setContactos(c); setNegocios(n); setCargando(false); } })
-      .catch((e) => { if (vivo) { setError(e.message); setCargando(false); } });
-    return () => { vivo = false; };
+      .then(([c, n]) => {
+        if (vivo) {
+          setContactos(c);
+          setNegocios(n);
+          setCargando(false);
+        }
+      })
+      .catch((e) => {
+        if (vivo) {
+          setError(e.message);
+          setCargando(false);
+        }
+      });
+    return () => {
+      vivo = false;
+    };
   }, []);
 
   async function accionar(fn, id, quitarDe) {
@@ -33,62 +50,63 @@ export default function OpsIncidencias() {
   }
 
   return (
-    <>
-      <div className="ops-card">
-        <div className="ops-card-head">
-          <div>
-            <h2>Incidencias &amp; Soporte ({contactos.length})</h2>
-            <p className="ops-card-sub">Mensajes de contacto pendientes · resolver los marca como resueltos</p>
-          </div>
-        </div>
-        {error && <p className="ops-error" role="alert">{error}</p>}
-        {cargando && <p className="ops-empty" role="status">Cargando…</p>}
-        {!cargando && contactos.length === 0 && <p className="ops-empty">Sin incidencias pendientes.</p>}
-        <ul className="ops-list">
-          {contactos.map((c) => (
-            <li key={c.id} className="ops-list-item">
-              <div style={{ minWidth: 0 }}>
-                <strong>{c.motivo || 'Incidencia'}</strong> · {c.nombre} ({c.email})
-                <div className="ops-muted">{(c.mensaje || '').slice(0, 220)}</div>
-              </div>
-              <button type="button" className="ops-btn primary sm" disabled={actuando === c.id}
-                onClick={() => accionar(resolverIncidencia, c.id, 'c')}>
-                Resolver
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
+    <View style={{ gap: 20 }}>
+      <OpsCard
+        titulo={`Incidencias & Soporte (${contactos.length})`}
+        sub="Mensajes de contacto pendientes · resolver los marca como resueltos"
+      >
+        {cargando ? (
+          <OpsEmpty cargando />
+        ) : contactos.length === 0 ? (
+          <OpsEmpty>Sin incidencias pendientes.</OpsEmpty>
+        ) : (
+          <View style={s.list}>
+            {contactos.map((c) => (
+              <View key={c.id} style={s.listItem}>
+                <View style={s.listItemCuerpo}>
+                  <Text style={s.listItemTitulo}>
+                    {c.motivo || 'Incidencia'} · {c.nombre} ({c.email})
+                  </Text>
+                  <Text style={s.muted} numberOfLines={4}>
+                    {(c.mensaje || '').slice(0, 220)}
+                  </Text>
+                </View>
+                <OpsBtn tipo="primary" sm disabled={actuando === c.id} onPress={() => accionar(resolverIncidencia, c.id, 'c')}>
+                  Resolver
+                </OpsBtn>
+              </View>
+            ))}
+          </View>
+        )}
+      </OpsCard>
 
-      <div className="ops-card">
-        <div className="ops-card-head">
-          <div>
-            <h2>Locales propuestos ({negocios.length})</h2>
-            <p className="ops-card-sub">Aprobar copia el local a la red · rechazar lo archiva</p>
-          </div>
-        </div>
-        {!cargando && negocios.length === 0 && <p className="ops-empty">Sin propuestas pendientes.</p>}
-        <ul className="ops-list">
+      <OpsCard titulo={`Locales propuestos (${negocios.length})`} sub="Aprobar copia el local a la red · rechazar lo archiva">
+        {!cargando && negocios.length === 0 ? <OpsEmpty>Sin propuestas pendientes.</OpsEmpty> : null}
+        <View style={s.list}>
           {negocios.map((n) => (
-            <li key={n.id} className="ops-list-item">
-              <div style={{ minWidth: 0 }}>
-                <strong>{n.nombre}</strong> · {n.ciudad} ({(n.categorias || []).join(', ')})
-                <div className="ops-muted">{n.direccion} · {n.precio} · {n.email}</div>
-              </div>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <button type="button" className="ops-btn primary sm" disabled={actuando === n.id}
-                  onClick={() => accionar(aprobarNegocio, n.id, 'n')}>
+            <View key={n.id} style={s.listItem}>
+              <View style={s.listItemCuerpo}>
+                <Text style={s.listItemTitulo}>
+                  {n.nombre} · {n.ciudad} ({(n.categorias || []).join(', ')})
+                </Text>
+                <Text style={s.muted}>
+                  {n.direccion} · {n.precio} · {n.email}
+                </Text>
+              </View>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                <OpsBtn tipo="primary" sm disabled={actuando === n.id} onPress={() => accionar(aprobarNegocio, n.id, 'n')}>
                   Aprobar
-                </button>
-                <button type="button" className="ops-btn soft sm" disabled={actuando === n.id}
-                  onClick={() => accionar(rechazarNegocio, n.id, 'n')}>
+                </OpsBtn>
+                <OpsBtn sm disabled={actuando === n.id} onPress={() => accionar(rechazarNegocio, n.id, 'n')}>
                   Rechazar
-                </button>
-              </div>
-            </li>
+                </OpsBtn>
+              </View>
+            </View>
           ))}
-        </ul>
-      </div>
-    </>
+        </View>
+      </OpsCard>
+
+      {error ? <OpsError>{error}</OpsError> : null}
+    </View>
   );
 }

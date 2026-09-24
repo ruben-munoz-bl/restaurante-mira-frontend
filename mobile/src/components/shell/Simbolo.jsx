@@ -8,6 +8,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 const MAPA = {
   calendar_today: 'calendar-today',
+  calendar_month: 'calendar-month',
+  report_problem: 'report-problem',
+  credit_card_off: 'credit-card-off',
   location_on: 'location-on',
   add_business: 'add-business',
   workspace_premium: 'workspace-premium',

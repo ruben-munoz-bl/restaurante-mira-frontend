@@ -17,7 +17,6 @@ module.exports = defineConfig([
       'src/components/dashboard/AdminPanel.jsx',
       'src/components/dashboard/RestaurantPanel.jsx',
       'src/components/dashboard/StatsCard.jsx',
-      'src/components/ops/**',
       'src/components/points/**',
       'src/components/promotions/**',
       'src/components/tickets/**',

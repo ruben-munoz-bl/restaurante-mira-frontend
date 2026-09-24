@@ -1,9 +1,10 @@
 /**
  * Ops data — agregados del panel operativo calculados con datos de la API mira-api.
  */
+import { Alert } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
+import { Sharing } from 'expo-sharing';
 import { api } from '../../services/httpClient.js';
-import { listarPendientes } from '../../services/incidenciaApi.js';
-import { listarNegociosPendientes } from '../../services/negocioApi.js';
 
 /** Comisión real si la reserva ya tiene ticket; si no, null (no inventar). */
 export function comisionRealDeReserva(r) {
@@ -131,17 +132,22 @@ function csvCell(v) {
   return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
-export function descargarCSV(nombre, cabeceras, filas) {
+// RN: en vez de Blob+URL+<a> (web), se escribe en caché y se comparte.
+export async function descargarCSV(nombre, cabeceras, filas) {
   const lineas = [cabeceras.map(csvCell).join(';'), ...filas.map((f) => f.map(csvCell).join(';'))];
-  const blob = new Blob([`﻿${lineas.join('\n')}`], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = nombre;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  try {
+    const uri = `${FileSystem.cacheDirectory}${nombre}`;
+    await FileSystem.writeAsStringAsync(uri, '\uFEFF' + lineas.join('\n'), { encoding: FileSystem.EncodingType.UTF8 });
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(uri, {
+        mimeType: 'text/csv',
+        dialogTitle: nombre,
+        UTI: 'public.comma-separated-values-text',
+      });
+    }
+  } catch (e) {
+    Alert.alert('MIRA', e?.message || 'No se pudo exportar el CSV');
+  }
 }
 
 export function csvReservas(list) {

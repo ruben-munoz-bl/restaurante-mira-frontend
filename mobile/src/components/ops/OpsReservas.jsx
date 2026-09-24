@@ -1,10 +1,31 @@
 /** OpsReservas — reservas globales: buscar, filtrar y cambiar estado. */
 import { useEffect, useState } from 'react';
-import { getReservasGlobales, nombreRestauranteDe, descargarCSV, csvReservas, mensajeErrorFirestore, updateReservationStatus } from './opsData.js';
+import { View, Text } from 'react-native';
+import {
+  getReservasGlobales,
+  nombreRestauranteDe,
+  descargarCSV,
+  csvReservas,
+  mensajeErrorFirestore,
+  updateReservationStatus,
+} from './opsData.js';
+import { useOpsStyles, MONO } from './OpsTokens';
+import { OpsCard, OpsBtn, OpsInput, OpsSeg, OpsEmpty, OpsError, OpsStatusPill, OpsTabla, OpsTd, OpsTr, OpsCode } from './OpsUi';
 
-const ESTADOS = ['', 'pendiente', 'confirmada', 'completada', 'cancelada', 'no_show'];
+const ESTADOS = ['pendiente', 'confirmada', 'completada', 'cancelada', 'no_show'];
+
+const COLS = [
+  { titulo: 'Código', w: 92 },
+  { titulo: 'Cliente', w: 150 },
+  { titulo: 'Restaurante', w: 140 },
+  { titulo: 'Fecha', w: 106 },
+  { titulo: 'Pax', w: 48, derecha: true },
+  { titulo: 'Estado', w: 96 },
+  { titulo: 'Acciones', w: 300 },
+];
 
 export default function OpsReservas({ busquedaInicial = '' }) {
+  const { s, op } = useOpsStyles();
   const [q, setQ] = useState(busquedaInicial);
   const [estado, setEstado] = useState('');
   const [lista, setLista] = useState([]);
@@ -24,8 +45,11 @@ export default function OpsReservas({ busquedaInicial = '' }) {
     }
   }
 
-  useEffect(() => { cargar(); /* solo al montar */ }, []);
-  useEffect(() => { setQ(busquedaInicial); }, [busquedaInicial]);
+  useEffect(() => {
+    cargar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => setQ(busquedaInicial), [busquedaInicial]);
 
   async function cambiar(id, nuevo) {
     setError('');
@@ -40,63 +64,103 @@ export default function OpsReservas({ busquedaInicial = '' }) {
     }
   }
 
+  const pillTipo = (r) =>
+    r.estado === 'cancelada' || r.estado === 'no_show' ? 'danger' : r.estado === 'pendiente' ? 'info' : 'ok';
+
   return (
-    <div className="ops-card">
-      <div className="ops-card-head">
-        <div>
-          <h2>Reservas Globales</h2>
-          <p className="ops-card-sub">{lista.length} reservas · confirmar, completar, no-show o cancelar</p>
-        </div>
-        <button type="button" className="ops-btn soft sm" onClick={() => { const c = csvReservas(lista); descargarCSV('reservas.csv', c.cabeceras, c.filas); }}>
-          <span className="material-symbols-outlined">download</span>Exportar CSV
-        </button>
-      </div>
-      <div className="ops-toolbar" role="search">
-        <input className="ops-input" type="search" placeholder="Código, cliente, email, restaurante…" value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') cargar(); }} style={{ flex: 1, minWidth: 220 }} />
-        <select className="ops-selectbox" value={estado} onChange={(e) => setEstado(e.target.value)} aria-label="Filtrar por estado">
-          <option value="">Todos los estados</option>
-          {ESTADOS.slice(1).map((e) => <option key={e} value={e}>{e}</option>)}
-        </select>
-        <button type="button" className="ops-btn primary sm" onClick={cargar}>Buscar</button>
-      </div>
-      {error && <p className="ops-error" role="alert">{error}</p>}
-      {cargando && <p className="ops-empty" role="status">Cargando reservas…</p>}
-      {!cargando && lista.length === 0 && <p className="ops-empty">Sin resultados.</p>}
-      {!cargando && lista.length > 0 && (
-        <div className="ops-table-wrap">
-          <table className="ops-table">
-            <thead>
-              <tr><th>Código</th><th>Cliente</th><th>Restaurante</th><th>Fecha</th><th>Pax</th><th>Estado</th><th>Acciones</th></tr>
-            </thead>
-            <tbody>
-              {lista.map((r) => (
-                <tr key={r.id}>
-                  <td><code className="ops-code">{r.codigo || r.id.slice(0, 8)}</code></td>
-                  <td>{r.usuarioNombre || r.usuarioEmail || '—'}<br /><span className="ops-muted">{r.usuarioEmail || ''}</span></td>
-                  <td>{nombreRestauranteDe(r)}</td>
-                  <td style={{ whiteSpace: 'nowrap' }}>{r.fecha} {r.hora}</td>
-                  <td className="num">{r.comensales}</td>
-                  <td>
-                    <span className={`ops-status-pill ${(r.estado === 'cancelada' || r.estado === 'no_show') ? 'danger' : (r.estado === 'pendiente' ? 'info' : '')}`}>
-                      {r.estado || 'pendiente'}
-                    </span>
-                  </td>
-                  <td>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'confirmada')}>Confirmar</button>
-                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'completada')}>Completar</button>
-                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'no_show')}>No-show</button>
-                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'cancelada')}>Cancelar</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+    <OpsCard
+      titulo="Reservas Globales"
+      sub={`${lista.length} reservas · confirmar, completar, no-show o cancelar`}
+      right={
+        <OpsBtn
+          sm
+          icono="download"
+          onPress={() => {
+            const c = csvReservas(lista);
+            descargarCSV('reservas.csv', c.cabeceras, c.filas);
+          }}
+        >
+          Exportar CSV
+        </OpsBtn>
+      }
+    >
+      <View style={s.toolbar}>
+        <OpsInput
+          value={q}
+          onChangeText={setQ}
+          onSubmit={cargar}
+          placeholder="Código, cliente, email, restaurante…"
+          style={{ flexGrow: 1, minWidth: 200 }}
+        />
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <OpsSeg
+            valor={estado}
+            onChange={setEstado}
+            opciones={[{ valor: '', etiqueta: 'Todos' }, ...ESTADOS.map((e) => ({ valor: e, etiqueta: e }))]}
+          />
+          <OpsBtn tipo="primary" sm onPress={cargar}>
+            Buscar
+          </OpsBtn>
+        </View>
+      </View>
+
+      <OpsError>{error}</OpsError>
+      {cargando ? (
+        <OpsEmpty cargando />
+      ) : lista.length === 0 ? (
+        <OpsEmpty>Sin resultados.</OpsEmpty>
+      ) : (
+        <OpsTabla cols={COLS}>
+          {lista.map((r) => (
+            <OpsTr key={r.id}>
+              <OpsTd w={COLS[0].w}>
+                <OpsCode>{r.codigo || String(r.id).slice(0, 8)}</OpsCode>
+              </OpsTd>
+              <OpsTd w={COLS[1].w}>
+                <Text style={s.tdTxt} numberOfLines={1}>
+                  {r.usuarioNombre || r.usuarioEmail || '—'}
+                </Text>
+                <Text style={s.muted} numberOfLines={1}>
+                  {r.usuarioEmail || ''}
+                </Text>
+              </OpsTd>
+              <OpsTd w={COLS[2].w}>
+                <Text style={s.tdTxt} numberOfLines={1}>
+                  {nombreRestauranteDe(r)}
+                </Text>
+              </OpsTd>
+              <OpsTd w={COLS[3].w}>
+                <Text style={[s.tdTxt, { fontFamily: MONO }]}>
+                  {r.fecha} {r.hora}
+                </Text>
+              </OpsTd>
+              <OpsTd w={COLS[4].w} derecha>
+                <Text style={[s.tdTxt, s.num]}>{r.comensales}</Text>
+              </OpsTd>
+              <OpsTd w={COLS[5].w}>
+                <OpsStatusPill tipo={pillTipo(r)}>{r.estado || 'pendiente'}</OpsStatusPill>
+              </OpsTd>
+              <OpsTd w={COLS[6].w} style={{ paddingVertical: 8 }}>
+                <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap' }}>
+                  <OpsBtn sm disabled={actuando === r.id} onPress={() => cambiar(r.id, 'confirmada')}>
+                    Confirmar
+                  </OpsBtn>
+                  <OpsBtn sm disabled={actuando === r.id} onPress={() => cambiar(r.id, 'completada')}>
+                    Completar
+                  </OpsBtn>
+                  <OpsBtn sm disabled={actuando === r.id} onPress={() => cambiar(r.id, 'no_show')}>
+                    No-show
+                  </OpsBtn>
+                  <OpsBtn sm disabled={actuando === r.id} onPress={() => cambiar(r.id, 'cancelada')}>
+                    Cancelar
+                  </OpsBtn>
+                </View>
+              </OpsTd>
+            </OpsTr>
+          ))}
+        </OpsTabla>
       )}
-    </div>
+      <Text style={[s.muted, { color: op.onVariant, marginTop: 8 }]}>Desliza la tabla en horizontal para ver todas las columnas.</Text>
+    </OpsCard>
   );
 }

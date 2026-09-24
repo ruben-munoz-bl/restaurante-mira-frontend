@@ -1,5 +1,6 @@
 /** OpsRestaurantes — red de locales: paginación 27, buscador y acciones (mensaje / editar / eliminar). */
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView } from 'react-native';
 import {
   mensajeErrorFirestore,
   listarRestaurantesAdmin,
@@ -7,6 +8,22 @@ import {
   eliminarRestauranteAdmin,
   enviarMensajeDueno,
 } from './opsData.js';
+import { useOpsStyles, MONO } from './OpsTokens';
+import {
+  OpsCard,
+  OpsBtn,
+  OpsInput,
+  OpsField,
+  OpsModal,
+  OpsModalTitulo,
+  OpsError,
+  OpsSuccess,
+  OpsEmpty,
+  OpsStatusPill,
+  OpsTabla,
+  OpsTr,
+  OpsTd,
+} from './OpsUi';
 
 const LOTE = 27;
 
@@ -23,7 +40,17 @@ const CAMPOS_EDICION = [
   { k: 'maxReservasPorHora', label: 'Máx. reservas/hora', type: 'number' },
 ];
 
+const COLS = [
+  { titulo: 'Restaurante & ciudad', w: 230 },
+  { titulo: 'Cocina', w: 110 },
+  { titulo: 'Nota', w: 74, derecha: true },
+  { titulo: 'Reseñas', w: 78, derecha: true },
+  { titulo: 'Estado', w: 104, derecha: true },
+  { titulo: 'Acciones', w: 300, derecha: true },
+];
+
 export default function OpsRestaurantes() {
+  const { s, op } = useOpsStyles();
   const [items, setItems] = useState([]);
   const [cursor, setCursor] = useState(null);
   const [terminado, setTerminado] = useState(false);
@@ -92,7 +119,7 @@ export default function OpsRestaurantes() {
     if (tipo === 'editar') {
       const base = {};
       CAMPOS_EDICION.forEach(({ k }) => {
-        base[k] = rest[k] ?? (k === 'comisionPct' || k === 'maxReservasPorHora' ? '' : '');
+        base[k] = rest[k] ?? '';
       });
       if (rest.categorias?.length && !rest.cocina) base.cocina = rest.categorias[0];
       setForm(base);
@@ -178,194 +205,185 @@ export default function OpsRestaurantes() {
     }
   }
 
+  const estadoRest = (r) => {
+    if (r.activo === false) return <OpsStatusPill tipo="danger">Inactivo</OpsStatusPill>;
+    if ((r.valoracion ?? r.rating_yelp ?? 0) >= 4.5) return <OpsStatusPill>Verificado</OpsStatusPill>;
+    return <OpsStatusPill tipo="warn">En red</OpsStatusPill>;
+  };
+
   return (
-    <div className="ops-card">
-      <div className="ops-card-head">
-        <div>
-          <h2>Gestión Restaurantes</h2>
-          <p className="ops-card-sub">
-            {items.length} cargados{terminado ? ' (fin de listado)' : cursor ? ' · más disponibles' : ''}
-            {qAplicada ? ` · filtro «${qAplicada}»` : ''} · lotes de {LOTE}
-          </p>
-        </div>
-      </div>
-
-      <div className="ops-toolbar" role="search">
-        <input
-          className="ops-input"
-          type="search"
-          placeholder="Nombre, ciudad, cocina…"
+    <OpsCard
+      titulo="Gestión Restaurantes"
+      sub={`${items.length} cargados${terminado ? ' (fin de listado)' : cursor ? ' · más disponibles' : ''}${
+        qAplicada ? ` · filtro «${qAplicada}»` : ''
+      } · lotes de ${LOTE}`}
+    >
+      <View style={s.toolbar}>
+        <OpsInput
           value={q}
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') buscar(); }}
-          style={{ flex: 1, minWidth: 220 }}
-          aria-label="Buscar restaurantes"
+          onChangeText={setQ}
+          onSubmit={buscar}
+          placeholder="Nombre, ciudad, cocina…"
+          style={{ flexGrow: 1, minWidth: 200 }}
         />
-        <button type="button" className="ops-btn primary sm" onClick={buscar}>Buscar</button>
-        {qAplicada && (
-          <button
-            type="button"
-            className="ops-btn soft sm"
-            onClick={() => { setQ(''); cargarPrimera(''); }}
-          >
-            Limpiar
-          </button>
-        )}
-      </div>
+        <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+          <OpsBtn tipo="primary" sm onPress={buscar}>
+            Buscar
+          </OpsBtn>
+          {qAplicada ? (
+            <OpsBtn
+              sm
+              onPress={() => {
+                setQ('');
+                cargarPrimera('');
+              }}
+            >
+              Limpiar
+            </OpsBtn>
+          ) : null}
+        </View>
+      </View>
 
-      {error && <p className="ops-error" role="alert">{error}</p>}
-      {ok && <p className="ops-success" role="status">{ok}</p>}
-      {cargando && items.length === 0 && <p className="ops-empty" role="status">Cargando restaurantes…</p>}
-      {!cargando && items.length === 0 && <p className="ops-empty">Sin resultados.</p>}
+      <OpsError>{error}</OpsError>
+      <OpsSuccess>{ok}</OpsSuccess>
+      {cargando && items.length === 0 ? <OpsEmpty cargando /> : null}
+      {!cargando && items.length === 0 ? <OpsEmpty>Sin resultados.</OpsEmpty> : null}
 
-      {items.length > 0 && (
-        <div className="ops-table-wrap">
-          <table className="ops-table">
-            <thead>
-              <tr>
-                <th>Restaurante &amp; ciudad</th>
-                <th>Cocina</th>
-                <th style={{ textAlign: 'right' }}>Nota</th>
-                <th style={{ textAlign: 'right' }}>Reseñas</th>
-                <th style={{ textAlign: 'right' }}>Estado</th>
-                <th style={{ textAlign: 'right' }}>Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((r) => (
-                <tr key={r.id}>
-                  <td>
-                    <span className="ops-rest-cell">
-                      <span className="ops-rest-ini">{(r.nombre || '?').slice(0, 2).toUpperCase()}</span>
-                      <span>
-                        <strong>{r.nombre}</strong>
-                        <br />
-                        <span className="ops-muted">{r.ciudad} · {r.precio || '—'}</span>
-                      </span>
-                    </span>
-                  </td>
-                  <td>{r.cocina || (r.categorias || [])[0] || '—'}</td>
-                  <td className="num">★ {(r.valoracion ?? r.rating_yelp ?? 0).toLocaleString('es-ES')}</td>
-                  <td className="num">{(r.totalResenasYelp ?? r.total_resenas_yelp ?? (r.resenas || []).length ?? 0).toLocaleString('es-ES')}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    {r.activo === false
-                      ? <span className="ops-status-pill danger">Inactivo</span>
-                      : (r.valoracion ?? r.rating_yelp ?? 0) >= 4.5
-                        ? <span className="ops-status-pill">Verificado</span>
-                        : <span className="ops-status-pill warn">En red</span>}
-                  </td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      <button type="button" className="ops-btn soft sm" onClick={() => abrirModal('mensaje', r)} title="Enviar mensaje al dueño">
-                        <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: -2 }}>mail</span>
-                        {' '}Mensaje
-                      </button>
-                      <button type="button" className="ops-btn soft sm" onClick={() => abrirModal('editar', r)} title="Editar ficha">
-                        <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: -2 }}>edit</span>
-                        {' '}Editar
-                      </button>
-                      <button type="button" className="ops-btn danger sm" onClick={() => abrirModal('eliminar', r)} title="Eliminar restaurante">
-                        <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: -2 }}>delete</span>
-                        {' '}Eliminar
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      {items.length > 0 ? (
+        <OpsTabla cols={COLS}>
+          {items.map((r) => (
+            <OpsTr key={r.id}>
+              <OpsTd w={COLS[0].w}>
+                <View style={s.restCell}>
+                  <Text style={s.restIni}>{(r.nombre || '?').slice(0, 2).toUpperCase()}</Text>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={[s.tdTxt, { fontWeight: '700' }]} numberOfLines={1}>
+                      {r.nombre}
+                    </Text>
+                    <Text style={s.muted} numberOfLines={1}>
+                      {r.ciudad} · {r.precio || '—'}
+                    </Text>
+                  </View>
+                </View>
+              </OpsTd>
+              <OpsTd w={COLS[1].w}>
+                <Text style={s.tdTxt} numberOfLines={1}>
+                  {r.cocina || (r.categorias || [])[0] || '—'}
+                </Text>
+              </OpsTd>
+              <OpsTd w={COLS[2].w} derecha>
+                <Text style={[s.tdTxt, s.num, { fontFamily: MONO }]}>
+                  ★ {(r.valoracion ?? r.rating_yelp ?? 0).toLocaleString('es-ES')}
+                </Text>
+              </OpsTd>
+              <OpsTd w={COLS[3].w} derecha>
+                <Text style={[s.tdTxt, s.num, { fontFamily: MONO }]}>
+                  {(r.totalResenasYelp ?? r.total_resenas_yelp ?? (r.resenas || []).length ?? 0).toLocaleString('es-ES')}
+                </Text>
+              </OpsTd>
+              <OpsTd w={COLS[4].w} derecha>
+                {estadoRest(r)}
+              </OpsTd>
+              <OpsTd w={COLS[5].w} derecha style={{ paddingVertical: 8 }}>
+                <View style={{ flexDirection: 'row', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <OpsBtn sm icono="mail" onPress={() => abrirModal('mensaje', r)}>
+                    Mensaje
+                  </OpsBtn>
+                  <OpsBtn sm icono="edit" onPress={() => abrirModal('editar', r)}>
+                    Editar
+                  </OpsBtn>
+                  <OpsBtn tipo="danger" sm icono="delete" onPress={() => abrirModal('eliminar', r)}>
+                    Eliminar
+                  </OpsBtn>
+                </View>
+              </OpsTd>
+            </OpsTr>
+          ))}
+        </OpsTabla>
+      ) : null}
 
-      {!terminado && cursor && items.length > 0 && (
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
-          <button type="button" className="ops-btn soft sm" onClick={cargarMas} disabled={cargando}>
+      {!terminado && cursor && items.length > 0 ? (
+        <View style={{ alignItems: 'center', marginTop: 12 }}>
+          <OpsBtn sm onPress={cargarMas} disabled={cargando}>
             {cargando ? 'Cargando…' : `Cargar siguientes ${LOTE}`}
-          </button>
-        </div>
-      )}
+          </OpsBtn>
+        </View>
+      ) : null}
 
-      {modal?.tipo === 'mensaje' && (
-        <div className="ops-modal-overlay" onClick={cerrarModal}>
-          <div className="ops-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="ops-msg-t">
-            <h3 id="ops-msg-t">Mensaje al dueño — {modal.rest.nombre}</h3>
-            <p className="ops-muted" style={{ marginTop: -4, marginBottom: 12 }}>
-              Se entrega en el buzón interno (#/mensajes){modal.rest.email ? ` · ${modal.rest.email}` : ''}
-            </p>
-            <div className="ops-field">
-              <label htmlFor="ops-asunto">Asunto</label>
-              <input id="ops-asunto" type="text" className="ops-input" value={asunto} onChange={(e) => setAsunto(e.target.value)} maxLength={160} />
-            </div>
-            <div className="ops-field">
-              <label htmlFor="ops-mensaje">Mensaje</label>
-              <textarea
-                id="ops-mensaje"
-                className="ops-input"
-                style={{ height: 120, paddingTop: 10, resize: 'vertical', fontFamily: 'inherit' }}
-                value={mensaje}
-                onChange={(e) => setMensaje(e.target.value)}
-                placeholder="Texto para el dueño…"
-                maxLength={4000}
-                required
+      {/* Modal mensaje al dueño */}
+      <OpsModal visible={modal?.tipo === 'mensaje'} onClose={cerrarModal}>
+        <OpsModalTitulo sub={`Se entrega en el buzón interno (#/mensajes)${modal?.rest?.email ? ` · ${modal.rest.email}` : ''}`}>
+          {`Mensaje al dueño — ${modal?.rest?.nombre || ''}`}
+        </OpsModalTitulo>
+        <View style={{ height: 12 }} />
+        <OpsField label="Asunto">
+          <OpsInput value={asunto} onChangeText={setAsunto} maxLength={160} placeholder="Asunto" />
+        </OpsField>
+        <OpsField label="Mensaje">
+          <OpsInput
+            value={mensaje}
+            onChangeText={setMensaje}
+            placeholder="Texto para el dueño…"
+            maxLength={4000}
+            multiline
+            numberOfLines={5}
+          />
+        </OpsField>
+        <View style={s.modalActions}>
+          <OpsBtn tipo="primary" sm onPress={enviarAlDueno} disabled={guardando || !mensaje.trim()}>
+            {guardando ? 'Enviando…' : 'Enviar'}
+          </OpsBtn>
+          <OpsBtn sm onPress={cerrarModal} disabled={guardando}>
+            Cancelar
+          </OpsBtn>
+        </View>
+      </OpsModal>
+
+      {/* Modal editar ficha */}
+      <OpsModal visible={modal?.tipo === 'editar'} onClose={cerrarModal}>
+        <OpsModalTitulo sub={modal?.rest?.id ? `ID ${modal.rest.id}` : undefined}>
+          {`Editar — ${modal?.rest?.nombre || ''}`}
+        </OpsModalTitulo>
+        <View style={{ height: 12 }} />
+        <ScrollView style={{ maxHeight: 380 }} contentContainerStyle={{ gap: 10, paddingBottom: 8 }}>
+          {CAMPOS_EDICION.map(({ k, label, type }) => (
+            <OpsField key={k} label={label}>
+              <OpsInput
+                value={String(form[k] ?? '')}
+                onChangeText={(v) => setForm((prev) => ({ ...prev, [k]: v }))}
+                keyboardType={type === 'number' || type === 'email' ? (type === 'email' ? 'email-address' : 'numeric') : 'default'}
+                placeholder={label}
               />
-            </div>
-            <div className="ops-modal-actions">
-              <button type="button" className="ops-btn primary sm" onClick={enviarAlDueno} disabled={guardando || !mensaje.trim()}>
-                {guardando ? 'Enviando…' : 'Enviar'}
-              </button>
-              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
+            </OpsField>
+          ))}
+        </ScrollView>
+        <View style={s.modalActions}>
+          <OpsBtn tipo="primary" sm onPress={guardarEdicion} disabled={guardando}>
+            {guardando ? 'Guardando…' : 'Guardar cambios'}
+          </OpsBtn>
+          <OpsBtn sm onPress={cerrarModal} disabled={guardando}>
+            Cancelar
+          </OpsBtn>
+        </View>
+      </OpsModal>
 
-      {modal?.tipo === 'editar' && (
-        <div className="ops-modal-overlay" onClick={cerrarModal}>
-          <div className="ops-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="ops-edit-t">
-            <h3 id="ops-edit-t">Editar — {modal.rest.nombre}</h3>
-            <p className="ops-muted" style={{ marginTop: -4, marginBottom: 12 }}>ID {modal.rest.id}</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              {CAMPOS_EDICION.map(({ k, label, type }) => (
-                <div className="ops-field" key={k}>
-                  <label htmlFor={`ops-f-${k}`}>{label}</label>
-                  <input
-                    id={`ops-f-${k}`}
-                    type={type}
-                    className="ops-input"
-                    value={form[k] ?? ''}
-                    onChange={(e) => setForm((prev) => ({ ...prev, [k]: e.target.value }))}
-                    step={type === 'number' ? 'any' : undefined}
-                  />
-                </div>
-              ))}
-            </div>
-            <div className="ops-modal-actions">
-              <button type="button" className="ops-btn primary sm" onClick={guardarEdicion} disabled={guardando}>
-                {guardando ? 'Guardando…' : 'Guardar cambios'}
-              </button>
-              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {modal?.tipo === 'eliminar' && (
-        <div className="ops-modal-overlay" onClick={cerrarModal}>
-          <div className="ops-modal" onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true" aria-labelledby="ops-del-t">
-            <h3 id="ops-del-t">¿Eliminar restaurante?</h3>
-            <p>
-              Vas a borrar <strong>«{modal.rest.nombre}»</strong> ({modal.rest.ciudad || '—'}) del catálogo.
-              Esta acción no se puede deshacer desde el panel.
-            </p>
-            <div className="ops-modal-actions">
-              <button type="button" className="ops-btn danger sm" onClick={confirmarEliminar} disabled={guardando}>
-                {guardando ? 'Eliminando…' : 'Sí, eliminar'}
-              </button>
-              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>Cancelar</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+      {/* Modal eliminar */}
+      <OpsModal visible={modal?.tipo === 'eliminar'} onClose={cerrarModal}>
+        <OpsModalTitulo>¿Eliminar restaurante?</OpsModalTitulo>
+        <View style={{ height: 10 }} />
+        <Text style={{ fontSize: 14, color: op.onSurface, lineHeight: 20 }}>
+          Vas a borrar «{modal?.rest?.nombre}» ({modal?.rest?.ciudad || '—'}) del catálogo. Esta acción no se puede deshacer desde
+          el panel.
+        </Text>
+        <View style={s.modalActions}>
+          <OpsBtn tipo="danger" sm onPress={confirmarEliminar} disabled={guardando}>
+            {guardando ? 'Eliminando…' : 'Sí, eliminar'}
+          </OpsBtn>
+          <OpsBtn sm onPress={cerrarModal} disabled={guardando}>
+            Cancelar
+          </OpsBtn>
+        </View>
+      </OpsModal>
+    </OpsCard>
   );
 }

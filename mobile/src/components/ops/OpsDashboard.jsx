@@ -1,9 +1,20 @@
-/** OpsDashboard — vista "Dashboard General" (la de la imagen), con datos reales. */
+/** OpsDashboard — vista "Dashboard General", con datos reales (espejo del web). */
 import { useEffect, useState } from 'react';
+import { View, Text } from 'react-native';
 import { getOpsOverview, nombreRestauranteDe, descargarCSV, csvReservas, mensajeErrorFirestore } from './opsData.js';
 import { OpsLineChart, OpsDonut, OpsHBars } from './OpsCharts.jsx';
 import { resolverIncidencia } from '../../services/incidenciaApi.js';
 import { aprobarNegocio, rechazarNegocio } from '../../services/negocioApi.js';
+import { useOpsStyles, MONO } from './OpsTokens';
+import { OpsCard, OpsBtn, OpsPill, OpsStatusPill, OpsEmpty, OpsError, OpsTabla, OpsTd, OpsTr, OpsSeg } from './OpsUi';
+import { Simbolo } from '../shell/Simbolo';
+
+const COLS_TOP = [
+  { titulo: 'Restaurante', w: 180 },
+  { titulo: 'Cubiertos hoy', w: 100, derecha: true },
+  { titulo: 'Comisión real', w: 110, derecha: true },
+  { titulo: 'Reservas', w: 90, derecha: true },
+];
 
 function euros(n) {
   return `${Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -20,7 +31,38 @@ function antiguedad(ts) {
   return h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`;
 }
 
+/** Card KPI (.ops-kpi). */
+function Kpi({ label, icono, iconoCls, valor, peligro, pill, pillTipo, subIzq, subDer, barPct, barCls }) {
+  const { s } = useOpsStyles();
+  return (
+    <View style={s.kpi}>
+      <View style={s.kpiTop}>
+        <Text style={s.kpiLabel}>{label}</Text>
+        <Simbolo name={icono} size={20} style={[s.kpiIcon, iconoCls === 'green' ? s.kpiIconGreen : iconoCls === 'red' ? s.kpiIconRed : iconoCls === 'blue' ? s.kpiIconBlue : null]} />
+      </View>
+      <Text style={[s.kpiValue, peligro ? s.kpiValueDanger : null]}>{valor}</Text>
+      <View style={s.kpiTrend}>
+        <OpsPill tipo={pillTipo}>{pill}</OpsPill>
+      </View>
+      <View style={s.kpiSub}>
+        <Text style={s.kpiSubTxt}>{subIzq}</Text>
+        <Text style={s.kpiSubStrong}>{subDer}</Text>
+      </View>
+      <View style={s.bar}>
+        <View
+          style={[
+            s.barFill,
+            barCls === 'blue' ? s.barFillBlue : barCls === 'red' ? s.barFillRed : null,
+            { width: `${Math.max(0, Math.min(100, barPct || 0))}%` },
+          ]}
+        />
+      </View>
+    </View>
+  );
+}
+
 export default function OpsDashboard() {
+  const { s, op } = useOpsStyles();
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -30,37 +72,30 @@ export default function OpsDashboard() {
   useEffect(() => {
     let vivo = true;
     getOpsOverview()
-      .then((d) => { if (vivo) { setDatos(d); setCargando(false); } })
-      .catch((e) => { if (vivo) { setError(mensajeErrorFirestore(e, 'reservas')); setCargando(false); } });
-    return () => { vivo = false; };
+      .then((d) => {
+        if (vivo) {
+          setDatos(d);
+          setCargando(false);
+        }
+      })
+      .catch((e) => {
+        if (vivo) {
+          setError(mensajeErrorFirestore(e, 'reservas'));
+          setCargando(false);
+        }
+      });
+    return () => {
+      vivo = false;
+    };
   }, []);
 
-  async function resolver(item) {
+  async function quitar(item, accion) {
     setError('');
     setResolviendo(item.id);
     try {
-      if (item.kind === 'negocio') {
-        await aprobarNegocio(item.id);
-      } else {
-        await resolverIncidencia(item.id);
-      }
-      setDatos((prev) => ({
-        ...prev,
-        incidenciasPreview: prev.incidenciasPreview.filter((x) => x.id !== item.id),
-        kpis: { ...prev.kpis, incidenciasPendientes: Math.max(0, prev.kpis.incidenciasPendientes - 1) },
-      }));
-    } catch (e) {
-      setError(e.message);
-    } finally {
-      setResolviendo('');
-    }
-  }
-
-  async function rechazar(item) {
-    setError('');
-    setResolviendo(item.id);
-    try {
-      await rechazarNegocio(item.id);
+      if (accion === 'rechazar') await rechazarNegocio(item.id);
+      else if (item.kind === 'negocio') await aprobarNegocio(item.id);
+      else await resolverIncidencia(item.id);
       setDatos((prev) => ({
         ...prev,
         incidenciasPreview: prev.incidenciasPreview.filter((x) => x.id !== item.id),
@@ -74,19 +109,13 @@ export default function OpsDashboard() {
   }
 
   if (cargando) {
-    return (
-      <div className="ops-card" role="status">
-        <h2>Cargando operativa…</h2>
-        <p className="ops-card-sub">Agregando reservas, restaurantes e incidencias.</p>
-      </div>
-    );
+    return <OpsCard estado={{ titulo: 'Cargando operativa…', sub: 'Agregando reservas, restaurantes e incidencias.' }} />;
   }
   if (error && !datos) {
     return (
-      <div className="ops-card" role="alert">
-        <h2>No se pudo cargar el panel</h2>
-        <p className="ops-error">{error}</p>
-      </div>
+      <OpsCard estado={{ titulo: 'No se pudo cargar el panel' }}>
+        <OpsError>{error}</OpsError>
+      </OpsCard>
     );
   }
 
@@ -97,7 +126,7 @@ export default function OpsDashboard() {
     { nombre: 'Canceladas', valor: porEstado.cancelada || 0, color: '#c9a227' },
     { nombre: 'No-show', valor: porEstado.no_show || 0, color: '#ba1a1a' },
   ];
-  const totalPax = serie.reduce((s, d) => s + d.pax, 0);
+  const totalPax = serie.reduce((a, d) => a + d.pax, 0);
   const facturacionTotal = Number(kpis.facturacionTotal) || 0;
   const comisionTotal = Number(kpis.comisionTotal) || 0;
   const mediaComensal = Number(kpis.mediaComensal) || 0;
@@ -107,282 +136,329 @@ export default function OpsDashboard() {
   const altas7d = Number(kpis.altas7d) || 0;
 
   return (
-    <>
-      {error && <p className="ops-error" role="alert">{error}</p>}
-      {avisos.length > 0 && (
-        <p className="ops-error" role="alert">
-          Sin permiso de lectura en: {avisos.join(', ')}. Se muestra el resto con datos reales.
-          Pide al admin de Firebase que añada lectura de operador en las reglas (ver firestore.rules del repo).
-        </p>
-      )}
+    <View style={{ gap: 20 }}>
+      <OpsError>{error}</OpsError>
+      {avisos.length > 0 ? (
+        <OpsError>
+          Sin permiso de lectura en: {avisos.join(', ')}. Se muestra el resto con datos reales. Pide al admin de Firebase que añada
+          lectura de operador en las reglas (ver firestore.rules del repo).
+        </OpsError>
+      ) : null}
 
       {/* Hero */}
-      <div className="ops-hero">
-        <div>
-          <span className="ops-live-chip"><i />MIRA Enterprise HQ</span>{' '}
-          <span className="ops-sync">· Sincronización en vivo</span>
-          <h1>Panel de Control Operativo &amp; Revenue</h1>
-          <p>Visión global en tiempo real de reservas, comisiones reales y estado de la red gastronómica.</p>
-        </div>
-        <div className="ops-actions">
-          <button type="button" className="ops-btn soft" onClick={() => { const c = csvReservas(feed); descargarCSV('facturas.csv', c.cabeceras, c.filas); }}>
-            <span className="material-symbols-outlined">download</span>Descargar Facturas
-          </button>
-          <button type="button" className="ops-btn soft" onClick={() => { const c = csvReservas(feed); descargarCSV('reporte-fiscal.csv', c.cabeceras, c.filas); }}>
-            <span className="material-symbols-outlined">file_present</span>Exportar Reporte Fiscal
-          </button>
-        </div>
-      </div>
+      <View style={s.hero}>
+        <View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <View style={s.liveChip}>
+              <View style={s.dotLive} />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: op.primary }}>MIRA Enterprise HQ</Text>
+            </View>
+            <Text style={s.sync}>· Sincronización en vivo</Text>
+          </View>
+          <Text style={s.heroTitle}>Panel de Control Operativo & Revenue</Text>
+          <Text style={s.heroP}>
+            Visión global en tiempo real de reservas, comisiones reales y estado de la red gastronómica.
+          </Text>
+        </View>
+        <View style={s.actions}>
+          <OpsBtn
+            icono="download"
+            onPress={() => {
+              const c = csvReservas(feed);
+              descargarCSV('facturas.csv', c.cabeceras, c.filas);
+            }}
+          >
+            Descargar Facturas
+          </OpsBtn>
+          <OpsBtn
+            icono="file_present"
+            onPress={() => {
+              const c = csvReservas(feed);
+              descargarCSV('reporte-fiscal.csv', c.cabeceras, c.filas);
+            }}
+          >
+            Exportar Reporte Fiscal
+          </OpsBtn>
+        </View>
+      </View>
 
       {/* KPIs */}
-      <div className="ops-kpis">
-        <div className="ops-kpi">
-          <div className="ops-kpi-top">
-            <span className="ops-kpi-label">Ingresos brutos (tickets)</span>
-            <span className="material-symbols-outlined ops-kpi-icon">euro</span>
-          </div>
-          <div className="ops-kpi-value">€{euros(facturacionTotal)}</div>
-          <div className="ops-kpi-trend"><span className="ops-pill">{ticketsTotal} tickets</span></div>
-          <div className="ops-kpi-sub"><span>Ticket medio</span><strong>€{euros(ticketPromedio)}</strong></div>
-          <div className="ops-bar"><i style={{ width: ticketsTotal ? '100%' : '0%' }} /></div>
-        </div>
-        <div className="ops-kpi">
-          <div className="ops-kpi-top">
-            <span className="ops-kpi-label">Comisión MIRA (real)</span>
-            <span className="material-symbols-outlined ops-kpi-icon">receipt_long</span>
-          </div>
-          <div className="ops-kpi-value">€{euros(comisionTotal)}</div>
-          <div className="ops-kpi-trend"><span className="ops-pill">{comisionPct}% base</span></div>
-          <div className="ops-kpi-sub"><span>Media comensal</span><strong>€{euros(mediaComensal)}</strong></div>
-          <div className="ops-bar"><i style={{ width: facturacionTotal ? '100%' : '0%' }} /></div>
-        </div>
-        <div className="ops-kpi">
-          <div className="ops-kpi-top">
-            <span className="ops-kpi-label">Reservas Globales</span>
-            <span className="material-symbols-outlined ops-kpi-icon green">event_available</span>
-          </div>
-          <div className="ops-kpi-value">{kpis.reservasTotal.toLocaleString('es-ES')}</div>
-          <div className="ops-kpi-trend"><span className="ops-pill">{kpis.asistenciaPct}% asistencia</span></div>
-          <div className="ops-kpi-sub"><span>Tasa asistencia</span><strong>{kpis.asistenciaPct}%</strong></div>
-          <div className="ops-bar"><i style={{ width: `${Math.min(100, kpis.asistenciaPct)}%` }} /></div>
-        </div>
-        <div className="ops-kpi">
-          <div className="ops-kpi-top">
-            <span className="ops-kpi-label">Restaurantes Activos</span>
-            <span className="material-symbols-outlined ops-kpi-icon blue">storefront</span>
-          </div>
-          <div className="ops-kpi-value">{kpis.restaurantesActivos.toLocaleString('es-ES')} <small>locales</small></div>
-          <div className="ops-kpi-trend"><span className="ops-pill info">{altas7d} altas 7d</span></div>
-          <div className="ops-kpi-sub"><span>Cubiertos 14 días</span><strong>{totalPax.toLocaleString('es-ES')} pax</strong></div>
-          <div className="ops-bar"><i className="blue" style={{ width: kpis.restaurantesActivos ? '100%' : '0%' }} /></div>
-        </div>
-        <div className="ops-kpi">
-          <div className="ops-kpi-top">
-            <span className="ops-kpi-label">Disputas &amp; Soporte</span>
-            <span className="material-symbols-outlined ops-kpi-icon red">warning</span>
-          </div>
-          <div className="ops-kpi-value danger">{kpis.incidenciasPendientes} <small>Pendientes</small></div>
-          <div className="ops-kpi-trend"><span className="ops-pill warn">{kpis.criticas} críticas</span><span>no-show / cargo</span></div>
-          <div className="ops-kpi-sub"><span>Por revisar</span><strong>{kpis.incidenciasPendientes}</strong></div>
-          <div className="ops-bar"><i className="red" style={{ width: `${Math.min(100, kpis.incidenciasPendientes * 10)}%` }} /></div>
-        </div>
-        <div className="ops-kpi">
-          <div className="ops-kpi-top">
-            <span className="ops-kpi-label">Comunidad MIRA</span>
-            <span className="material-symbols-outlined ops-kpi-icon green">loyalty</span>
-          </div>
-          <div className="ops-kpi-value">{kpis.usuariosTotal.toLocaleString('es-ES')} <small>users</small></div>
-          <div className="ops-kpi-trend"><span className="ops-pill info">puntos MIRA</span></div>
-          <div className="ops-kpi-sub"><span>Comensales</span><strong>red activa</strong></div>
-          <div className="ops-bar"><i style={{ width: kpis.usuariosTotal ? '100%' : '0%' }} /></div>
-        </div>
-      </div>
+      <View style={s.kpis}>
+        <Kpi
+          label="Ingresos brutos (tickets)"
+          icono="euro"
+          valor={`€${euros(facturacionTotal)}`}
+          pill={`${ticketsTotal} tickets`}
+          subIzq="Ticket medio"
+          subDer={`€${euros(ticketPromedio)}`}
+          barPct={ticketsTotal ? 100 : 0}
+        />
+        <Kpi
+          label="Comisión MIRA (real)"
+          icono="receipt_long"
+          valor={`€${euros(comisionTotal)}`}
+          pill={`${comisionPct}% base`}
+          subIzq="Media comensal"
+          subDer={`€${euros(mediaComensal)}`}
+          barPct={facturacionTotal ? 100 : 0}
+        />
+        <Kpi
+          label="Reservas Globales"
+          icono="event_available"
+          iconoCls="green"
+          valor={kpis.reservasTotal.toLocaleString('es-ES')}
+          pill={`${kpis.asistenciaPct}% asistencia`}
+          subIzq="Tasa asistencia"
+          subDer={`${kpis.asistenciaPct}%`}
+          barPct={Math.min(100, kpis.asistenciaPct)}
+        />
+        <Kpi
+          label="Restaurantes Activos"
+          icono="storefront"
+          iconoCls="blue"
+          valor={`${kpis.restaurantesActivos.toLocaleString('es-ES')} locales`}
+          pill={`${altas7d} altas 7d`}
+          pillTipo="info"
+          subIzq="Cubiertos 14 días"
+          subDer={`${totalPax.toLocaleString('es-ES')} pax`}
+          barPct={kpis.restaurantesActivos ? 100 : 0}
+          barCls="blue"
+        />
+        <Kpi
+          label="Disputas & Soporte"
+          icono="warning"
+          iconoCls="red"
+          valor={`${kpis.incidenciasPendientes} Pendientes`}
+          peligro
+          pill={`${kpis.criticas} críticas`}
+          pillTipo="warn"
+          subIzq="Por revisar"
+          subDer={String(kpis.incidenciasPendientes)}
+          barPct={Math.min(100, kpis.incidenciasPendientes * 10)}
+          barCls="red"
+        />
+        <Kpi
+          label="Comunidad MIRA"
+          icono="loyalty"
+          iconoCls="green"
+          valor={`${kpis.usuariosTotal.toLocaleString('es-ES')} users`}
+          pill="puntos MIRA"
+          pillTipo="info"
+          subIzq="Comensales"
+          subDer="red activa"
+          barPct={kpis.usuariosTotal ? 100 : 0}
+        />
+      </View>
 
       {/* Gráfica + donut */}
-      <div className="ops-grid-8-4">
-        <div className="ops-card">
-          <div className="ops-card-head">
-            <div>
-              <h2>Evolución de Comisiones y Facturación Bruta</h2>
-              <p className="ops-card-sub">Comida (13–15h) y cena (20–22h) · últimos 14 días · datos reales de tickets</p>
-            </div>
-            <div className="ops-seg" role="tablist" aria-label="Granularidad">
-              {['horas', 'dias', 'meses'].map((g) => (
-                <button key={g} type="button" role="tab" aria-selected={granularidad === g}
-                  className={granularidad === g ? 'active' : ''} onClick={() => setGranularidad(g)}>
-                  {g === 'horas' ? 'Horas' : g === 'dias' ? 'Días' : 'Meses'}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div className="ops-metrics-3">
-            <div>
-              <span className="ops-metric-label"><span className="ops-metric-dot" style={{ background: '#0e6b47' }} />Comisiones MIRA (real)</span>
-              <div className="ops-metric-value">€{euros(comisionTotal)}</div>
-            </div>
-            <div>
-              <span className="ops-metric-label"><span className="ops-metric-dot" style={{ background: '#004393' }} />Cubiertos 14 días</span>
-              <div className="ops-metric-value">{totalPax.toLocaleString('es-ES')}</div>
-            </div>
-            <div>
-              <span className="ops-metric-label"><span className="ops-metric-dot" style={{ background: '#006d37' }} />Asistencia</span>
-              <div className="ops-metric-value">{kpis.asistenciaPct}%</div>
-            </div>
-          </div>
+      <View style={s.grid}>
+        <OpsCard
+          titulo="Evolución de Comisiones y Facturación Bruta"
+          sub="Comida (13–15h) y cena (20–22h) · últimos 14 días · datos reales de tickets"
+          right={
+            <OpsSeg
+              valor={granularidad}
+              onChange={setGranularidad}
+              opciones={[
+                { valor: 'horas', etiqueta: 'Horas' },
+                { valor: 'dias', etiqueta: 'Días' },
+                { valor: 'meses', etiqueta: 'Meses' },
+              ]}
+            />
+          }
+        >
+          <View style={s.metrics3}>
+            <View style={s.metric}>
+              <View style={s.metricLabel}>
+                <View style={[s.metricDot, { backgroundColor: '#0e6b47' }]} />
+                <Text>Comisiones MIRA (real)</Text>
+              </View>
+              <Text style={s.metricValue}>€{euros(comisionTotal)}</Text>
+            </View>
+            <View style={s.metric}>
+              <View style={s.metricLabel}>
+                <View style={[s.metricDot, { backgroundColor: '#004393' }]} />
+                <Text>Cubiertos 14 días</Text>
+              </View>
+              <Text style={s.metricValue}>{totalPax.toLocaleString('es-ES')}</Text>
+            </View>
+            <View style={s.metric}>
+              <View style={s.metricLabel}>
+                <View style={[s.metricDot, { backgroundColor: '#006d37' }]} />
+                <Text>Asistencia</Text>
+              </View>
+              <Text style={s.metricValue}>{kpis.asistenciaPct}%</Text>
+            </View>
+          </View>
           <OpsLineChart serie={serie} modo={granularidad} />
-        </div>
-        <div className="ops-card">
-          <div className="ops-card-head">
-            <div>
-              <h2>Estado de Reservas</h2>
-              <p className="ops-card-sub">Distribución real por estado</p>
-            </div>
-            <span className="material-symbols-outlined" style={{ color: 'var(--ops-outline)' }}>devices</span>
-          </div>
+        </OpsCard>
+
+        <OpsCard
+          titulo="Estado de Reservas"
+          sub="Distribución real por estado"
+          right={<Simbolo name="devices" size={20} color={op.outline} />}
+        >
           <OpsDonut segmentos={estadosDonut} centro={kpis.reservasTotal} centroSub="PAX" />
-          <div style={{ background: 'var(--ops-surface-low)', borderRadius: 8, padding: '12px 14px', marginTop: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700 }}>
-              <span style={{ color: 'var(--ops-on-variant)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ocupación por servicio (7 días)</span>
-              <span style={{ color: 'var(--ops-primary)' }}>Capacidad sala</span>
-            </div>
-            <div style={{ marginTop: 10 }}>
-              <OpsHBars filas={[
-                { nombre: 'Comida (13:00 - 15:00)', valor: ocupacion.comida.pax, texto: `${ocupacion.comida.pax} pax`, clase: '' },
-                { nombre: 'Cena (20:00 - 22:00)', valor: ocupacion.cena.pax, texto: `${ocupacion.cena.pax} pax (pico)`, clase: 'blue' },
-              ]} />
-            </div>
-          </div>
-        </div>
-      </div>
+          <View style={{ backgroundColor: op.surfaceLow, borderRadius: 8, padding: 12, marginTop: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: op.onVariant, textTransform: 'uppercase', letterSpacing: 0.55 }}>
+                Ocupación por servicio (7 días)
+              </Text>
+              <Text style={{ fontSize: 11, fontWeight: '700', color: op.primary }}>Capacidad sala</Text>
+            </View>
+            <View style={{ marginTop: 10 }}>
+              <OpsHBars
+                filas={[
+                  { nombre: 'Comida (13:00 - 15:00)', valor: ocupacion.comida.pax, texto: `${ocupacion.comida.pax} pax`, clase: '' },
+                  { nombre: 'Cena (20:00 - 22:00)', valor: ocupacion.cena.pax, texto: `${ocupacion.cena.pax} pax (pico)`, clase: 'blue' },
+                ]}
+              />
+            </View>
+          </View>
+        </OpsCard>
+      </View>
 
       {/* Incidencias + Top */}
-      <div className="ops-grid-2">
-        <div className="ops-card">
-          <div className="ops-card-head">
-            <h2><span style={{ color: 'var(--ops-error)' }}>●</span> Incidencias &amp; Disputas Operativas</h2>
-            {kpis.criticas > 0 && <span className="ops-pill warn">{kpis.criticas} críticas de atención inmediata</span>}
-          </div>
-          <div className="ops-inc-list">
-            {incidenciasPreview.length === 0 && <p className="ops-empty">Sin incidencias pendientes. Todo en orden.</p>}
+      <View style={s.grid}>
+        <OpsCard
+          titulo="● Incidencias & Disputas Operativas"
+          right={kpis.criticas > 0 ? <OpsPill tipo="warn">{kpis.criticas} críticas de atención inmediata</OpsPill> : null}
+        >
+          <View style={s.incList}>
+            {incidenciasPreview.length === 0 ? <OpsEmpty>Sin incidencias pendientes. Todo en orden.</OpsEmpty> : null}
             {incidenciasPreview.map((it) => (
-              <div className="ops-inc" key={`${it.kind}-${it.id}`}>
-                <div className="ops-inc-main">
-                  <span className={`material-symbols-outlined ops-inc-icon ${it.kind === 'negocio' ? 'grey' : 'red'}`}>
-                    {it.kind === 'negocio' ? 'loyalty' : 'credit_card_off'}
-                  </span>
-                  <div>
-                    <div className="ops-inc-title">
-                      {it.nombre || it.nombreRestaurante || 'Incidencia'}
-                      <span className="ops-pill warn">{it.kind === 'negocio' ? 'Nuevo local' : (it.motivo || 'Soporte')}</span>
-                    </div>
-                    <p className="ops-inc-text">
+              <View key={`${it.kind}-${it.id}`} style={s.inc}>
+                <View style={s.incMain}>
+                  <Simbolo
+                    name={it.kind === 'negocio' ? 'loyalty' : 'credit_card_off'}
+                    size={20}
+                    style={[s.incIcon, it.kind === 'negocio' ? s.incIconGrey : s.incIconRed]}
+                  />
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <View style={s.incTitulo}>
+                      <Text style={s.incTitulo}>{it.nombre || it.nombreRestaurante || 'Incidencia'}</Text>
+                      <OpsPill tipo="warn">{it.kind === 'negocio' ? 'Nuevo local' : it.motivo || 'Soporte'}</OpsPill>
+                    </View>
+                    <Text style={s.incTexto}>
                       {it.kind === 'negocio'
                         ? `${it.ciudad || ''} · ${(it.categorias || []).join(', ')} · propuesta de empresa pendiente de revisión.`
                         : (it.mensaje || '').slice(0, 140)}
-                    </p>
-                    <div className="ops-inc-meta">
-                      <span>{it.email || ''}</span>
-                      <span>·</span>
-                      <span>{antiguedad(it.creado)}</span>
-                    </div>
-                  </div>
-                </div>
-                <div className="ops-inc-actions">
-                  <button type="button" className="ops-btn primary sm" disabled={resolviendo === it.id} onClick={() => resolver(it)}>
+                    </Text>
+                    <View style={s.incMeta}>
+                      <Text style={{ fontSize: 11, color: op.onVariant }}>{it.email || ''}</Text>
+                      <Text style={{ fontSize: 11, color: op.onVariant }}>·</Text>
+                      <Text style={{ fontSize: 11, color: op.onVariant }}>{antiguedad(it.creado)}</Text>
+                    </View>
+                  </View>
+                </View>
+                <View style={s.incAcciones}>
+                  <OpsBtn tipo="primary" sm disabled={resolviendo === it.id} onPress={() => quitar(it, 'aprobar')}>
                     {it.kind === 'negocio' ? 'Aprobar' : 'Resolver'}
-                  </button>
-                  {it.kind === 'negocio' && (
-                    <button type="button" className="ops-btn soft sm" disabled={resolviendo === it.id} onClick={() => rechazar(it)}>
+                  </OpsBtn>
+                  {it.kind === 'negocio' ? (
+                    <OpsBtn sm disabled={resolviendo === it.id} onPress={() => quitar(it, 'rechazar')}>
                       Rechazar
-                    </button>
-                  )}
-                </div>
-              </div>
+                    </OpsBtn>
+                  ) : null}
+                </View>
+              </View>
             ))}
-          </div>
-          <div className="ops-card-foot">
-            <span className="ops-muted">{kpis.incidenciasPendientes} totales pendientes</span>
-          </div>
-        </div>
+          </View>
+          <View style={s.cardFoot}>
+            <Text style={s.muted}>{kpis.incidenciasPendientes} totales pendientes</Text>
+          </View>
+        </OpsCard>
 
-        <div className="ops-card">
-          <div className="ops-card-head">
-            <div>
-              <h2>Top Cubiertos de Hoy &amp; Auditoría</h2>
-              <p className="ops-card-sub">Comisiones reales de tickets emitidos hoy · {comisionPct}% sobre el importe pagado</p>
-            </div>
-          </div>
-          <div className="ops-table-wrap">
-            <table className="ops-table">
-              <thead>
-                <tr>
-                  <th>Restaurante</th>
-                  <th style={{ textAlign: 'right' }}>Cubiertos hoy</th>
-                  <th style={{ textAlign: 'right' }}>Comisión real</th>
-                  <th style={{ textAlign: 'right' }}>Reservas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {top.length === 0 && (
-                  <tr><td colSpan="4" className="ops-empty">Sin servicio hoy todavía.</td></tr>
-                )}
-                {top.map((t) => (
-                  <tr key={t.id}>
-                    <td>
-                      <span className="ops-rest-cell">
-                        <span className="ops-rest-ini">{(t.nombre || '?').slice(0, 2).toUpperCase()}</span>
-                        <strong>{t.nombre}</strong>
-                      </span>
-                    </td>
-                    <td className="num">{t.paxHoy} pax</td>
-                    <td className="num">€{euros(t.comisionHoy)}</td>
-                    <td className="num">{t.reservasHoy}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="ops-card-foot">
-            <span className="ops-muted">Red global operacional</span>
-          </div>
-        </div>
-      </div>
+        <OpsCard
+          titulo="Top Cubiertos de Hoy & Auditoría"
+          sub={`Comisiones reales de tickets emitidos hoy · ${comisionPct}% sobre el importe pagado`}
+        >
+          <OpsTabla cols={COLS_TOP}>
+            {top.length === 0 ? (
+              <OpsTr>
+                <OpsTd w={COLS_TOP.reduce((a, c) => a + c.w, 0)} centro>
+                  <OpsEmpty>Sin servicio hoy todavía.</OpsEmpty>
+                </OpsTd>
+              </OpsTr>
+            ) : null}
+            {top.map((t) => (
+              <OpsTr key={t.id}>
+                <OpsTd w={COLS_TOP[0].w}>
+                  <View style={s.restCell}>
+                    <Text style={s.restIni}>{(t.nombre || '?').slice(0, 2).toUpperCase()}</Text>
+                    <Text style={[s.tdTxt, { fontWeight: '700' }]} numberOfLines={1}>
+                      {t.nombre}
+                    </Text>
+                  </View>
+                </OpsTd>
+                <OpsTd w={COLS_TOP[1].w} derecha>
+                  <Text style={[s.tdTxt, s.num, { fontFamily: MONO }]}>{t.paxHoy} pax</Text>
+                </OpsTd>
+                <OpsTd w={COLS_TOP[2].w} derecha>
+                  <Text style={[s.tdTxt, s.num, { fontFamily: MONO }]}>€{euros(t.comisionHoy)}</Text>
+                </OpsTd>
+                <OpsTd w={COLS_TOP[3].w} derecha>
+                  <Text style={[s.tdTxt, s.num, { fontFamily: MONO }]}>{t.reservasHoy}</Text>
+                </OpsTd>
+              </OpsTr>
+            ))}
+          </OpsTabla>
+          <View style={s.cardFoot}>
+            <Text style={s.muted}>Red global operacional</Text>
+          </View>
+        </OpsCard>
+      </View>
 
       {/* Feed en vivo */}
-      <div className="ops-card">
-        <div className="ops-card-head">
-          <h2><span style={{ color: 'var(--ops-secondary)' }}>●</span> Feed de Reservas en Tiempo Real (Live Ops)</h2>
-          <span className="ops-pill">Flujo de reservas activo</span>
-        </div>
-        <div className="ops-feed">
-          {feed.length === 0 && <p className="ops-empty">Sin reservas registradas todavía.</p>}
+      <OpsCard
+        titulo="● Feed de Reservas en Tiempo Real (Live Ops)"
+        right={<OpsPill>Flujo de reservas activo</OpsPill>}
+      >
+        <View style={s.feed}>
+          {feed.length === 0 ? <OpsEmpty>Sin reservas registradas todavía.</OpsEmpty> : null}
           {feed.map((r) => (
-            <div className="ops-feed-card" key={r.id}>
-              <div className="ops-feed-top">
-                <span className="ops-feed-id">#{r.codigo || r.id.slice(0, 6).toUpperCase()}</span>
-                <span className={`ops-status-pill ${(r.estado === 'cancelada' || r.estado === 'no_show') ? 'danger' : (r.estado === 'pendiente' ? 'info' : '')}`}>
-                  {r.estado === 'completada' ? 'Completada' : r.estado === 'cancelada' ? 'Cancelada' : r.estado === 'no_show' ? 'No-show' : r.estado === 'confirmada' ? 'Confirmada' : 'Pendiente'}
-                </span>
-              </div>
-              <div>
-                <div className="ops-feed-name">{r.usuarioNombre || r.usuarioEmail || 'Comensal'}</div>
-                <div className="ops-feed-rest">{nombreRestauranteDe(r)}</div>
-                <div className="ops-feed-meta">
-                  <span className="material-symbols-outlined">schedule</span>
-                  <span>{r.fecha} {r.hora}</span>
-                  <span>·</span>
-                  <span className="material-symbols-outlined">group</span>
-                  <span>{r.comensales} pax</span>
-                </div>
-              </div>
-              <div className="ops-feed-foot">
-                <span>{r.comisionReal ? 'Comisión real:' : 'Comisión (pendiente ticket):'}</span>
-                <strong>{r.comisionReal ? `+€${Number(r.comision).toFixed(2)}` : '—'}</strong>
-              </div>
-            </div>
+            <View key={r.id} style={s.feedCard}>
+              <View style={s.feedTop}>
+                <Text style={s.feedId}>#{r.codigo || String(r.id).slice(0, 6).toUpperCase()}</Text>
+                <OpsStatusPill tipo={r.estado === 'cancelada' || r.estado === 'no_show' ? 'danger' : r.estado === 'pendiente' ? 'info' : 'ok'}>
+                  {r.estado === 'completada'
+                    ? 'Completada'
+                    : r.estado === 'cancelada'
+                      ? 'Cancelada'
+                      : r.estado === 'no_show'
+                        ? 'No-show'
+                        : r.estado === 'confirmada'
+                          ? 'Confirmada'
+                          : 'Pendiente'}
+                </OpsStatusPill>
+              </View>
+              <View>
+                <Text style={s.feedName} numberOfLines={1}>
+                  {r.usuarioNombre || r.usuarioEmail || 'Comensal'}
+                </Text>
+                <Text style={s.feedRest} numberOfLines={1}>
+                  {nombreRestauranteDe(r)}
+                </Text>
+                <View style={s.feedMeta}>
+                  <Simbolo name="schedule" size={14} color={op.onVariant} />
+                  <Text style={{ fontSize: 12, color: op.onVariant }}>
+                    {r.fecha} {r.hora}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: op.onVariant }}>·</Text>
+                  <Simbolo name="group" size={14} color={op.onVariant} />
+                  <Text style={{ fontSize: 12, color: op.onVariant }}>{r.comensales} pax</Text>
+                </View>
+              </View>
+              <View style={s.feedFoot}>
+                <Text style={{ fontSize: 12, color: op.onVariant }}>
+                  {r.comisionReal ? 'Comisión real:' : 'Comisión (pendiente ticket):'}
+                </Text>
+                <Text style={s.feedFootStrong}>{r.comisionReal ? `+€${Number(r.comision).toFixed(2)}` : '—'}</Text>
+              </View>
+            </View>
           ))}
-        </div>
-      </div>
-    </>
+        </View>
+      </OpsCard>
+    </View>
   );
 }

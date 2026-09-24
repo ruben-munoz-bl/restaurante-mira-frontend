@@ -1,10 +1,24 @@
 /** OpsFinanzas — agregados mensuales con datos REALES de tickets. */
 import { useEffect, useState } from 'react';
-import { getOpsOverview, descargarCSV, csvReservas, mensajeErrorFirestore, nombreRestauranteDe } from './opsData.js';
+import { View, Text } from 'react-native';
+import { getOpsOverview, descargarCSV, csvReservas, mensajeErrorFirestore, nombreRestauranteDe, getReservasGlobales } from './opsData.js';
 import { OpsLineChart } from './OpsCharts.jsx';
-import { getReservasGlobales } from './opsData.js';
+import { useOpsStyles, MONO } from './OpsTokens';
+import { OpsCard, OpsBtn, OpsEmpty, OpsError, OpsTabla, OpsTd, OpsTr } from './OpsUi';
+
+const COLS = [
+  { titulo: 'Mes', w: 92 },
+  { titulo: 'Tickets', w: 80, derecha: true },
+  { titulo: 'Facturación real', w: 140, derecha: true },
+  { titulo: 'Comisión real', w: 140, derecha: true },
+];
+
+function euros(n, dec = 2) {
+  return Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: dec, maximumFractionDigits: dec });
+}
 
 export default function OpsFinanzas() {
+  const { s } = useOpsStyles();
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -12,9 +26,21 @@ export default function OpsFinanzas() {
   useEffect(() => {
     let vivo = true;
     getOpsOverview()
-      .then((d) => { if (vivo) { setDatos(d); setCargando(false); } })
-      .catch((e) => { if (vivo) { setError(mensajeErrorFirestore(e, 'reservas/tickets')); setCargando(false); } });
-    return () => { vivo = false; };
+      .then((d) => {
+        if (vivo) {
+          setDatos(d);
+          setCargando(false);
+        }
+      })
+      .catch((e) => {
+        if (vivo) {
+          setError(mensajeErrorFirestore(e, 'reservas/tickets'));
+          setCargando(false);
+        }
+      });
+    return () => {
+      vivo = false;
+    };
   }, []);
 
   async function exportar() {
@@ -27,17 +53,23 @@ export default function OpsFinanzas() {
     }
   }
 
-  if (cargando) return <div className="ops-card" role="status"><h2>Cargando finanzas…</h2></div>;
-  if (error && !datos) return <div className="ops-card" role="alert"><h2>Error</h2><p className="ops-error">{error}</p></div>;
+  if (cargando) return <OpsCard estado={{ titulo: 'Cargando finanzas…' }} />;
+  if (error && !datos) {
+    return (
+      <OpsCard estado={{ titulo: 'Error' }}>
+        <OpsError>{error}</OpsError>
+      </OpsCard>
+    );
+  }
 
   const porMes = {};
-  datos.serie.forEach((s) => {
-    const k = s.fecha.slice(0, 7);
+  datos.serie.forEach((d) => {
+    const k = d.fecha.slice(0, 7);
     if (!porMes[k]) porMes[k] = { facturacion: 0, comisiones: 0, tickets: 0, reservas: 0 };
-    porMes[k].comisiones = Math.round((porMes[k].comisiones + (s.comisiones || 0)) * 100) / 100;
-    porMes[k].facturacion = Math.round((porMes[k].facturacion + (s.facturacion || 0)) * 100) / 100;
-    porMes[k].tickets += s.tickets || 0;
-    porMes[k].reservas += s.reservas || 0;
+    porMes[k].comisiones = Math.round((porMes[k].comisiones + (d.comisiones || 0)) * 100) / 100;
+    porMes[k].facturacion = Math.round((porMes[k].facturacion + (d.facturacion || 0)) * 100) / 100;
+    porMes[k].tickets += d.tickets || 0;
+    porMes[k].reservas += d.reservas || 0;
   });
   const meses = Object.entries(porMes).sort(([a], [b]) => a.localeCompare(b));
   const facturacionTotal = Number(datos.kpis.facturacionTotal) || 0;
@@ -45,58 +77,65 @@ export default function OpsFinanzas() {
   const comisionPct = Number(datos.kpis.comisionPct) || 8;
 
   return (
-    <>
-      <div className="ops-card">
-        <div className="ops-card-head">
-          <div>
-            <h2>Finanzas &amp; Comisiones</h2>
-            <p className="ops-card-sub">Datos reales de tickets · comisión {comisionPct}% · últimos 14 días</p>
-          </div>
-          <button type="button" className="ops-btn soft sm" onClick={exportar}>
-            <span className="material-symbols-outlined">file_present</span>Exportar Reporte Fiscal
-          </button>
-        </div>
-        <div className="ops-metrics-3">
-          <div>
-            <span className="ops-metric-label">Comisiones (real)</span>
-            <div className="ops-metric-value">€{comisionTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</div>
-          </div>
-          <div>
-            <span className="ops-metric-label">Facturación bruta (real)</span>
-            <div className="ops-metric-value">€{facturacionTotal.toLocaleString('es-ES', { maximumFractionDigits: 0 })}</div>
-          </div>
-          <div>
-            <span className="ops-metric-label">Asistencia</span>
-            <div className="ops-metric-value">{datos.kpis.asistenciaPct}%</div>
-          </div>
-        </div>
+    <View style={{ gap: 20 }}>
+      <OpsCard
+        titulo="Finanzas & Comisiones"
+        sub={`Datos reales de tickets · comisión ${comisionPct}% · últimos 14 días`}
+        right={
+          <OpsBtn sm icono="file_present" onPress={exportar}>
+            Exportar Reporte Fiscal
+          </OpsBtn>
+        }
+        alerta={error}
+      >
+        <View style={s.metrics3}>
+          <View style={s.metric}>
+            <Text style={s.metricLabel}>Comisiones (real)</Text>
+            <Text style={s.metricValue}>€{euros(comisionTotal)}</Text>
+          </View>
+          <View style={s.metric}>
+            <Text style={s.metricLabel}>Facturación bruta (real)</Text>
+            <Text style={s.metricValue}>€{euros(facturacionTotal, 0)}</Text>
+          </View>
+          <View style={s.metric}>
+            <Text style={s.metricLabel}>Asistencia</Text>
+            <Text style={s.metricValue}>{datos.kpis.asistenciaPct}%</Text>
+          </View>
+        </View>
         <OpsLineChart serie={datos.serie} modo="meses" />
-      </div>
+      </OpsCard>
 
-      <div className="ops-card">
-        <div className="ops-card-head">
-          <div><h2>Detalle mensual</h2></div>
-        </div>
-        <div className="ops-table-wrap">
-          <table className="ops-table">
-            <thead><tr><th>Mes</th><th style={{ textAlign: 'right' }}>Tickets</th><th style={{ textAlign: 'right' }}>Facturación real</th><th style={{ textAlign: 'right' }}>Comisión real</th></tr></thead>
-            <tbody>
-              {meses.map(([m, d]) => (
-                <tr key={m}>
-                  <td><strong>{m}</strong></td>
-                  <td className="num">{d.tickets}</td>
-                  <td className="num">€{d.facturacion.toLocaleString('es-ES')}</td>
-                  <td className="num">€{d.comisiones.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
-                </tr>
-              ))}
-              {meses.length === 0 && <tr><td colSpan="4" className="ops-empty">Sin movimientos.</td></tr>}
-            </tbody>
-          </table>
-        </div>
-        <p className="ops-muted" style={{ marginTop: 10 }}>
-          Feed usado: {datos.feed.length} últimas reservas ({datos.feed.map((r) => nombreRestauranteDe(r)).slice(0, 3).join(', ')}{datos.feed.length > 3 ? '…' : ''}).
-        </p>
-      </div>
-    </>
+      <OpsCard titulo="Detalle mensual">
+        <OpsTabla cols={COLS}>
+          {meses.map(([m, d]) => (
+            <OpsTr key={m}>
+              <OpsTd w={COLS[0].w}>
+                <Text style={[s.tdTxt, { fontWeight: '700' }]}>{m}</Text>
+              </OpsTd>
+              <OpsTd w={COLS[1].w} derecha>
+                <Text style={[s.tdTxt, s.num, { fontFamily: MONO }]}>{d.tickets}</Text>
+              </OpsTd>
+              <OpsTd w={COLS[2].w} derecha>
+                <Text style={[s.tdTxt, s.num, { fontFamily: MONO }]}>€{euros(d.facturacion, 0)}</Text>
+              </OpsTd>
+              <OpsTd w={COLS[3].w} derecha>
+                <Text style={[s.tdTxt, s.num, { fontFamily: MONO }]}>€{euros(d.comisiones)}</Text>
+              </OpsTd>
+            </OpsTr>
+          ))}
+          {meses.length === 0 ? (
+            <OpsTr>
+              <OpsTd w={COLS.reduce((a, c) => a + c.w, 0)} centro>
+                <OpsEmpty>Sin movimientos.</OpsEmpty>
+              </OpsTd>
+            </OpsTr>
+          ) : null}
+        </OpsTabla>
+        <Text style={[s.muted, { marginTop: 10 }]}>
+          Feed usado: {datos.feed.length} últimas reservas ({datos.feed.map((r) => nombreRestauranteDe(r)).slice(0, 3).join(', ')}
+          {datos.feed.length > 3 ? '…' : ''}).
+        </Text>
+      </OpsCard>
+    </View>
   );
 }
