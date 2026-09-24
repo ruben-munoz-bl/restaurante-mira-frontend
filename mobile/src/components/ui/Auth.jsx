@@ -7,16 +7,17 @@ import { useTheme } from '../../theme/ThemeContext';
 import { FUENTES, RADIO, ANCHO_MAX, sombraFlotante } from '../../theme/tokens';
 import { btnCta, btnSecundario } from '../../theme/ui';
 
-export function AuthPagina({ children, style }) {
-  return <View style={[styles.pagina, style]}>{children}</View>;
+export function AuthPagina({ children, style, ancho }) {
+  return <View style={[styles.pagina, ancho && styles.paginaAncha, style]}>{children}</View>;
 }
 
-export function AuthTarjeta({ titulo, children, style }) {
+export function AuthTarjeta({ titulo, children, style, ancho }) {
   const { colores } = useTheme();
   return (
     <View
       style={[
         styles.tarjeta,
+        ancho && styles.tarjetaAncha,
         { backgroundColor: colores.papel, borderColor: colores.glassBorder },
         sombraFlotante(colores),
         style,
