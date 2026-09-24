@@ -117,6 +117,10 @@ function mensajeErrorGoogle(code) {
       return 'La ventana emergente fue bloqueada. Habilita las ventanas emergentes e intenta de nuevo.';
     case 'auth/account-exists-with-different-credential':
       return 'Este correo ya está registrado con otro método. Inicia sesión con ese método.';
+    case 'auth/config-google':
+      return 'Google no está configurado en la app: falta EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID en mobile/.env (Client ID tipo «Web» de Google Cloud/Firebase). Reinicia con npx expo start --clear.';
+    case 'auth/redirect-mismatch':
+      return 'Google rechazó la URL de retorno (redirect_uri). Regístrala en Google Cloud → APIs y servicios → Credenciales → Cliente Web.';
     case 'auth/operation-not-allowed':
       return 'Google no está habilitado como método de inicio de sesión. Contacta al administrador.';
     case 'auth/network-request-failed':

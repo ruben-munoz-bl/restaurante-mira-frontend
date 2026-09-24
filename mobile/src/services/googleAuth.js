@@ -31,7 +31,7 @@ export async function iniciarSesionGoogleRN() {
   const clientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
   if (!clientId) {
     const e = new Error('Google Sign-In no configurado: falta EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID en mobile/.env');
-    e.code = 'auth/operation-not-allowed';
+    e.code = 'auth/config-google';
     throw e;
   }
   const redirectUri = process.env.EXPO_PUBLIC_GOOGLE_REDIRECT_URI || Linking.createURL('auth');
@@ -63,7 +63,9 @@ export async function iniciarSesionGoogleRN() {
 
   if (data.error) {
     const e = new Error('No se pudo iniciar sesión con Google. Inténtalo de nuevo.');
-    e.code = data.error === 'access_denied' ? 'auth/popup-closed-by-user' : 'auth/network-request-failed';
+    if (data.error === 'access_denied') e.code = 'auth/popup-closed-by-user';
+    else if (data.error === 'redirect_uri_mismatch') e.code = 'auth/redirect-mismatch';
+    else e.code = 'auth/network-request-failed';
     throw e;
   }
 

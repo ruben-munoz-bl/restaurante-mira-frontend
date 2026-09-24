@@ -1,8 +1,8 @@
 /**
- * Libro de carta — espejo de LibroCarta.jsx web (portada + pliegos con
- * volteo 3D). En RN: perspective + rotateY animados con Reanimated,
- * cara visible conmutada por opacidad (sin backface-visibility), cierre
- * tocando el fondo y swipe horizontal con props de responder.
+ * Libro de carta — espejo de LibroCarta.jsx web (portada + pliegos).
+ * En RN: sin Reanimated (el easing de RN no es worklet y petaba al abrir
+ * la carta); la navegación entre pliegos es un crossfade con RN Animated.
+ * Cierre tocando el fondo y swipe horizontal con props de responder.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -15,12 +15,6 @@ import {
   Easing as EasingRN,
   Dimensions,
 } from 'react-native';
-import AnimatedR, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  runOnJS,
-} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import {
@@ -235,13 +229,10 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
   const t = useT(TRADS);
 
   const [spread, setSpread] = useState(0);
-  const [volteo, setVolteo] = useState(null);
-  const [dims, setDims] = useState({ w: 0, h: 0 });
-
-  const progreso = useSharedValue(0);
-  const dirSV = useSharedValue(1);
   const montado = useRef(true);
+  const tranca = useRef(false);
   const [apertura] = useState(() => new Animated.Value(0));
+  const [transicion] = useState(() => new Animated.Value(1));
   const libroRect = useRef({ x: 0, y: 0, width: 0, height: 0 });
 
   const libro = useMemo(() => cartaLibro(restaurant), [restaurant]);
@@ -267,7 +258,6 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
   }, [libro]);
 
   const maxSpread = spreads.length - 1;
-  const wHoja = dims.w > 0 ? (dims.w - 14) / 2 : 0;
 
   useEffect(() => {
     montado.current = true;
@@ -277,40 +267,22 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
     };
   }, [apertura]);
 
-  function completar(v) {
-    if (!montado.current) return;
-    setSpread(v.to);
-    setVolteo(null);
-    progreso.value = 0;
-  }
-
   function irA(n) {
-    if (volteo) return;
+    if (tranca.current) return;
     const destino = clamp(n, 0, maxSpread);
     if (destino === spread) return;
-    const dir = destino > spread ? 1 : -1;
-    const esTapa = spreads[spread].tipo === 'portada' || spreads[destino].tipo === 'portada';
-    const v = { dir, from: spread, to: destino, esTapa };
-    dirSV.value = dir;
-    progreso.value = 0;
-    setVolteo(v);
-    progreso.value = withTiming(
-      1,
-      {
-        duration: esTapa ? 450 : 700,
-        easing: esTapa
-          ? EasingRN.bezier(0.25, 0.1, 0.25, 1)
-          : EasingRN.bezier(0.45, 0.05, 0.35, 1),
-      },
-      (fin) => {
-        'worklet';
-        if (fin) runOnJS(completar)(v);
-      },
-    );
+    tranca.current = true;
+    Animated.timing(transicion, { toValue: 0, duration: 130, useNativeDriver: true }).start(() => {
+      if (!montado.current) return;
+      setSpread(destino);
+      Animated.timing(transicion, { toValue: 1, duration: 220, useNativeDriver: true }).start(() => {
+        tranca.current = false;
+      });
+    });
   }
 
   function moverResponder(_, g) {
-    if (volteo) return false;
+    if (tranca.current) return false;
     return Math.abs(g.dx) > 12 && Math.abs(g.dx) > Math.abs(g.dy) * 1.2;
   }
 
@@ -349,28 +321,6 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
     return <ContenidoVacia numero="" />;
   }
 
-  const hojaAnim = useAnimatedStyle(() => {
-    const grados = dirSV.value === 1 ? -180 * progreso.value : 180 * progreso.value;
-    const off = dirSV.value === 1 ? -wHoja / 2 : wHoja / 2;
-    return {
-      transform: [{ perspective: 1800 }, { translateX: off }, { rotateY: `${grados}deg` }, { translateX: -off }],
-    };
-  }, [wHoja]);
-
-  const anversoAnim = useAnimatedStyle(() => {
-    const grados = Math.abs(dirSV.value === 1 ? -180 * progreso.value : 180 * progreso.value);
-    return { opacity: grados < 90 ? 1 : 0 };
-  }, []);
-
-  const reversoAnim = useAnimatedStyle(() => {
-    const grados = Math.abs(dirSV.value === 1 ? -180 * progreso.value : 180 * progreso.value);
-    return { opacity: grados >= 90 ? 1 : 0, transform: [{ rotateY: '180deg' }] };
-  }, []);
-
-  const tapaAnim = useAnimatedStyle(() => ({
-    opacity: dirSV.value === 1 ? 1 - progreso.value : progreso.value,
-  }), []);
-
   const contenedorStyle = {
     opacity: apertura,
     transform: [{ translateY: apertura.interpolate({ inputRange: [0, 1], outputRange: [8, 0] }) }],
@@ -378,71 +328,7 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
 
   let hojas = null;
 
-  if (volteo) {
-    const from = spreads[volteo.from];
-    const to = spreads[volteo.to];
-    const adelante = volteo.dir === 1;
-    const esTapa = volteo.esTapa;
-
-    if (esTapa) {
-      const contenido = from.tipo === 'portada' ? to : from;
-      const contIzq = contenido.tipo === 'spread' ? contenido.izq : { tipo: 'vacia', num: '' };
-      const contDer = contenido.tipo === 'spread' ? contenido.der : { tipo: 'vacia', num: '' };
-      const portada = from.tipo === 'portada' ? from : to;
-
-      hojas = (
-        <View style={estilos.spread} pointerEvents="none">
-          <View style={estilos.pliego}>
-            <Cara lado="izq">{pintarPagina(contIzq)}</Cara>
-          </View>
-          <Lomo />
-          <View style={estilos.pliego}>
-            <Cara lado="der">{pintarPagina(contDer)}</Cara>
-          </View>
-          <AnimatedR.View
-            style={[
-              estilos.hojaTapa,
-              { left: adelante ? 14 : 0, right: adelante ? 0 : 14 },
-              tapaAnim,
-            ]}
-          >
-            <Cara cuero>{pintarPagina(portada)}</Cara>
-          </AnimatedR.View>
-        </View>
-      );
-    } else {
-      const underIzq = adelante ? from.izq : to.izq;
-      const underDer = adelante ? to.der : from.der;
-      const leafAnverso = adelante ? from.der : from.izq;
-      const leafReverso = adelante ? to.izq : to.der;
-
-      hojas = (
-        <View style={estilos.spread} pointerEvents="none">
-          <View style={estilos.pliego}>
-            <Cara lado="izq">{pintarPagina(underIzq)}</Cara>
-          </View>
-          <Lomo />
-          <View style={estilos.pliego}>
-            <Cara lado="der">{pintarPagina(underDer)}</Cara>
-          </View>
-          <AnimatedR.View
-            style={[
-              estilos.hoja,
-              adelante ? { left: wHoja + 14, width: wHoja } : { left: 0, width: wHoja },
-              hojaAnim,
-            ]}
-          >
-            <AnimatedR.View style={[StyleSheet.absoluteFill, anversoAnim]}>
-              <Cara lado={adelante ? 'der' : 'izq'}>{pintarPagina(leafAnverso)}</Cara>
-            </AnimatedR.View>
-            <AnimatedR.View style={[StyleSheet.absoluteFill, reversoAnim]}>
-              <Cara lado={adelante ? 'izq' : 'der'}>{pintarPagina(leafReverso)}</Cara>
-            </AnimatedR.View>
-          </AnimatedR.View>
-        </View>
-      );
-    }
-  } else if (spread === 0) {
+  if (spread === 0) {
     hojas = (
       <View style={[estilos.spread, estilos.spreadPortada]}>
         <Pressable
@@ -481,14 +367,13 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
           libroRect.current = { x, y, width, height };
         }}
       >
-        <View
-          style={estilos.hojas}
-          onLayout={(e) => setDims({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
+        <Animated.View
+          style={[estilos.hojas, { opacity: transicion }]}
           onMoveShouldSetResponder={moverResponder}
           onResponderRelease={soltarResponder}
         >
           {hojas}
-        </View>
+        </Animated.View>
       </Animated.View>
     </Pressable>
   );
@@ -591,20 +476,6 @@ const estilos = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     textAlign: 'center',
-  },
-  hoja: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    zIndex: 20,
-    elevation: 20,
-  },
-  hojaTapa: {
-    position: 'absolute',
-    top: 0,
-    bottom: 0,
-    zIndex: 20,
-    elevation: 20,
   },
 
   /* Página de contenido */

@@ -1,7 +1,9 @@
-/**
- * Mapa de assets — rutas del `public/` web → requires de Metro.
+/** Mapa de assets — rutas del `public/` web → requires de Metro.
  * Los componentes usan IMG.xxx en vez de `<img src="/...">`.
  */
+/** Los SVG (svgr) compilan a `exports.default`: require() devuelve { default }. */
+const svg = (mod) => (mod && mod.__esModule && mod.default ? mod.default : mod);
+
 export const IMG = {
   logo: require('../../assets/images/logo.png'),
   logotipo: require('../../assets/images/logotipo.png'),
@@ -10,8 +12,8 @@ export const IMG = {
   moneda: require('../../assets/images/moneda-mira.png'),
   rachaFuego: require('../../assets/images/racha-fuego.png'),
   mascotaRacha: require('../../assets/images/mascota-racha.png'),
-  logoWordmark: require('../../assets/images/mira_logo_2_wordmark_pupila.svg'),
-  logoCircular: require('../../assets/images/mira_logo_3_circular_lente.svg'),
+  logoWordmark: svg(require('../../assets/images/mira_logo_2_wordmark_pupila.svg')),
+  logoCircular: svg(require('../../assets/images/mira_logo_3_circular_lente.svg')),
   emblemaFoodie: require('../../assets/images/emblemas/foodie.png'),
   emblemaGourmet: require('../../assets/images/emblemas/gourmet.png'),
   emblemaMichelin: require('../../assets/images/emblemas/michelin.png'),
