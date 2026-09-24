@@ -75,6 +75,9 @@ const MAPA = {
   key: 'key',
   badge: 'badge',
   storefront_filled: 'storefront',
+  date_range: 'date-range',
+  radio_button_unchecked: 'radio-button-unchecked',
+  upload: 'file-upload',
 };
 
 export function Simbolo({ name, size = 20, color, style }) {

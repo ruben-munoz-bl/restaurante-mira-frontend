@@ -1,44 +1,72 @@
-import { useState, useRef } from "react";
-import { dashboardApi } from "../../services/api.js";
+/**
+ * Formulario "registrar ticket" de una reserva (modal de facturación) —
+ * espejo de TicketUpload.jsx web con selector de archivo nativo.
+ */
+import { useState } from 'react';
+import { View, Text, Pressable, TextInput, StyleSheet } from 'react-native';
+import * as DocumentPicker from 'expo-document-picker';
+import { dashboardApi } from '../../services/api.js';
+import { OpBtnPrimary } from './DashboardUi';
+import { useOpStyles, euro, MONO } from './OpTokens';
+import { FUENTES } from '../../theme/tokens';
+
+const TIPOS = ['.pdf', '.csv', '.xml', 'image/*'];
 
 export default function TicketUpload({ reserva, onUploaded, t, comisionPct = 8 }) {
-  const tt = (k, d) => { try{ const v = t ? t(k) : null; return v && v!==k ? v : d; }catch{ return d; } };
-  const [precio, setPrecio] = useState(reserva.totalPagado || reserva.precioBase || "");
+  const tt = (k, d) => {
+    try {
+      const v = t ? t(k) : null;
+      return v && v !== k ? v : d;
+    } catch {
+      return d;
+    }
+  };
+  const { op } = useOpStyles();
+  const [precio, setPrecio] = useState(String(reserva.totalPagado || reserva.precioBase || ''));
   const [file, setFile] = useState(null);
   const [asistio, setAsistio] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const fileRef = useRef(null);
 
   const pct = Number(comisionPct) || 8;
   const total = Number(precio) || 0;
   const comision = Math.round(total * (pct / 100) * 100) / 100;
   const neto = Math.round((total - comision) * 100) / 100;
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function elegirArchivo() {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({ type: TIPOS, multiple: false, copyToCacheDirectory: true });
+      if (!res.canceled && res.assets && res.assets.length) {
+        setFile({ name: res.assets[0].name, size: res.assets[0].size || 0 });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function handleSubmit() {
     // 1 ticket por reserva (no importa comensales)
     if (reserva.ticketId) {
-      setError("Esta reserva ya tiene un ticket registrado (máx. 1 por reserva)");
+      setError('Esta reserva ya tiene un ticket registrado (máx. 1 por reserva)');
       return;
     }
     if (!precio || Number(precio) <= 0) {
-      setError(tt("dashboard.precioRequerido", "Introduce un importe válido (>0)"));
+      setError(tt('dashboard.precioRequerido', 'Introduce un importe válido (>0)'));
       return;
     }
     setUploading(true);
-    setError("");
+    setError('');
     try {
       await dashboardApi.subirTicket(reserva.id, {
         totalPagado: Number(precio),
         asistio,
-        fileName: file?.name || "",
+        fileName: file?.name || '',
       });
       setSuccess(true);
-      setTimeout(()=> onUploaded?.(reserva.id, asistio ? "completada" : "no_show"), 400);
+      setTimeout(() => onUploaded?.(reserva.id, asistio ? 'completada' : 'no_show'), 400);
     } catch (err) {
-      setError(err?.message || "Error al subir ticket");
+      setError(err?.message || 'Error al subir ticket');
     } finally {
       setUploading(false);
     }
@@ -46,52 +74,190 @@ export default function TicketUpload({ reserva, onUploaded, t, comisionPct = 8 }
 
   if (success || reserva.ticketId) {
     return (
-      <div style={{background:'#d1fae5', color:'#065f46', padding:'0.7rem', borderRadius:'0.5rem', fontWeight:700, textAlign:'center', fontSize:'0.82rem'}}>
-        {success ? `${tt("dashboard.ticketSubido","Ticket registrado")} · ${euro(neto)} neto · ${euro(comision)} comisión ${pct}%` : 'Ticket ya registrado (máx. 1 por reserva)'}
-      </div>
+      <View style={estilos.exito}>
+        <Text style={estilos.exitoTxt}>
+          {success
+            ? `${tt('dashboard.ticketSubido', 'Ticket registrado')} · ${euro(neto)} neto · ${euro(comision)} comisión ${pct}%`
+            : 'Ticket ya registrado (máx. 1 por reserva)'}
+        </Text>
+      </View>
     );
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{display:'flex', flexDirection:'column', gap:'0.5rem', background:'var(--op-surface-low)', padding:'0.7rem', borderRadius:'0.5rem', border:'1px solid var(--op-border)'}}>
-      <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', gap:'0.5rem'}}>
-        <strong style={{fontSize:'0.78rem'}}>{reserva.nombreRestaurante || reserva.restaurantName || tt("dashboard.reserva","Reserva")}</strong>
-        <span style={{fontFamily:'ui-monospace', fontSize:'0.62rem', background:'var(--op-surface-lowest)', padding:'0.1rem 0.35rem', borderRadius:'0.3rem'}}>{reserva.codigo || reserva.id?.slice(0,6)}</span>
-      </div>
-      <div style={{fontSize:'0.72rem', color:'var(--op-on-variant)'}}>{reserva.fecha} {reserva.hora} · {reserva.comensales} pax · {reserva.usuarioNombre || reserva.usuarioEmail || 'Cliente'}</div>
+    <View style={[estilos.form, { backgroundColor: op.surfaceLow, borderColor: op.border }]}>
+      <View style={estilos.head}>
+        <Text style={[estilos.headTxt, { color: op.onSurface }]}>
+          {reserva.nombreRestaurante || reserva.restaurantName || tt('dashboard.reserva', 'Reserva')}
+        </Text>
+        <Text style={[estilos.chip, { backgroundColor: op.surfaceLowest, color: op.onSurface }]}>
+          {reserva.codigo || String(reserva.id || '').slice(0, 6)}
+        </Text>
+      </View>
+      <Text style={[estilos.meta, { color: op.onVariant }]}>
+        {reserva.fecha} {reserva.hora} · {reserva.comensales} pax ·{' '}
+        {reserva.usuarioNombre || reserva.usuarioEmail || 'Cliente'}
+      </Text>
 
-      <label style={{display:'flex', flexDirection:'column', gap:'0.2rem'}}>
-        <span style={{fontSize:'0.68rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em'}}>{tt("dashboard.precioTotal","Importe total")}</span>
-        <div style={{display:'flex', gap:'0.4rem', alignItems:'center'}}>
-          <input type="number" value={precio} onChange={e=> setPrecio(e.target.value)} placeholder={tt("dashboard.precioPlaceholder","45.50")} step="0.01" min="0" style={{flex:1, height:'2.2rem', padding:'0 0.6rem', border:'1px solid var(--op-outline-variant)', borderRadius:'0.5rem'}} />
-          <span style={{fontSize:'0.72rem'}}>EUR</span>
-        </div>
-        {total>0 && (
-          <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.68rem', background:'white', padding:'0.35rem 0.5rem', borderRadius:'0.4rem', marginTop:'0.2rem'}}>
-            <span>Comisión MIRA {pct}%: <strong>{euro(comision)}</strong></span>
-            <span>Neto restaurante: <strong style={{color:'var(--op-primary)'}}>{euro(neto)}</strong></span>
-          </div>
-        )}
-      </label>
+      <Text style={estilos.label}>{tt('dashboard.precioTotal', 'Importe total')}</Text>
+      <View style={estilos.precioFila}>
+        <TextInput
+          value={String(precio)}
+          onChangeText={setPrecio}
+          placeholder={tt('dashboard.precioPlaceholder', '45.50')}
+          keyboardType="decimal-pad"
+          style={[estilos.input, { borderColor: op.outlineVariant, color: op.onSurface }]}
+        />
+        <Text style={[estilos.eur, { color: op.onSurface }]}>EUR</Text>
+      </View>
+      {total > 0 ? (
+        <View style={[estilos.preview, { backgroundColor: op.surfaceLowest }]}>
+          <Text style={[estilos.previewTxt, { color: op.onSurface }]}>
+            Comisión MIRA {pct}%: <Text style={estilos.previewFuerte}>{euro(comision)}</Text>
+          </Text>
+          <Text style={[estilos.previewTxt, { color: op.onSurface }]}>
+            Neto restaurante:{' '}
+            <Text style={[estilos.previewFuerte, { color: op.primary }]}>{euro(neto)}</Text>
+          </Text>
+        </View>
+      ) : null}
 
-      <label style={{display:'flex', alignItems:'center', gap:'0.4rem', fontSize:'0.78rem', cursor:'pointer', userSelect:'none'}}>
-        <input type="checkbox" checked={asistio} onChange={e=> setAsistio(e.target.checked)} style={{accentColor:'var(--op-primary)'}} />
-        <span style={{fontWeight:600}}>{asistio ? 'Cliente asistió' : 'No-show / No asistió'}</span>
-        <span style={{fontSize:'0.62rem', color:'var(--op-on-variant)'}}>{asistio ? '(se marcará completada)' : '(se marcará no-show protegido)'}</span>
-      </label>
+      <Pressable
+        onPress={() => setAsistio((v) => !v)}
+        accessibilityRole="checkbox"
+        accessibilityState={{ checked: asistio }}
+        style={estilos.checkFila}
+      >
+        <View
+          style={[
+            estilos.checkCaja,
+            { borderColor: asistio ? op.primary : op.outlineVariant, backgroundColor: asistio ? op.primary : op.surfaceLowest },
+          ]}
+        >
+          {asistio ? <Text style={estilos.checkTick}>✓</Text> : null}
+        </View>
+        <Text style={[estilos.checkTxt, { color: op.onSurface }]}>{asistio ? 'Cliente asistió' : 'No-show / No asistió'}</Text>
+        <Text style={[estilos.checkSub, { color: op.onVariant }]}>
+          {asistio ? '(se marcará completada)' : '(se marcará no-show protegido)'}
+        </Text>
+      </Pressable>
 
-      <label style={{display:'flex', flexDirection:'column', gap:'0.2rem'}}>
-        <span style={{fontSize:'0.68rem', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.04em'}}>Ticket / factura (opcional)</span>
-        <input type="file" ref={fileRef} accept="image/*,.pdf,.csv,.xml" onChange={e=> setFile(e.target.files?.[0] || null)} style={{fontSize:'0.78rem'}} />
-        {file && <span style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{file.name} · {(file.size/1024).toFixed(1)} KB</span>}
-      </label>
+      <Text style={estilos.label}>Ticket / factura (opcional)</Text>
+      <Pressable
+        onPress={elegirArchivo}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          estilos.fileBtn,
+          { borderColor: op.outlineVariant, backgroundColor: op.surfaceLowest, opacity: pressed ? 0.8 : 1 },
+        ]}
+      >
+        <Text style={[estilos.fileBtnTxt, { color: op.onSurface }]}>
+          {file ? 'Cambiar archivo…' : 'Seleccionar archivo…'}
+        </Text>
+      </Pressable>
+      {file ? (
+        <Text style={[estilos.fileNombre, { color: op.onVariant }]}>
+          {file.name} · {(file.size / 1024).toFixed(1)} KB
+        </Text>
+      ) : null}
 
-      {error && <span style={{color:'#b44d3e', fontSize:'0.78rem', background:'#ffdad6', padding:'0.35rem 0.5rem', borderRadius:'0.4rem'}}>{error}</span>}
+      {error ? <Text style={estilos.error}>{error}</Text> : null}
 
-      <button type="submit" disabled={uploading} className="op-btn-primary" style={{justifyContent:'center'}}>
-        {uploading ? tt("otros.cargando","Cargando…") : (<><span className="material-symbols-outlined" style={{fontSize:14}}>upload</span> Registrar ticket y {asistio? 'confirmar asistencia' : 'marcar no-show'}</>)}
-      </button>
-    </form>
+      <OpBtnPrimary disabled={uploading} onPress={handleSubmit} style={{ justifyContent: 'center' }}>
+        {uploading
+          ? tt('otros.cargando', 'Cargando…')
+          : `Registrar ticket y ${asistio ? 'confirmar asistencia' : 'marcar no-show'}`}
+      </OpBtnPrimary>
+    </View>
   );
 }
-function euro(v){ return `${Number(v||0).toFixed(2)}\u20AC`; }
+
+const estilos = StyleSheet.create({
+  form: {
+    flexDirection: 'column',
+    gap: 8,
+    padding: 11.2,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  headTxt: { fontSize: 12.5, fontWeight: '700', fontFamily: FUENTES.textoBold },
+  chip: {
+    fontSize: 9.9,
+    paddingVertical: 1.6,
+    paddingHorizontal: 5.6,
+    borderRadius: 4.8,
+    overflow: 'hidden',
+    fontFamily: MONO,
+  },
+  meta: { fontSize: 11.5, fontFamily: FUENTES.texto },
+  label: {
+    fontSize: 10.9,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    fontFamily: FUENTES.textoBold,
+    marginTop: 2,
+  },
+  precioFila: { flexDirection: 'row', gap: 6.4, alignItems: 'center' },
+  input: {
+    flex: 1,
+    height: 35.2,
+    paddingHorizontal: 9.6,
+    borderWidth: 1,
+    borderRadius: 8,
+    fontSize: 13.1,
+    fontFamily: FUENTES.texto,
+    paddingVertical: 0,
+  },
+  eur: { fontSize: 11.5, fontFamily: FUENTES.texto },
+  preview: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    fontSize: 10.9,
+    paddingVertical: 5.6,
+    paddingHorizontal: 8,
+    borderRadius: 6.4,
+    marginTop: 3.2,
+    gap: 8,
+  },
+  previewTxt: { fontSize: 10.9, fontFamily: FUENTES.texto },
+  previewFuerte: { fontWeight: '700', fontFamily: FUENTES.textoBold },
+  checkFila: { flexDirection: 'row', alignItems: 'center', gap: 6.4, flexWrap: 'wrap', paddingVertical: 2 },
+  checkCaja: {
+    width: 17,
+    height: 17,
+    borderWidth: 2,
+    borderRadius: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkTick: { color: '#ffffff', fontSize: 11, fontWeight: '800', lineHeight: 13 },
+  checkTxt: { fontSize: 12.5, fontWeight: '600', fontFamily: FUENTES.textoSemi },
+  checkSub: { fontSize: 9.9, fontFamily: FUENTES.texto, width: '100%', paddingLeft: 23 },
+  fileBtn: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 9.6,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+  },
+  fileBtnTxt: { fontSize: 12.5, fontFamily: FUENTES.texto },
+  fileNombre: { fontSize: 10.9, fontFamily: FUENTES.texto },
+  error: {
+    color: '#b44d3e',
+    fontSize: 12.5,
+    backgroundColor: '#ffdad6',
+    paddingVertical: 5.6,
+    paddingHorizontal: 8,
+    borderRadius: 6.4,
+    fontFamily: FUENTES.texto,
+  },
+  exito: {
+    backgroundColor: '#d1fae5',
+    padding: 11.2,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  exitoTxt: { color: '#065f46', fontWeight: '700', fontSize: 13.1, textAlign: 'center', fontFamily: FUENTES.textoBold },
+});
