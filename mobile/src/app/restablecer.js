@@ -1,5 +1,10 @@
-﻿import { Placeholder } from '../components/shell/Placeholder';
+import { AppShell } from '../components/shell/AppShell';
+import { Placeholder } from '../components/shell/Placeholder';
 
-export default function () {
-  return <Placeholder titulo="Restablecer contraseña" descripcion="Cambio con enlace oobCode (la web abre el navegador) (Fase 4)." />;
+export default function Restablecer() {
+  return (
+    <AppShell>
+      <Placeholder titulo="Restablecer contraseña" descripcion="Cambio con enlace oobCode (la web abre el navegador) (Fase 4)." />
+    </AppShell>
+  );
 }

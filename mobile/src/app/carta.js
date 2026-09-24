@@ -1,5 +1,5 @@
-﻿import { Placeholder } from '../components/shell/Placeholder';
+import { Placeholder } from '../components/shell/Placeholder';
 
-export default function () {
+export default function Carta() {
   return <Placeholder titulo="Carta" descripcion="Libro de carta 3D (Fase 8)." />;
 }

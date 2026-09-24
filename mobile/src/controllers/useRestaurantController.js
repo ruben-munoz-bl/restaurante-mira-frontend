@@ -102,11 +102,6 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     };
   }, [filtros, intento, dieta, accesibilidad, ignorarDieta]);
 
-  // Cierra el modal con Escape: en RN lo gestiona el botón atrás / cierre del modal.
-  const cerrarDetalleSiAbierto = useCallback(() => {
-    if (seleccionado && !libro) setSeleccionado(null);
-  }, [seleccionado, libro]);
-
   /**
    * Siguiente tanda del scroll infinito (siempre +27):
    * - modo pagina: pide la página siguiente al API.

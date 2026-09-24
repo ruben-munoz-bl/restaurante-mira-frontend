@@ -25,10 +25,16 @@ import { hydrateStorage } from '../lib/storage';
 import { ThemeProvider, useTheme } from '../theme/ThemeContext';
 import { I18nProvider } from '../i18n/index.jsx';
 import { AuthProvider, useAuthContext } from '../context/AuthContext';
+import { StreakProvider } from '../context/StreakContext';
 
 function I18nConAuth({ children }) {
   const auth = useAuthContext();
   return <I18nProvider onLangChange={auth.perfil?.guardarLang}>{children}</I18nProvider>;
+}
+
+function StreakConAuth({ children }) {
+  const { usuario } = useAuthContext();
+  return <StreakProvider usuario={usuario}>{children}</StreakProvider>;
 }
 
 function RootStack() {
@@ -103,11 +109,13 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <ThemeProvider>
           <AuthProvider>
-            <I18nConAuth>
-              <View style={{ flex: 1 }}>
-                <RootStack />
-              </View>
-            </I18nConAuth>
+            <StreakConAuth>
+              <I18nConAuth>
+                <View style={{ flex: 1 }}>
+                  <RootStack />
+                </View>
+              </I18nConAuth>
+            </StreakConAuth>
           </AuthProvider>
         </ThemeProvider>
       </SafeAreaProvider>

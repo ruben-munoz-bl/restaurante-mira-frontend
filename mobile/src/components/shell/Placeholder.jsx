@@ -1,28 +1,33 @@
 /**
  * Pantalla placeholder — se reemplaza fase a fase por la vista real del web.
- * Mantiene tema, tipografía y estructura mientras se migra.
+ * Sin SafeAreaView/Header propios: el chrome lo aporta <AppShell>.
  */
 import { View, Text, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
 import { FUENTES, RADIO } from '../../theme/tokens';
 
 export function Placeholder({ titulo, descripcion }) {
   const { colores } = useTheme();
   return (
-    <SafeAreaView style={[styles.caja, { backgroundColor: colores.fondo }]} edges={['top']}>
+    <View style={styles.caja}>
       <View style={[styles.tarjeta, { backgroundColor: colores.papel, borderColor: colores.borde }]}>
         <Text style={[styles.titulo, { color: colores.tinta }]}>{titulo}</Text>
         <Text style={[styles.sub, { color: colores.gris }]}>
           {descripcion || 'Pendiente de migración (fase siguiente).'}
         </Text>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  caja: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
+  caja: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    minHeight: 360,
+  },
   tarjeta: {
     borderRadius: RADIO.md,
     borderWidth: 1,
