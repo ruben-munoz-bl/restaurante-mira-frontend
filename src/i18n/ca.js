@@ -350,6 +350,7 @@ export default {
     "reservando": "Reservant…",
     "reservar": "Reservar",
     "debesLogin": "Has de <1>iniciar sessió</1> per reservar.",
+    "descuentoPendiente": "Tens un descompte de {{euros}} € pendent. S'aplicarà a la teva propera reserva.",
     "reservaConfirmada": "Reserva confirmada!",
     "codigo": "Codi",
     "verMisReservas": "Veure les meves reserves",
@@ -458,15 +459,19 @@ export default {
   },
   "libro": {
     "cartaDe": "Carta de {{nombre}}",
-    "cerrarCarta": "Tancar carta",
+    "cerrarCarta": "Tancar",
     "leyenda": "Llegenda",
     "leyendaCarta": "Llegenda de la carta",
     "anterior": "← Anterior",
+    "anteriorCorto": "Anterior",
     "siguiente": "Següent →",
+    "siguienteCorto": "Següent",
     "secciones": "seccions",
     "platos": "plats",
     "aptosParaTi": "Aptes per a tu",
-    "menuInfantil": "Menú infantil"
+    "menuInfantil": "Menú infantil",
+    "abrirMenu": "Toqueu per obrir el menú",
+    "desliza": "Desplaceu o utilitzeu les fletxes per passar la pàgina"
   },
   "recuperar": {
     "titulo": "Recuperar contrasenya",
@@ -578,6 +583,71 @@ export default {
     "gratisTitulo": "Sense cost",
     "gratisDesc": "Cercar i reservar és sempre gratuït."
   },
+  "mira": {
+    "titulo": "MIRA",
+    "estado": "El teu assistent de reserves",
+    "abrir": "Parla amb MIRA",
+    "cerrar": "Tanca el xat",
+    "nuevoChat": "Torna a començar",
+    "placeholder": "Escriu la teva consulta…",
+    "escribe": "Missatge per a MIRA",
+    "enviar": "Enviar",
+    "parar": "Aturar",
+    "pie": "Respostes segons l'API de MIRA",
+    "confirmar": {
+      "titulo": "Confirmo aquesta acció?",
+      "si": "Sí, confirmo",
+      "no": "Millor no"
+    },
+    "error": {
+      "iniciarSesion": "Inicia la sessió",
+      "reintentar": "Torna-ho a provar",
+      "reintentarEn": "Prova-ho d'aquí a {{n}} s"
+    },
+    "card": {
+      "resultados": "{{n}} resultats",
+      "valoracion": "Valoració",
+      "resenas": "Ressenyes",
+      "precio": "Preu",
+      "cocina": "Cuina",
+      "zona": "Zona",
+      "local": "Restaurant",
+      "cuando": "Quan",
+      "personas": "Covers",
+      "estado": "Estat",
+      "verFicha": "Veure fitxa",
+      "quiereReservar": "Vull reservar a {{nombre}}",
+      "reservar": "Reservar aquí",
+      "reserva": "Reserva",
+      "reservaCancelada": "Reserva cancel·lada",
+      "verReservas": "Veure les meves reserves",
+      "disponibilidad": "Disponibilitat",
+      "libres": "Places lliures",
+      "tusPuntos": "Els teus punts",
+      "saldo": "Saldo",
+      "acumulados": "Acumulats",
+      "racha": "Ratxa",
+      "dias": "dies",
+      "loginDiario": "Login diari",
+      "ruleta": "Ruleta",
+      "canje": "Canvi de punts",
+      "puntos": "Punts",
+      "premio": "Premi",
+      "verPuntos": "Veure els meus punts",
+      "datosDeLaApi": "Dades segons l'API"
+    },
+    "chips": {
+      "recomienda": "Què em recomanes?",
+      "mesaSabado": "Tens taula dissabte?",
+      "puntosNecesarios": "Quants punts necessito?",
+      "resumenDia": "Com va el dia?",
+      "incidencias": "Revisa les incidències pendents",
+      "misReservas": "Com van les meves reserves?",
+      "misPedidos": "Quines comandes tinc avui?",
+      "misPuntos": "Quants punts tinc?",
+      "cancelarMañana": "Cancel·la la meva reserva de demà"
+    }
+  },
   "bottomNav": {
     "explorar": "Explorar",
     "reservas": "Reserves",
@@ -591,6 +661,7 @@ export default {
     "confirmarReserva": "Confirmar reserva",
     "reserva": "Reserva",
     "descuentoEpicure": "Descompte Epicure",
+    "descuentoPendiente": "Descompte punts",
     "totalEstimado": "Total estimat",
     "confirmar": "Confirmar Reserva"
   },
@@ -621,6 +692,12 @@ export default {
     "redeemDiscount": "Descompte aplicat al proper tiquet",
     "redeemError": "Error en bescanviar",
     "redeeming": "Bescanviant...",
+    "discountTitle": "Reclamar descompte",
+    "discountInfo": "100 pts = 1 €. El descompte s'aplicarà a la teva propera reserva.",
+    "discountPending": "de descompte pendents",
+    "discountPendingHint": "S'aplicarà a la teva propera reserva",
+    "discountClaimed": "Descompte reclamat. S'aplicarà a la teva propera reserva.",
+    "discountError": "Error en reclamar el descompte",
     "cancel": "Cancel·lar",
     "confirm": "Bescanviar",
     "types": {
@@ -678,5 +755,18 @@ export default {
     "wheelCongrats": "Enhorabona!",
     "wheelAdded": "S'han afegit al teu saldo",
     "milestone7": "x7 Cofre"
+  },
+  "emblemas": {
+    "tituloProgreso": "El teu progrés",
+    "tituloNivel": "Emblema {{nombre}}",
+    "foodie": "Foodie",
+    "gourmet": "Gourmet",
+    "michelin": "Michelin",
+    "sinEmblema": "Reserva la teva primera taula per aconseguir l'emblema Foodie.",
+    "faltan": "Et falten {{n}} reserves per aconseguir l'emblema {{siguiente}}.",
+    "faltaUna": "Et falta 1 reserva per aconseguir l'emblema {{siguiente}}.",
+    "maximo": "Has aconseguit l'emblema Michelin.",
+    "multiplicador": "Multiplicador",
+    "multiplicadorValor": "{{multi}}"
   }
 }

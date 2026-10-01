@@ -10,7 +10,7 @@ import en from '../i18n/en.js';
 
 const TRADS = { es, ca, en };
 
-export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeidos, puntosSaldo, tema, onCambiarTema, onSalir, onStreakClick, fetchStreakData }) {
+export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeidos, puntosSaldo, tema, onCambiarTema, onSalir, onStreakClick, fetchStreakData, onAbrirMira, miraOculta }) {
   const t = useT(TRADS);
   const { lang, cycleLang, available } = useI18n();
   const [abierto, setAbierto] = useState(false);
@@ -27,6 +27,16 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
   }, [abierto]);
 
   useEffect(() => {
+    // Solo en móvil el header se oculta al bajar; en desktop/tablet siempre visible.
+    const mq = window.matchMedia('(max-width: 767px)');
+    if (!mq.matches) {
+      setOculto(false);
+      return undefined;
+    }
+    if (abierto) {
+      setOculto(false);
+      return undefined;
+    }
     let ultimo = window.scrollY;
     let turno = false;
     function alDesplazar() {
@@ -34,14 +44,16 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
       turno = true;
       requestAnimationFrame(() => {
         const y = window.scrollY;
-        setOculto(y > 160 && y > ultimo);
+        const delta = y - ultimo;
+        if (y <= 60 || delta < 0) setOculto(false);
+        else if (delta > 0) setOculto(true);
         ultimo = y;
         turno = false;
       });
     }
     window.addEventListener('scroll', alDesplazar, { passive: true });
     return () => window.removeEventListener('scroll', alDesplazar);
-  }, []);
+  }, [abierto]);
 
   function cerrar() {
     setAbierto(false);
@@ -52,9 +64,9 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
     setLoadingStreak(true);
     try {
       const data = await fetchStreakData?.();
-      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: true });
+      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: false });
     } catch {
-      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: true });
+      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: false });
     } finally {
       setLoadingStreak(false);
     }
@@ -112,6 +124,17 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
           </ul>
         </nav>
         <div className="header-cuentas" onClick={cerrar}>
+          {onAbrirMira && !miraOculta && (
+            <button
+              type="button"
+              className="header-mira-btn"
+              onClick={onAbrirMira}
+              aria-label={t('mira.abrir')}
+              title={t('mira.abrir')}
+            >
+              <img src="/mira_logo_3_circular_lente.svg" alt="" className="header-mira-btn-img" />
+            </button>
+          )}
           {usuario ? (
             <>
               <a href="#/puntos" className="header-points-pill" title={t('points.title')}>

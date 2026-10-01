@@ -1,10 +1,12 @@
 # MIRA — ¿Dónde comemos hoy?
 
-Landing + buscador de restaurantes de Cataluña con datos reales de Firestore:
-690 locales con 50 reseñas cada uno, filtro por zona, distancia real desde tu
-ubicación, fichas con mapa, cuentas de usuario y formulario de contacto.
+Landing + buscador de restaurantes de Cataluña con datos reales:
+~690 locales con 50 reseñas cada uno, filtro por zona, fichas con mapa,
+cuentas de usuario y formulario de contacto.
 
-Todo el filtrado es 100% cliente. Sin backend propio.
+**Arquitectura:** el frontend **no** toca Firestore. Toda la lectura/escritura
+de datos pasa por la API hermana `mira-api` (Express). El SDK de Firebase
+solo se usa para Auth (login/token). El filtrado final es cliente.
 
 ---
 
@@ -13,7 +15,7 @@ Todo el filtrado es 100% cliente. Sin backend propio.
 | Apartado | Descripción |
 |---|---|
 | Landing | Hero fotográfico, cifras reales, atajos por cocina y franja de ventajas |
-| Buscador | Texto (insensible a tildes), cocina, zona, precio, distancia, día/hora y 4 órdenes |
+| Buscador | Texto (insensible a tildes), cocina, zona, precio, distancia, día/hora y 4 órdenes; **scroll infinito de 27 en 27** |
 | Fichas | Foto, nota Yelp + nota MIRA, dirección, teléfono, mapa, carta y reseñas Yelp/MIRA |
 | Carta libro | Modal con portada temática, páginas, leyenda fija + página Leyenda |
 | Dieta | Vegano/vegetariano/sin gluten + 7 alergias; oculta locales con <2 platos aptos |
@@ -21,7 +23,7 @@ Todo el filtrado es 100% cliente. Sin backend propio.
 | Favoritos | Corazón en cards, contador en header, `#/favoritos` y comparador de hasta 3 |
 | Reservas | Slots fijos con cupo, calendario con meteo y avisos de terraza, Mis reservas y cancelación |
 | Cuentas | Registro (cliente/empresa), login, "Mi cuenta" y panel `#/admin` |
-| Contacto | Formulario (reserva, sugerencia, incidencia) que guarda en Firestore |
+| Contacto | Formulario (reserva, sugerencia, incidencia) → API → Firestore |
 | Empresa | Propuesta de locales con acceso, infantil, tronas, entorno, terraza y alérgenos; el admin aprueba |
 
 ## Rutas
@@ -45,8 +47,8 @@ Todo el filtrado es 100% cliente. Sin backend propio.
 | Capa | Stack |
 |---|---|
 | App | Vite 5 + React 18 + CSS puro (sin librerías de UI) |
-| Datos | Firebase Firestore (690 restaurantes de Cataluña) |
-| Auth | Firebase Authentication (email + contraseña) |
+| Datos | API `mira-api` (Express) → Firestore (690 restaurantes de Cataluña) |
+| Auth | Firebase Authentication (email + contraseña) — solo login/token |
 | Mapas | Embed de OpenStreetMap (gratis, sin claves) |
 
 ## Arquitectura MVC adaptada a React
@@ -54,8 +56,8 @@ Todo el filtrado es 100% cliente. Sin backend propio.
 ```
 src/
 ├── models/       # Tipos JSDoc + helpers puros (normalizeText, haversineKm…)
-├── data/         # Mocks de respaldo (la app usa Firestore)
-├── services/     # Lecturas y reglas: restaurantApi, filterService, authApi…
+├── data/         # Mocks de respaldo (la app usa la API)
+├── services/     # httpClient + restaurantApi, filterService, authApi…
 ├── controllers/  # Hooks: useRestaurantController (filtros+detalle), useAuth
 ├── components/   # Views puras: solo props, nunca importan el Model
 ├── styles/       # tokens.css (paleta y tipografía)
@@ -67,12 +69,25 @@ Regla de la casa: las Views no importan el Model; solo el Controller habla con �
 
 ## Puesta en marcha
 
+La API debe estar corriendo (puerto 3000) antes de usar el frontend:
+
 ```powershell
-cd Frontend
+# 1. API (otra terminal)
+cd ..\restuarante-mira-backend\mira-api
+npm start              # http://localhost:3000
+
+# 2. Frontend
+cd restaurante-mira-frontend
 npm.cmd install
-npm.cmd run dev      # http://localhost:5173
-npm.cmd run build    # genera dist/
-npm.cmd run preview  # sirve el build en local
+npm.cmd run dev        # http://localhost:5173
+npm.cmd run build      # genera dist/
+npm.cmd run preview    # sirve el build en local
+```
+
+`.env` del frontend:
+
+```
+VITE_API_URL=http://localhost:3000
 ```
 
 > En CMD escribe el comando limpio: lo que vaya detrás de `#` se ejecuta
@@ -196,35 +211,104 @@ Además, en Authentication → Método de inicio de sesión, activa
 
 ## Costes (plan Spark, gratis)
 
-| Acción | Coste aprox. |
+Las lecturas de Firestore las hace la API (Admin SDK), no el cliente.
+Coste aproximado por visita:
+
+| Acción | Lecturas Firestore |
 |---|---|
-| Abrir la web | 21 lecturas (portada) + 1 count |
-| Seguir deslizando | 21 lecturas por tanda |
-| Filtrar / ordenar global | ~690 lecturas (1 vez, conjunto entero) |
-| Filtrar / ordenar | 0 extra (todo en cliente tras cargar) |
-| Abrir el mapa | 0 si ya está todo cargado; ~690 una vez si no |
+| Abrir la portada | 27 (1 tanda) + 1 count |
+| Seguir deslizando | +27 por tanda |
+| Filtrar / ordenar global | ~690 (1 vez, conjunto entero) |
+| Filtrar / ordenar (ya cargado) | 0 extra (todo en cliente) |
 | Crear cuenta / entrar | 0 en Firestore (perfil: 1 lectura por sesión) |
 | Enviar contacto | 1 escritura |
-| Aviso 24h (script) | 1 query + 1 escritura por reserva |
-| Favoritos | 0 lecturas (reutiliza cargados; 1 por guardado aún no visto) |
-| Dieta y carta libro | 0 (todo determinista en cliente) |
+| Favoritos / dieta / carta libro | 0 (todo en cliente) |
 
-Sin filtros se pagina de 21 en 21: una visita típica cuesta ~22 lecturas en
-vez de ~690 (unas 2.000 visitas/día en cuota). Al activar cualquier filtro u
-orden global se trae el conjunto entero una vez, como antes.
+Sin filtros la portada pinta **27** de 690 y el scroll carga otras 27.
+Al activar cualquier filtro u orden global se trae el conjunto una vez,
+pero la UI sigue pintando de 27 en 27.
+
+## Agente IA MIRA (chat)
+
+Asistente de reservas que vive en un drawer accesible desde **tres sitios**:
+un launcher flotante (desktop), un botón en la cabecera y un tab en la barra
+inferior (móvil). Habla con `POST /v1/ai/agent` de `mira-api`.
+
+### Variables de entorno
+
+| Variable | Por defecto | Qué hace |
+|---|---|---|
+| `VITE_AI_ENABLED` | `false` | Si es `false`, el launcher y el tab no se montan. |
+| `VITE_AI_MOCK` | `true` | Si es `true`, responde `aiMock.js` sin tocar el backend. |
+
+> `.env.example` está en `.gitignore`, así que estas dos variables también
+> están documentadas aquí. Con `VITE_AI_ENABLED=true` + `VITE_AI_MOCK=true`
+> se desarrolla y prueba el chat entero sin backend.
+
+### Ficheros
+
+```
+src/services/aiErrors.js     # código de error → mensaje en español (puro, testeado)
+src/services/aiPayload.js    # historial, idempotency-key, whitelist anti-PII (puro, testeado)
+src/services/aiMock.js       # respuestas falsas, incluido el flujo de 2 pasos (puro, testeado)
+src/services/aiApi.js        # POST /v1/ai/agent con auth opcional + Idempotency-Key
+src/stores/useMiraStore.js   # conversación, confirmación, reintento
+src/components/mira/         # Launcher, Panel, Log, Burbuja, Acciones, Composer, mira.css
+```
+
+### Contrato que consume
+
+```
+POST /v1/ai/agent
+  Authorization:  Bearer <idToken>   → opcional (el agente admite invitados)
+  Idempotency-Key: <uuid>           → uno por turno de usuario
+body: { message, history?, confirmId? }
+200:  { reply, actions[], needsConfirm?, provider, model }
+```
+
+### Dos pasos: cómo se confirma una mutación
+
+1. El usuario pide algo que muta (`crear reserva`, `canjar puntos`…).
+2. El agente responde `needsConfirm: { confirmId, summary }` → la UI pinta una
+   tarjeta con **Sí, confirmo / Mejor no**. El `confirmId` **nunca se le pide
+   al usuario**: viaja oculto dentro del chip.
+3. Al confirmar se reenvía `{ message: 'Sí, confirmo', confirmId }` con una
+   **Idempotency-Key nueva** (el backend exige clave distinta por paso).
+4. Renegar descarta la tarjeta **sin llamar a la API**.
+
+### Seguridad en cliente
+
+- Las respuestas del agente se pintan como **texto plano**: el repo no usa
+  `dangerouslySetInnerHTML` en ningún sitio y `reply` es contenido no confiable.
+- `camposVisibles(tool, result)` es una **allowlist por tool**: aunque el
+  backend devuelva de más, la UI solo pinta los campos conocidos. Una tool
+  desconocida no devuelve **ningún** dato. Cubierto por tests.
+
+### Tests
+
+```powershell
+npm.cmd test     # node --test, sin dependencias
+```
+
+Solo lógica pura (`aiErrors`, `aiPayload`, `aiMock`): nada de JSX ni DOM, por
+eso es `node --test` y no vitest. Para probar la UI hace falta `npm.cmd run dev`
+con `VITE_AI_MOCK=true`.
 
 ## Flujos para probar
 
-- Sin filtros → "Mostrando 21 de 690 restaurantes"; al deslizar carga más.
-- `sushi` + `€€` + zona Barcelona → trae el conjunto y filtra en cliente.
+- Sin filtros → "Mostrando 27 de 690 restaurantes"; al deslizar carga más.
+- `sushi` + `€€` + zona Barcelona → trae el conjunto y filtra en cliente (pinta de 27 en 27).
 - `méxico` (con tilde) → encuentra igual (búsqueda normalizada).
-- Activa la ubicación → distancias reales y filtro por km.
 - `#/registro` → crea cuenta → "Hola, {nombre}" → `#/cuenta` → salir.
 - `#/contacto` → envía un mensaje → aparece en Firestore → `contactos`.
+- Con `VITE_AI_MOCK=true`: launcher de MIRA → "Mesa para 4 el 2026-10-10 a las
+  13:00 en Casa Lucio" → tarjeta de confirmación → **Sí, confirmo** → reserva
+  creada con código. Probar también `bomb` (429), `admin` (403) y `ruleta`
+  (WHEEL_LOCKED).
 
 ## Scripts con datos
 
-La carpeta hermana `Restaurante_Mira/` (fuera de este repo) contiene los
+La carpeta hermana `restuarante-mira-backend/yelp-connection/` contiene los
 scripts de Node que llenan Firestore desde Yelp + Faker/IA:
 
 ```powershell

@@ -1,7 +1,8 @@
 import usePointsStore from '../../stores/usePointsStore.js';
 
+// El balance lo carga el padre (PuntosDashboard/Cuenta) cuando hay sesión.
 export default function BalanceCard() {
-  const { saldoActual, totalAcumulado, rachaLogin, rachaReservas, balanceLoading } = usePointsStore();
+  const { saldoActual, rachaLogin, rachaReservas, balanceLoading } = usePointsStore();
 
   if (balanceLoading) {
     return (
@@ -22,10 +23,6 @@ export default function BalanceCard() {
         <span className="balance-card__label">puntos disponibles</span>
       </div>
       <div className="balance-card__details">
-        <div className="balance-card__detail">
-          <span className="detail-label">Total acumulado</span>
-          <span className="detail-value">{totalAcumulado} pts</span>
-        </div>
         <div className="balance-card__detail">
           <span className="detail-label">Racha login</span>
           <span className="detail-value">{rachaLogin.dias || 0} días</span>

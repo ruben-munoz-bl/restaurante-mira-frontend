@@ -1,0 +1,100 @@
+/* Tokens — Epicure Fork: forest pine, champagne gold, warm ivory. */
+:root {
+  color-scheme: light;
+
+  /* Brand palette — Material Design 3 inspired */
+  --primary: #002218;
+  --primary-container: #16382C;
+  --secondary: #735c00;
+  --secondary-container: #fed65b;
+  --tertiary: #43000e;
+  --tertiary-container: #67081d;
+
+  /* Semantic roles */
+  --fondo: #f7faf6;
+  --fondo-suave: #ecefeb;
+  --tinta: #181c1a;
+  --gris: #414844;
+  --borde: #c1c8c3;
+  --verde: #16382C;
+  --verde-oscuro: #002218;
+  --verde-suave: #f1f4f1;
+  --rojo: #67081d;
+  --estrella: #fed65b;
+  --papel: #ffffff;
+  --dorado: #735c00;
+  --dorado-claro: #c6924b;
+
+  /* Surfaces for overlays on photos */
+  --badge-bg: rgba(255, 255, 255, 0.96);
+  --fav-bg: rgba(255, 255, 255, 0.92);
+
+  /* Typography */
+  --fuente: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --fuente-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+
+  /* Border radius */
+  --radio: 12px;
+  --radio-peq: 8px;
+  --radio-xl: 24px;
+
+  /* Elevation — warm-tinted shadows (not black) */
+  --sombra-card: 0 2px 8px rgba(22, 56, 44, 0.06);
+  --sombra-card-hover: 0 12px 32px rgba(22, 56, 44, 0.12), 0 2px 8px rgba(22, 56, 44, 0.06);
+  --sombra-card-focus: 0 0 0 3px rgba(22, 56, 44, 0.15), 0 12px 32px rgba(22, 56, 44, 0.12);
+  --sombra-flotante: 0 8px 28px rgba(11, 37, 29, 0.16);
+
+  /* Glassmorphism */
+  --glass-bg: rgba(247, 250, 246, 0.85);
+  --glass-border: rgba(22, 56, 44, 0.08);
+  --glass-blur: blur(16px);
+
+  /* Layout */
+  --ancho-max: 1320px;
+  --gutter: 1.5rem;
+  --gutter-movil: 1rem;
+
+  /* Additional semantic tokens */
+  --naranja: #c25a1a;
+  --azul: #1a56db;
+  --texto-sec: #6b7280;
+}
+
+/* Dark mode */
+[data-theme='dark'] {
+  color-scheme: dark;
+  --primary: #a8d5ba;
+  --primary-container: #0d7353;
+  --secondary: #fed65b;
+  --secondary-container: #735c00;
+  --tertiary: #ffb3c1;
+  --tertiary-container: #8f1d14;
+
+  --fondo: #111411;
+  --fondo-suave: #1c201c;
+  --tinta: #e2e8e4;
+  --gris: #a0a8a2;
+  --borde: #3a403c;
+  --verde: #a8d5ba;
+  --verde-oscuro: #c5e8d4;
+  --verde-suave: #1c3230;
+  --rojo: #ffb3c1;
+  --estrella: #fed65b;
+  --papel: #1c201c;
+  --dorado: #fed65b;
+  --dorado-claro: #fed65b;
+  --naranja: #e0854a;
+  --azul: #5b8def;
+  --texto-sec: #a0a8a2;
+
+  --badge-bg: rgba(28, 32, 28, 0.92);
+  --fav-bg: rgba(28, 32, 28, 0.88);
+
+  --sombra-card: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --sombra-card-hover: 0 12px 32px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --sombra-card-focus: 0 0 0 3px rgba(168, 213, 186, 0.3), 0 12px 32px rgba(0, 0, 0, 0.4);
+  --sombra-flotante: 0 8px 28px rgba(0, 0, 0, 0.5);
+
+  --glass-bg: rgba(17, 20, 17, 0.88);
+  --glass-border: rgba(168, 213, 186, 0.1);
+}

@@ -93,7 +93,11 @@ export default function Mapa({ todos, total, onVerDetalle }) {
   }, [fuente, t]);
 
   const visibles = useMemo(
-    () => fuente.filter((r) => r.coords && (!zona || (r.zona || t('otros.sinZona')) === zona)),
+    () => fuente.filter((r) =>
+      r.coords
+      && Number.isFinite(Number(r.coords.lat))
+      && Number.isFinite(Number(r.coords.lng))
+      && (!zona || (r.zona || t('otros.sinZona')) === zona)),
     [fuente, zona, t],
   );
 
@@ -156,7 +160,10 @@ export default function Mapa({ todos, total, onVerDetalle }) {
 
     const puntos = [];
     visibles.forEach((r) => {
-      const mk = L.circleMarker([r.coords.lat, r.coords.lng], {
+      const lat = Number(r.coords?.lat);
+      const lng = Number(r.coords?.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      const mk = L.circleMarker([lat, lng], {
         radius: 7,
         color: '#00664f',
         weight: 2,
@@ -169,7 +176,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
           `<button data-ver-detalle="${escapar(r.id)}" style="margin-top:0.4rem">${t('card.verMas')}</button>`,
       );
       mk.addTo(capa);
-      puntos.push([r.coords.lat, r.coords.lng]);
+      puntos.push([lat, lng]);
     });
 
     if (puntos.length > 1) {

@@ -1,0 +1,490 @@
+/* ====================================================================
+   Agente IA MIRA: launcher + panel de chat.
+   Bloque `mira-*`. Se importa una sola vez desde MiraPanel.jsx
+   (mismo patron que ops.css / dashboard.css). Sin CSS Modules.
+
+   Capas (z-index) verificadas contra el resto de la app:
+     .site-header        100
+     .bottom-nav         150   (solo <=767px)
+     .mira-launcher      180   (solo >=768px)
+     .mira-overlay       190
+     .modal-fondo        200   el chat queda debajo y se atenua solo
+     .floating-sheet     250
+     .streak-overlay     600
+     .cookie-fondo      1000
+   ==================================================================== */
+
+/* ---------- Launcher (solo desktop) ---------- */
+.mira-launcher {
+  position: fixed;
+  right: 1.5rem;
+  bottom: 1.5rem;
+  z-index: 180;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: 2px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--papel);
+  box-shadow: var(--sombra-flotante);
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+}
+.mira-launcher:hover {
+  transform: scale(1.08);
+  box-shadow: var(--sombra-card-hover);
+}
+.mira-launcher:active {
+  transform: scale(0.96);
+}
+.mira-launcher:focus-visible {
+  box-shadow: var(--sombra-card-focus);
+}
+.mira-launcher--oculto {
+  display: none;
+}
+.mira-launcher-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+/* Punto de aviso: hay una confirmacion pendiente. */
+.mira-launcher-dot {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--tertiary-container);
+  border: 2px solid var(--papel);
+}
+
+/* ---------- Overlay + panel ---------- */
+.mira-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 190;
+  background: rgba(0, 34, 24, 0.4);
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 1rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+.mira-overlay--visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mira-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 400px;
+  height: 620px;
+  max-height: calc(100vh - 2rem);
+  background: var(--papel);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radio-xl);
+  box-shadow: var(--sombra-flotante);
+  overflow: hidden;
+  transform: translateY(24px) scale(0.98);
+  opacity: 0;
+  transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease;
+}
+.mira-overlay--visible .mira-panel {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
+/* ---------- Cabecera ---------- */
+.mira-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 0.9rem;
+  background: var(--primary-container);
+  color: #fff;
+  flex-shrink: 0;
+}
+.mira-header-logo {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.mira-header-txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin-right: auto;
+}
+.mira-header-nombre {
+  font-family: var(--fuente-display);
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+.mira-header-estado {
+  font-size: 0.72rem;
+  opacity: 0.85;
+}
+.mira-header-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.mira-header-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* ---------- Log ---------- */
+.mira-log {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--fondo);
+  overscroll-behavior: contain;
+}
+
+.mira-burbuja {
+  max-width: 86%;
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radio);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.mira-burbuja--user {
+  align-self: flex-end;
+  background: var(--primary-container);
+  color: #fff;
+  border-bottom-right-radius: var(--radio-peq);
+}
+.mira-burbuja--model {
+  align-self: flex-start;
+  background: var(--papel);
+  border: 1px solid var(--glass-border);
+  border-bottom-left-radius: var(--radio-peq);
+}
+
+.mira-escribiendo {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.7rem 0.9rem;
+}
+.mira-escribiendo span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--borde);
+  animation: mira-punto 1.2s infinite;
+}
+.mira-escribiendo span:nth-child(2) { animation-delay: 0.15s; }
+.mira-escribiendo span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes mira-punto {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+/* ---------- Tarjetas de accion ---------- */
+.mira-tarjeta {
+  align-self: flex-start;
+  width: 100%;
+  max-width: 90%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radio);
+  background: var(--papel);
+  font-size: 0.88rem;
+}
+.mira-tarjeta--error {
+  border-color: var(--rojo);
+  background: var(--error-tinte, #fdecea);
+}
+.mira-tarjeta-confirmacion {
+  border-color: var(--dorado);
+  background: var(--confirm-tinte, #fdf6e3);
+}
+.mira-tarjeta-titulo {
+  font-weight: 700;
+  font-size: 0.92rem;
+  margin: 0 0 0.3rem;
+}
+.mira-tarjeta-linea {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  font-size: 0.84rem;
+  color: var(--gris);
+  padding: 0.1rem 0;
+  margin: 0;
+}
+.mira-tarjeta-linea span:last-child {
+  font-weight: 600;
+  color: var(--tinta);
+  text-align: right;
+}
+.mira-tarjeta-codigo {
+  display: inline-block;
+  margin-top: 0.4rem;
+  padding: 0.15rem 0.5rem;
+  border: 1px dashed var(--borde);
+  border-radius: var(--radio-peq);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.8rem;
+}
+.mira-tarjeta-acciones {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+  flex-wrap: wrap;
+}
+.mira-tarjeta-acciones .btn-texto,
+.mira-tarjeta-acciones .btn-cta,
+.mira-tarjeta-acciones .btn-secundario {
+  font-size: 0.82rem;
+}
+
+/* Estado de la reserva */
+.mira-estado {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--fondo-suave);
+  color: var(--gris);
+}
+.mira-estado--pendiente {
+  background: var(--secondary-container);
+  color: var(--secondary);
+}
+.mira-estado--confirmada,
+.mira-estado--completada {
+  background: var(--verde-suave);
+  color: var(--verde);
+}
+.mira-estado--cancelada,
+.mira-estado--no-show {
+  background: var(--fondo-suave);
+  color: var(--rojo);
+}
+
+/* Fila plegable de tool sin tarjeta propia. */
+.mira-accion-mini {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0 0.2rem;
+  font-size: 0.76rem;
+  color: var(--gris);
+  cursor: pointer;
+  text-align: left;
+}
+.mira-accion-mini:hover {
+  color: var(--tinta);
+}
+
+/* ---------- Errores ---------- */
+.mira-error {
+  margin: 0 0.9rem 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border: 1px solid var(--rojo);
+  border-radius: var(--radio-peq);
+  background: var(--error-tinte, #fdecea);
+  color: var(--tinta);
+  font-size: 0.86rem;
+  flex-shrink: 0;
+}
+.mira-error p {
+  margin: 0;
+}
+.mira-error-acciones {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  flex-wrap: wrap;
+}
+
+/* ---------- Composer ---------- */
+.mira-composer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.7rem 0.8rem;
+  border-top: 1px solid var(--glass-border);
+  background: var(--papel);
+  flex-shrink: 0;
+}
+.mira-chips {
+  display: flex;
+  gap: 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mira-chips::-webkit-scrollbar {
+  display: none;
+}
+.mira-chip {
+  flex-shrink: 0;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: var(--fondo);
+  font-size: 0.78rem;
+  color: var(--gris);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.mira-chip:hover {
+  border-color: var(--borde);
+  color: var(--tinta);
+}
+.mira-chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.mira-fila-envio {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-end;
+}
+.mira-input {
+  flex: 1;
+  min-height: 42px;
+  max-height: 110px;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radio);
+  background: var(--fondo);
+  font: inherit;
+  font-size: 0.92rem;
+  color: var(--tinta);
+  resize: none;
+}
+.mira-input:focus-visible {
+  outline: 3px solid var(--verde);
+  outline-offset: 1px;
+}
+.mira-enviar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary-container);
+  color: #fff;
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+.mira-enviar:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.mira-enviar--parar {
+  background: var(--rojo);
+}
+.mira-pie {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--texto-sec);
+}
+.mira-pie-aviso {
+  color: var(--naranja);
+  font-weight: 700;
+}
+
+/* ---------- Boton del Header ---------- */
+.header-mira-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--papel);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+}
+.header-mira-btn:hover {
+  transform: scale(1.12);
+  box-shadow: var(--sombra-card);
+}
+.header-mira-btn:active {
+  transform: scale(0.95);
+}
+.header-mira-btn-img {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* ---------- Breakpoint movil ---------- */
+@media (max-width: 767px) {
+  /* En movil el acceso es el tab de BottomNav: no duplicamos el boton. */
+  .mira-launcher {
+    display: none;
+  }
+  .mira-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .mira-panel {
+    max-width: none;
+    height: 88vh;
+    /* Despeja la barra de navegacion inferior (70px) y el safe-area. */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    border-radius: var(--radio-xl) var(--radio-xl) 0 0;
+  }
+  /* Con 6 items la barra se aprieta en pantallas cortas. */
+  .bottom-nav-item {
+    padding: 0.3rem 0.4rem;
+    font-size: 0.64rem;
+  }
+}
+
+/* ---------- Accesibilidad de movimiento ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .mira-overlay,
+  .mira-panel,
+  .mira-launcher,
+  .header-mira-btn {
+    transition: 0.01ms !important;
+  }
+  .mira-escribiendo span {
+    animation: none;
+    opacity: 0.6;
+  }
+}

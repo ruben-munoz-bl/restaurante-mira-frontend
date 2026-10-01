@@ -10,7 +10,7 @@ import en from '../i18n/en.js';
 
 const TRADS = { es, ca, en };
 
-export default function BottomNav({ ruta, numFavoritos, numReservas, puntosSaldo, esAdmin, perfil, usuario, onStreakClick, fetchStreakData }) {
+export default function BottomNav({ ruta, numFavoritos, numReservas, puntosSaldo, esAdmin, perfil, usuario, onStreakClick, fetchStreakData, onAbrirMira, miraActiva }) {
   const t = useT(TRADS);
   const [loadingStreak, setLoadingStreak] = useState(false);
 
@@ -19,9 +19,9 @@ export default function BottomNav({ ruta, numFavoritos, numReservas, puntosSaldo
     setLoadingStreak(true);
     try {
       const data = await fetchStreakData?.();
-      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: true });
+      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: false });
     } catch {
-      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: true });
+      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: false });
     } finally {
       setLoadingStreak(false);
     }
@@ -78,6 +78,18 @@ export default function BottomNav({ ruta, numFavoritos, numReservas, puntosSaldo
             {tab.badge > 0 && <span className="badge" aria-label={`${tab.badge}`}>{tab.badge}</span>}
           </a>
         ))}
+        {onAbrirMira && (
+          <button
+            type="button"
+            className={`bottom-nav-item bottom-nav-mira${miraActiva ? ' active' : ''}`}
+            onClick={onAbrirMira}
+            aria-expanded={Boolean(miraActiva)}
+            aria-label={t('mira.abrir')}
+          >
+            <img src="/mira_logo_3_circular_lente.svg" alt="" className="bottom-nav-coin" />
+            <span>{t('mira.titulo')}</span>
+          </button>
+        )}
         {usuario && (
           <button
             className={`bottom-nav-streak${loadingStreak ? ' bottom-nav-streak--loading' : ''}`}

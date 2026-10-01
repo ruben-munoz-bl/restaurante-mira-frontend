@@ -1,9 +1,8 @@
 /**
- * Model — inicialización perezosa del SDK web de Firebase.
- * Falla con mensaje claro si falta firebaseConfig (ver README).
+ * Model — inicialización perezosa del SDK web de Firebase (solo Auth).
+ * Firestore ya no se usa desde el frontend: los datos pasan por mira-api.
  */
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
 import { firebaseConfig } from './firebaseConfig.js';
 
 export function configValida() {
@@ -11,7 +10,6 @@ export function configValida() {
 }
 
 let app = null;
-let db = null;
 
 function obtenerApp() {
   if (!configValida()) {
@@ -21,12 +19,6 @@ function obtenerApp() {
   }
   if (!app) app = initializeApp(firebaseConfig);
   return app;
-}
-
-/** Devuelve el Firestore ya inicializado o lanza error explicativo. */
-export function getDb() {
-  if (!db) db = getFirestore(obtenerApp());
-  return db;
 }
 
 /** Devuelve la Firebase App (para Auth) o lanza error explicativo. */

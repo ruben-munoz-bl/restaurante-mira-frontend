@@ -1,18 +1,22 @@
 /**
  * Controller — hook que orquesta estado, Model y Views.
- * Ahorro de lecturas: sin filtros (orden Relevancia/Valoración) la portada se
- * pagina de 21 en 21 con scroll infinito; cualquier filtro u orden global
- * trae el conjunto entero UNA vez. La View solo recibe props + callbacks.
+ * Siempre por lotes de TAMANO_PAGINA (27) con scroll infinito:
+ * - Sin filtros (Relevancia/Valoración): el API devuelve 27 + cursor.
+ * - Con filtros u orden global: se trae el conjunto UNA vez, pero la UI solo
+ *   muestra 27 y carga otros 27 al acercarse al final (mismo resultado que
+ *   antes de migrar, sin pintar cientos de cards de golpe).
  */
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import {
   fetchPrimeraPagina,
   fetchSiguientePagina,
+  fetchRestaurants,
   fetchRestaurantePorId,
   contarRestaurantes,
+  TAMANO_PAGINA,
 } from '../services/restaurantApi.js';
-import { filterRestaurants, sortRestaurants } from '../services/filterService.js';
-import { completarRestaurante, dietaActiva, accesibilidadActiva, ZONAS_CATALUNA } from '../models/restaurantModel.js';
+import { filterRestaurants, sortRestaurants, necesitaCargaTotal } from '../services/filterService.js';
+import { completarRestaurante, dietaActiva, accesibilidadActiva, ZONAS_CATALUNA, COCINAS } from '../models/restaurantModel.js';
 import { centroDeZona } from '../services/cityCenters.js';
 
 const FILTROS_INICIALES = {
@@ -31,8 +35,10 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
   const [datos, setDatos] = useState([]); // docs cargados (tanda(s) o todo)
   const [modo, setModo] = useState('pagina'); // pagina | todo
   const [cursor, setCursor] = useState(null);
-  const [hayMas, setHayMas] = useState(true);
+  const [hayMasApi, setHayMasApi] = useState(true);
   const [cargandoMas, setCargandoMas] = useState(false);
+  /** Cuántos de `filtrados` están pintados (siempre múltiplo de 27 tras cargar). */
+  const [paginaVisible, setPaginaVisible] = useState(TAMANO_PAGINA);
   const [total, setTotal] = useState(0); // count() barato, 1 vez
   const [estado, setEstado] = useState('cargando'); // cargando | listo | error
   const [error, setError] = useState('');
@@ -43,6 +49,7 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
   const [libro, setLibro] = useState(null); // Restaurant | null (modal carta libro)
   const [ignorarDieta, setIgnorarDieta] = useState(false); // ver todo igual (solo sesión)
   const reqId = useRef(0); // evita que una carga vieja pise a la nueva
+  const cargandoRef = useRef(false); // evita doble tanda si el centinela dispara 2 veces
 
   // Total barato (agregado) + recarga con Reintentar.
   useEffect(() => {
@@ -57,22 +64,31 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     };
   }, [intento]);
 
-  // Carga paginada: siempre trae tandas de 21, sin importar filtros.
-  // Los filtros se aplican en cliente sobre lo ya cargado.
+  // Carga: sin filtros → portada paginada API (27 + cursor);
+  // con filtros u orden global → conjunto entero UNA vez (la UI pinta de 27 en 27).
   useEffect(() => {
     let vivo = true;
     const id = ++reqId.current;
-    setModo('pagina');
+    const dietaEfectiva = ignorarDieta ? null : dieta;
+    const accEfectiva = ignorarDieta ? null : accesibilidad;
+    const traerTodo = necesitaCargaTotal({ ...filtros, dieta: dietaEfectiva, accesibilidad: accEfectiva });
+
     setEstado('cargando');
     setError('');
     setCursor(null);
-    setHayMas(true);
+    setHayMasApi(!traerTodo);
     setCargandoMas(false);
-    fetchPrimeraPagina()
-      .then((pg) => {
+    setPaginaVisible(TAMANO_PAGINA);
+    setModo(traerTodo ? 'todo' : 'pagina');
+
+    const p = traerTodo
+      ? fetchRestaurants().then((items) => ({ items, cursor: null, terminado: true }))
+      : fetchPrimeraPagina();
+
+    p.then((pg) => {
         if (!vivo || id !== reqId.current) return;
         setCursor(pg.cursor);
-        setHayMas(!pg.terminado);
+        setHayMasApi(!pg.terminado && !traerTodo);
         setDatos(pg.items);
         setEstado('listo');
       })
@@ -84,7 +100,7 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     return () => {
       vivo = false;
     };
-  }, [filtros, intento]);
+  }, [filtros, intento, dieta, accesibilidad, ignorarDieta]);
 
   // Cierra el modal con Escape (si el libro está abierto, él gestiona su propio Escape).
   useEffect(() => {
@@ -96,24 +112,36 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     return () => window.removeEventListener('keydown', alTeclar);
   }, [seleccionado, libro]);
 
-  /** Siguiente tanda del scroll infinito (solo modo portada). */
-  async function cargarMas() {
-    if (modo !== 'pagina' || !hayMas || cargandoMas || !cursor) return;
-    setCargandoMas(true);
+  /**
+   * Siguiente tanda del scroll infinito (siempre +27):
+   * - modo pagina: pide la página siguiente al API.
+   * - modo todo (ya está en memoria): solo desvela otros 27.
+   */
+  const cargarMas = useCallback(async () => {
+    if (cargandoRef.current || cargandoMas) return;
+    cargandoRef.current = true;
     try {
+      if (modo === 'todo') {
+        setPaginaVisible((p) => p + TAMANO_PAGINA);
+        return;
+      }
+      if (!hayMasApi || !cursor) return;
+      setCargandoMas(true);
       const pg = await fetchSiguientePagina(cursor);
       setCursor(pg.cursor);
-      setHayMas(!pg.terminado);
+      setHayMasApi(!pg.terminado);
       setDatos((prev) => {
         const ids = new Set(prev.map((r) => r.id));
         return [...prev, ...pg.items.filter((r) => !ids.has(r.id))];
       });
+      setPaginaVisible((p) => p + TAMANO_PAGINA);
     } catch {
-      setHayMas(false);
+      setHayMasApi(false);
     } finally {
+      cargandoRef.current = false;
       setCargandoMas(false);
     }
-  }
+  }, [modo, hayMasApi, cargandoMas, cursor]);
 
   /** Un restaurante por id: de memoria si está, si no 1 lectura. Estable para effects. */
   const obtenerRestaurante = useCallback(
@@ -150,11 +178,11 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     [datos],
   );
 
-  // Opciones sacadas de los datos reales (cocinas y zonas de Yelp).
-  const cocinasDisponibles = useMemo(
-    () => [...new Set(datos.map((r) => r.cocina))].sort((a, b) => a.localeCompare(b, 'es')),
-    [datos],
-  );
+  // Opciones: catálogo estático + valores reales de lo ya cargado.
+  const cocinasDisponibles = useMemo(() => {
+    const set = new Set([...COCINAS, ...datos.map((r) => r.cocina).filter(Boolean)]);
+    return [...set].sort((a, b) => a.localeCompare(b, 'es'));
+  }, [datos]);
   const zonasDisponibles = useMemo(
     () =>
       [...new Set([...ZONAS_CATALUNA, ...datos.map((r) => r.zona).filter(Boolean)])].sort((a, b) =>
@@ -169,6 +197,17 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     const base = filterRestaurants(conDistancia, { ...filtros, dieta: dietaEfectiva, accesibilidad: accEfectiva });
     return sortRestaurants(base, filtros.orden);
   }, [conDistancia, filtros, dieta, accesibilidad, ignorarDieta]);
+
+  // Lo que se pinta: SIEMPRE de 27 en 27 (con o sin filtros).
+  const visibles = useMemo(
+    () => filtrados.slice(0, Math.max(TAMANO_PAGINA, paginaVisible)),
+    [filtrados, paginaVisible],
+  );
+
+  const hayMas =
+    modo === 'todo'
+      ? visibles.length < filtrados.length
+      : hayMasApi || visibles.length < filtrados.length;
 
   // Locales ocultos SOLO por preferencias (dieta o accesibilidad). Se comparan
   // con y sin ellas para el aviso.
@@ -194,6 +233,7 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
   return {
     filtros,
     filtrados,
+    visibles,
     todos: conDistancia, // sin filtrar (para favoritos y comparador)
     total: total || datos.length, // si el count falla sin red, usa lo cargado
     modo,

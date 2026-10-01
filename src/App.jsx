@@ -25,6 +25,7 @@ import Cuenta from './components/Cuenta.jsx';
 import Contacto from './components/Contacto.jsx';
 import Reservas from './components/Reservas.jsx';
 import Admin from './components/Admin.jsx';
+import OpsPanel from './components/ops/OpsPanel.jsx';
 import Negocio from './components/Negocio.jsx';
 import Favoritos from './components/Favoritos.jsx';
 import Mensajes from './components/Mensajes.jsx';
@@ -39,6 +40,10 @@ import BottomNav from './components/BottomNav.jsx';
 import FloatingReservation from './components/FloatingReservation.jsx';
 import DailyStreakPopup from './components/DailyStreakPopup.jsx';
 import WheelModal from './components/WheelModal.jsx';
+import MiraLauncher from './components/mira/MiraLauncher.jsx';
+import MiraPanel from './components/mira/MiraPanel.jsx';
+import { AI_HABILITADO } from './services/aiApi.js';
+import useMiraStore from './stores/useMiraStore.js';
 import PuntosDashboard from './pages/PuntosDashboard.jsx';
 import HistorialPuntos from './pages/HistorialPuntos.jsx';
 import Invitar from './pages/Invitar.jsx';
@@ -128,8 +133,9 @@ function AppContent({ auth, tema, setTema }) {
   const [streakData, setStreakData] = useState(null);
   const [showWheel, setShowWheel] = useState(false);
   const { claim: claimDaily, claimWheel } = useDailyLogin();
-  const claimedTodayKey = `dailyLogin_shown_${new Date().toISOString().split('T')[0]}`;
+  const claimedTodayKey = `dailyLogin_shown_${new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date())}`;
   const newUserKey = `streak_newuser_shown_${usuario?.uid}`;
+
 
   useEffect(() => {
     if (perfil?.lang && perfil.lang !== lang) {
@@ -159,18 +165,25 @@ function AppContent({ auth, tema, setTema }) {
   }, [usuario]);
 
   async function fetchStreakData() {
-    if (!usuario) return { racha: { dias: 0 }, puntos: 0, yaReclamado: true };
+    if (!usuario) return { racha: { dias: 0 }, puntos: 0, yaReclamado: false };
     try {
       const { pointsApi } = await import('./services/api.js');
       const bal = await pointsApi.getBalance();
+      const yaReclamado = bal.rachaLogin?.yaReclamado ?? false;
+      // API dice "sin reclamar" → purga caché local para poder reclamar de verdad.
+      if (!yaReclamado) {
+        const { clearDailyLoginCache } = await import('./hooks/useDailyLogin.js');
+        clearDailyLoginCache();
+      }
       return {
         racha: bal.rachaLogin || { dias: 0 },
         puntos: 0,
-        yaReclamado: bal.rachaLogin?.yaReclamado ?? false,
+        yaReclamado,
         nuevoSaldo: bal.saldoActual,
       };
     } catch {
-      return { racha: { dias: 0 }, puntos: 0, yaReclamado: true };
+      // Error de red ≠ ya reclamado: dejar que el usuario reintente el claim manual.
+      return { racha: { dias: 0 }, puntos: 0, yaReclamado: false };
     }
   }
 
@@ -180,18 +193,22 @@ function AppContent({ auth, tema, setTema }) {
   }
 
   async function handleClaimDaily() {
-    console.log('[App] handleClaimDaily called');
     const result = await claimDaily();
-    console.log('[App] claimDaily result:', result);
-    if (result && result.nuevoSaldo) setPuntosSaldo(result.nuevoSaldo);
-    if (result && result.racha) {
+    if (result && result.nuevoSaldo != null) setPuntosSaldo(result.nuevoSaldo);
+
+    const puntosNuevos = typeof result?.puntos === 'number' ? result.puntos : 0;
+    const exito = puntosNuevos > 0 || (result?.nuevoSaldo != null && result?.yaReclamado !== true);
+
+    if (result) {
       setStreakData((prev) => ({
         ...prev,
-        racha: result.racha,
-        yaReclamado: true,
-        puntos: result.puntos,
+        racha: result.racha || prev?.racha || { dias: 0 },
+        // "Reclamado" solo si la API lo confirma o acabamos de sumar puntos.
+        yaReclamado: Boolean(result.yaReclamado || puntosNuevos > 0 || exito),
+        puntos: puntosNuevos,
       }));
     }
+    // Estado real de Firestore (saldo + racha) para el resto de la UI.
     syncBalance().catch(() => {});
     return result;
   }
@@ -227,9 +244,11 @@ function AppContent({ auth, tema, setTema }) {
     });
   }
 
+
   const {
     filtros,
     filtrados,
+    visibles,
     todos,
     total,
     modo,
@@ -267,6 +286,14 @@ function AppContent({ auth, tema, setTema }) {
   }), [cocinasDisponibles, zonasDisponibles]);
 
   const esFavorito = useCallback((id) => favoritos.includes(id), [favoritos]);
+
+  // ── Agente MIRA ──
+  const miraAbierta = useMiraStore((s) => s.abierto);
+  const miraConfirmacion = useMiraStore((s) => s.confirmPendiente);
+  const abrirMira = useMiraStore((s) => s.abrir);
+
+  // Si hay un overlay por encima de z-180 el launcher se oculta solo.
+  const hayOverlayEncima = Boolean(seleccionado || libro || sheetVisible || showStreakPopup || showWheel);
 
   // Floating reservation sheet state
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -336,7 +363,7 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'cuenta' && <Cuenta usuario={usuario} esAdmin={esAdmin} perfil={perfil} dieta={dieta} guardarDieta={guardarDieta} accesibilidad={accesibilidad} guardarAccesibilidad={guardarAccesibilidad} onSalir={salir} onEnviarVerificacion={enviarVerificacionEmail} onRecargarEmailVerified={recargarEmailVerified} />}
         {ruta === 'contacto' && <Contacto usuario={usuario} onEnviar={enviarContacto} />}
         {ruta === 'reservas' && <Reservas usuario={usuario} esAdmin={esAdmin} />}
-        {ruta === 'admin' && <Admin usuario={usuario} esAdmin={esAdmin} />}
+        {ruta === 'admin' && <OpsPanel usuario={usuario} esAdmin={esAdmin} perfil={perfil} tema={tema} onCambiarTema={() => setTema((v) => (v === 'oscuro' ? 'claro' : 'oscuro'))} todos={todos} />}
         {ruta === 'dashboard' && <Dashboard usuario={usuario} esAdmin={esAdmin} perfil={perfil} />}
         {ruta === 'negocio' && <Negocio usuario={usuario} perfil={perfil} onProponer={proponerNegocio} />}
         {ruta === 'favoritos' && (
@@ -353,7 +380,7 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'mensajes' && <Mensajes usuario={usuario} onLeidos={recargarMensajes} />}
         {ruta === 'privacidad' && <Privacidad />}
         {ruta === 'puntos' && <PuntosDashboard fetchStreakData={fetchStreakData} onOpenStreak={openStreakPopup} usuario={usuario} />}
-        {ruta === 'historialPuntos' && <HistorialPuntos />}
+        {ruta === 'historialPuntos' && <HistorialPuntos usuario={usuario} />}
         {ruta === 'invitar' && <Invitar />}
         {ruta === 'ticket' && <TicketPage />}
         {ruta === 'mapa' && <Mapa todos={todos} total={total} onVerDetalle={abrirDetalle} />}
@@ -394,9 +421,10 @@ function AppContent({ auth, tema, setTema }) {
                   />
 
                     <p aria-live="polite" className="contador">
-                      {modo === 'pagina'
-                        ? t('lista.mostrando', { n: filtrados.length, total })
-                        : `${filtrados.length} ${t('lista.de')} ${total} ${filtrados.length === 1 ? t('lista.restaurante') : t('lista.restaurantesPlural')}`}
+                      {t('lista.mostrando', {
+                        n: visibles.length,
+                        total: modo === 'pagina' ? total || filtrados.length : filtrados.length,
+                      })}
                       {filtros.q && ` ${t('lista.de')} "${filtros.q}"`}
                     </p>
                     {ocultosDieta > 0 && !ignorarDieta && (
@@ -409,16 +437,17 @@ function AppContent({ auth, tema, setTema }) {
                       </p>
                     )}
                   <RestaurantList
-                    restaurants={filtrados}
+                    restaurants={visibles}
                     filtros={filtros}
                     onClear={limpiarFiltros}
                     onSelect={abrirDetalle}
-                    hayMas={modo === 'pagina' && hayMas}
+                    hayMas={hayMas}
                     cargandoMas={cargandoMas}
                     onLoadMore={cargarMas}
                     esFavorito={esFavorito}
                     onToggleFavorito={toggleFavorito}
                     onVerCarta={abrirCarta}
+                    cargandoInicial={estado === 'cargando'}
                   />
                 </>
               )}
@@ -431,7 +460,7 @@ function AppContent({ auth, tema, setTema }) {
       <CookieBanner usuario={usuario} />
       {seleccionado && <RestaurantDetail restaurant={seleccionado} usuario={usuario} onClose={cerrarDetalle} onVerCarta={abrirCarta} />}
       {libro && <LibroCarta restaurant={libro} dieta={dieta} onClose={cerrarCarta} />}
-      <BottomNav ruta={ruta} numFavoritos={favoritos.length} numReservas={0} puntosSaldo={puntosSaldo} esAdmin={esAdmin} perfil={perfil} usuario={usuario} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
+      <BottomNav ruta={ruta} numFavoritos={favoritos.length} numReservas={0} puntosSaldo={puntosSaldo} esAdmin={esAdmin} perfil={perfil} usuario={usuario} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} onAbrirMira={AI_HABILITADO ? abrirMira : undefined} miraActiva={miraAbierta} />
       <FloatingReservation
         visible={sheetVisible}
         restaurant={sheetRestaurante}
@@ -454,6 +483,20 @@ function AppContent({ auth, tema, setTema }) {
           onSpin={handleWheelSpin}
           onClose={handleCloseWheel}
         />
+      )}
+      {AI_HABILITADO && (
+        <>
+          <MiraLauncher
+            alAbrir={abrirMira}
+            oculto={hayOverlayEncima || miraAbierta}
+            hayConfirmacion={Boolean(miraConfirmacion)}
+          />
+          <MiraPanel
+            esAdmin={esAdmin}
+            esEmpresa={perfil?.tipo === 'empresa'}
+            haySesion={Boolean(usuario)}
+          />
+        </>
       )}
     </>
   );

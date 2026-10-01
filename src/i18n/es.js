@@ -352,6 +352,7 @@ export default {
     "reservando": "Reservando…",
     "reservar": "Reservar",
     "debesLogin": "Debes <1>iniciar sesión</1> para reservar.",
+    "descuentoPendiente": "Tienes un descuento de {{euros}} € pendiente. Se aplicará a tu próxima reserva.",
     "reservaConfirmada": "¡Reserva confirmada!",
     "codigo": "Código",
     "verMisReservas": "Ver mis reservas",
@@ -458,15 +459,19 @@ export default {
   },
   "libro": {
     "cartaDe": "Carta de {{nombre}}",
-    "cerrarCarta": "Cerrar carta",
+    "cerrarCarta": "Cerrar",
     "leyenda": "Leyenda",
     "leyendaCarta": "Leyenda de la carta",
     "anterior": "← Anterior",
+    "anteriorCorto": "Anterior",
     "siguiente": "Siguiente →",
+    "siguienteCorto": "Siguiente",
     "secciones": "secciones",
     "platos": "platos",
     "aptosParaTi": "Aptos para ti",
-    "menuInfantil": "Menú infantil"
+    "menuInfantil": "Menú infantil",
+    "abrirMenu": "Toca para abrir menú",
+    "desliza": "Desliza o usa las flechas para pasar la página"
   },
   "recuperar": {
     "titulo": "Recuperar contraseña",
@@ -578,6 +583,71 @@ export default {
     "gratisTitulo": "Sin coste",
     "gratisDesc": "Buscar y reservar es siempre gratis."
   },
+  "mira": {
+    "titulo": "MIRA",
+    "estado": "Tu asistente de reservas",
+    "abrir": "Hablar con MIRA",
+    "cerrar": "Cerrar el chat",
+    "nuevoChat": "Empezar de nuevo",
+    "placeholder": "Escribe tu consulta…",
+    "escribe": "Mensaje para MIRA",
+    "enviar": "Enviar",
+    "parar": "Parar",
+    "pie": "Respuestas según la API de MIRA",
+    "confirmar": {
+      "titulo": "¿Confirmo esta acción?",
+      "si": "Sí, confirmo",
+      "no": "Mejor no"
+    },
+    "error": {
+      "iniciarSesion": "Iniciar sesión",
+      "reintentar": "Reintentar",
+      "reintentarEn": "Prueba en {{n}} s"
+    },
+    "card": {
+      "resultados": "{{n}} resultados",
+      "valoracion": "Valoración",
+      "resenas": "Reseñas",
+      "precio": "Precio",
+      "cocina": "Cocina",
+      "zona": "Zona",
+      "local": "Restaurante",
+      "cuando": "Cuándo",
+      "personas": "Comensales",
+      "estado": "Estado",
+      "verFicha": "Ver ficha",
+      "quiereReservar": "Quiero reservar en {{nombre}}",
+      "reservar": "Reservar aquí",
+      "reserva": "Reserva",
+      "reservaCancelada": "Reserva cancelada",
+      "verReservas": "Ver mis reservas",
+      "disponibilidad": "Disponibilidad",
+      "libres": "Plazas libres",
+      "tusPuntos": "Tus puntos",
+      "saldo": "Saldo",
+      "acumulados": "Acumulados",
+      "racha": "Racha",
+      "dias": "días",
+      "loginDiario": "Login diario",
+      "ruleta": "Ruleta",
+      "canje": "Canje de puntos",
+      "puntos": "Puntos",
+      "premio": "Premio",
+      "verPuntos": "Ver mis puntos",
+      "datosDeLaApi": "Datos según la API"
+    },
+    "chips": {
+      "recomienda": "¿Qué me recomiendas?",
+      "mesaSabado": "¿Tienes mesa el sábado?",
+      "puntosNecesarios": "¿Cuántos puntos necesito?",
+      "resumenDia": "¿Cómo va el día?",
+      "incidencias": "Revisa las incidencias pendientes",
+      "misReservas": "¿Cómo van mis reservas?",
+      "misPedidos": "¿Qué pedidos tengo hoy?",
+      "misPuntos": "¿Cuántos puntos tengo?",
+      "cancelarMañana": "Cancela mi reserva de mañana"
+    }
+  },
   "bottomNav": {
     "explorar": "Explorar",
     "reservas": "Reservas",
@@ -591,6 +661,7 @@ export default {
     "confirmarReserva": "Confirmar reserva",
     "reserva": "Reserva",
     "descuentoEpicure": "Descuento Epicure",
+    "descuentoPendiente": "Descuento puntos",
     "totalEstimado": "Total estimado",
     "confirmar": "Confirmar Reserva"
   },
@@ -621,6 +692,12 @@ export default {
     "redeemDiscount": "Descuento aplicado a tu próximo ticket",
     "redeemError": "Error al canjear",
     "redeeming": "Canjeando...",
+    "discountTitle": "Reclamar descuento",
+    "discountInfo": "100 pts = 1 €. El descuento se aplicará a tu próxima reserva.",
+    "discountPending": "de descuento pendientes",
+    "discountPendingHint": "Se aplicará en tu próxima reserva",
+    "discountClaimed": "Descuento reclamado. Se aplicará a tu próxima reserva.",
+    "discountError": "Error al reclamar el descuento",
     "cancel": "Cancelar",
     "confirm": "Canjear",
     "types": {
@@ -754,5 +831,18 @@ export default {
     "restaurantes": "Restaurantes",
     "sinRestaurantes": "Sin restaurantes",
     "reservas": "reservas"
+  },
+  "emblemas": {
+    "tituloProgreso": "Tu progreso",
+    "tituloNivel": "Emblema {{nombre}}",
+    "foodie": "Foodie",
+    "gourmet": "Gourmet",
+    "michelin": "Michelin",
+    "sinEmblema": "Reserva tu primera mesa para conseguir el emblema Foodie.",
+    "faltan": "Te faltan {{n}} reservas para conseguir el emblema {{siguiente}}.",
+    "faltaUna": "Te falta 1 reserva para conseguir el emblema {{siguiente}}.",
+    "maximo": "Has alcanzado el emblema Michelin.",
+    "multiplicador": "Multiplicador",
+    "multiplicadorValor": "{{multi}}"
   }
 }

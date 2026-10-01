@@ -31,16 +31,27 @@ const iconoRestaurante = crearIcono('#d92d20', false);
 const iconoParking = crearIcono('#2563eb', false);
 const iconoParkingSeleccionado = crearIcono('#2563eb', true);
 
+function esLatLngValido(p) {
+  return Array.isArray(p)
+    && Number.isFinite(Number(p[0]))
+    && Number.isFinite(Number(p[1]));
+}
+
 function FitBounds({ puntos }) {
   const map = useMap();
   useEffect(() => {
-    if (!puntos.length) return;
-    if (puntos.length === 1) {
-      map.setView(puntos[0], 15);
-    } else {
-      map.fitBounds(puntos, { padding: [40, 40], maxZoom: 16 });
-    }
-    setTimeout(() => map.invalidateSize(), 100);
+    const validos = puntos.filter(esLatLngValido);
+    if (!validos.length) return;
+    try {
+      if (validos.length === 1) {
+        map.setView(validos[0], 15);
+      } else {
+        map.fitBounds(validos, { padding: [40, 40], maxZoom: 16 });
+      }
+      setTimeout(() => {
+        try { map.invalidateSize(); } catch { /* mapa ya desmontado */ }
+      }, 100);
+    } catch { /* contenedor aún no listo */ }
   }, [map, puntos]);
   return null;
 }
@@ -48,7 +59,9 @@ function FitBounds({ puntos }) {
 function FlyToPunto({ punto }) {
   const map = useMap();
   useEffect(() => {
-    if (punto) map.flyTo(punto, 16, { duration: 0.8 });
+    if (punto && esLatLngValido(punto)) {
+      try { map.flyTo(punto, 16, { duration: 0.8 }); } catch { /* noop */ }
+    }
   }, [map, punto]);
   return null;
 }
@@ -62,15 +75,20 @@ export default function RestaurantMap({ restaurant, parkings = [], selectedIndex
     if (onMapReady && mapRef.current) onMapReady(mapRef.current);
   }, [onMapReady]);
 
-  if (!coords) return null;
+  const centroValido = coords
+    && Number.isFinite(Number(coords.lat))
+    && Number.isFinite(Number(coords.lng));
+  if (!centroValido) return null;
 
-  const puntos = [[coords.lat, coords.lng], ...parkings.map((p) => [p.lat, p.lon])];
-  const seleccionado = selectedIndex != null ? parkings[selectedIndex] : null;
+  const centro = [Number(coords.lat), Number(coords.lng)];
+  const parkingsValidos = parkings.filter((p) => Number.isFinite(Number(p?.lat)) && Number.isFinite(Number(p?.lon)));
+  const puntos = [centro, ...parkingsValidos.map((p) => [Number(p.lat), Number(p.lon)])];
+  const seleccionado = selectedIndex != null ? parkingsValidos[selectedIndex] : null;
 
   return (
     <div className="restaurant-map" role="application" aria-label={`${t('otros.mapaPorZonas')} — ${restaurant.nombre}`}>
       <MapContainer
-        center={[coords.lat, coords.lng]}
+        center={centro}
         zoom={15}
         scrollWheelZoom={false}
         style={{ height: '100%', width: '100%' }}
@@ -80,17 +98,17 @@ export default function RestaurantMap({ restaurant, parkings = [], selectedIndex
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> | POIs by <a href="https://www.geoapify.com/" target="_blank" rel="noreferrer">Geoapify</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <Marker position={[coords.lat, coords.lng]} icon={iconoRestaurante}>
+        <Marker position={centro} icon={iconoRestaurante}>
           <Popup>
             <strong>{restaurant.nombre}</strong>
             <br />
             {restaurant.direccion || restaurant.ciudad || ''}
           </Popup>
         </Marker>
-        {parkings.map((p, i) => (
+        {parkingsValidos.map((p, i) => (
           <Marker
             key={p.id}
-            position={[p.lat, p.lon]}
+            position={[Number(p.lat), Number(p.lon)]}
             icon={i === selectedIndex ? iconoParkingSeleccionado : iconoParking}
           >
             <Popup>
@@ -105,7 +123,7 @@ export default function RestaurantMap({ restaurant, parkings = [], selectedIndex
           </Marker>
         ))}
         <FitBounds puntos={puntos} />
-        {seleccionado && <FlyToPunto punto={[seleccionado.lat, seleccionado.lon]} />}
+        {seleccionado && <FlyToPunto punto={[Number(seleccionado.lat), Number(seleccionado.lon)]} />}
       </MapContainer>
     </div>
   );

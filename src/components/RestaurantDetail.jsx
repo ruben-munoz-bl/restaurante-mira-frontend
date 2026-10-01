@@ -4,12 +4,13 @@
 import { useEffect, useState } from 'react';
 import { crearReserva, getDisponibilidad, SLOTS } from '../services/reservaApi.js';
 import { crearResena, listarResenasDeRestaurante, darLikeResena, quitarLikeResena } from '../services/resenasApi.js';
-import { semillaLikes, parseFechaLocal, hoyLocalISO, ordenarResenas, cartaDelLocal, flagsPlato } from '../models/restaurantModel.js';
+import { semillaLikes, parseFechaLocal, hoyLocalISO, ordenarResenas, cartaDelLocal, flagsPlato, imagenParaRestaurante } from '../models/restaurantModel.js';
 import { pronosticoDia, alertaTerraza } from '../services/meteoApi.js';
 import { fetchNearbyParkings } from '../services/parkingApi.js';
 import RestaurantMap from './RestaurantMap.jsx';
 import ParkingsPanel from './ParkingsPanel.jsx';
 import { Sellos, MiniLeyenda } from './Sellos.jsx';
+import usePointsStore from '../stores/usePointsStore.js';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -26,13 +27,22 @@ function marcaInfo(valor, t) {
 const MOSTRAR_INICIAL = 10;
 
 function googleLink(coords, direccion) {
-  if (coords) return `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`;
+  if (coords && Number.isFinite(Number(coords.lat)) && Number.isFinite(Number(coords.lng))) {
+    return `https://www.google.com/maps/search/?api=1&query=${Number(coords.lat)},${Number(coords.lng)}`;
+  }
   if (direccion) return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`;
   return null;
 }
 
+function coordsValidas(coords) {
+  return Boolean(coords)
+    && Number.isFinite(Number(coords.lat))
+    && Number.isFinite(Number(coords.lng));
+}
+
 export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCarta }) {
   const t = useT(TRADS);
+  const { descuentoPendiente, fetchBalance } = usePointsStore();
 
   function StarPicker({ value, onChange }) {
     return (
@@ -79,7 +89,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     return (
       <li>
         <p className="resena-cab">
-          <strong>{r.usuarioNombre || r.usuario}</strong> · {r.fecha || (r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString(t('modelos.locale')) : '')} · <span aria-label={`${r.puntuacion} de 5`}>★ {r.puntuacion}</span>
+          <strong>{r.usuarioNombre || r.usuario}</strong> · {(r.fecha || (r.createdAt ? new Date(r.createdAt).toLocaleDateString(t('modelos.locale')) : ''))} · <span aria-label={`${r.puntuacion} de 5`}>★ {r.puntuacion}</span>
           <span style={{ float: 'right', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
             <button type="button" onClick={() => handleLike(r)} disabled={r.esMock} title={r.esMock ? t('detail.soloLikeMira') : liked ? t('detail.quitarLike') : t('detail.darLike')} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', background: liked ? 'var(--primary-container)' : 'var(--papel)', color: liked ? '#fff' : 'var(--tinta)', border: '1px solid var(--borde)', borderRadius: '999px', padding: '0.15rem 0.5rem', cursor: r.esMock ? 'not-allowed' : 'pointer', fontSize: '0.78rem', fontWeight: 700, opacity: r.esMock ? 0.5 : 1 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill={liked ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>
@@ -106,8 +116,9 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   useEffect(() => {
     let vivo = true;
     setMeteoReserva(null);
-    if (restaurant.terraza !== true || !reserva.fecha || !restaurant.coords) return undefined;
-    pronosticoDia(restaurant.coords.lat, restaurant.coords.lng, reserva.fecha)
+    if (restaurant.terraza !== true) return undefined;
+    if (!reserva.fecha || !coordsValidas(restaurant.coords)) return undefined;
+    pronosticoDia(Number(restaurant.coords.lat), Number(restaurant.coords.lng), reserva.fecha)
       .then((p) => { if (vivo) setMeteoReserva(p); })
       .catch(() => {});
     return () => { vivo = false; };
@@ -128,6 +139,11 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
 
   useEffect(() => {
     if (!usuario?.uid) return;
+    fetchBalance();
+  }, [usuario?.uid]);
+
+  useEffect(() => {
+    if (!usuario?.uid) return;
     import('../services/api.js').then(({ interactionsApi }) => {
       interactionsApi.track(restaurant.id, 'view').catch(() => {});
     });
@@ -136,13 +152,13 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   useEffect(() => {
     let vivo = true;
     const coords = restaurant.coords;
-    if (!coords || typeof coords.lat !== 'number' || typeof coords.lng !== 'number') {
+    if (!coordsValidas(coords)) {
       setParkings([]);
       setCargandoParkings(false);
       return undefined;
     }
     setCargandoParkings(true);
-    fetchNearbyParkings(coords.lat, coords.lng)
+    fetchNearbyParkings(Number(coords.lat), Number(coords.lng))
       .then((list) => { if (vivo) setParkings(list); })
       .finally(() => { if (vivo) setCargandoParkings(false); });
     return () => { vivo = false; };
@@ -197,7 +213,17 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
         <button type="button" className="modal-cerrar" onClick={onClose} aria-label={t('otros.cerrar')} autoFocus>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
         </button>
-        <img className="modal-foto" src={restaurant.imagen} alt={`${restaurant.nombre} — cocina ${restaurant.cocina}`} />
+        <img
+          className="modal-foto"
+          src={restaurant.imagen}
+          alt={`${restaurant.nombre} — cocina ${restaurant.cocina}`}
+          onError={(e) => {
+            const el = e.currentTarget;
+            if (el.dataset.fallback === '1') return;
+            el.dataset.fallback = '1';
+            el.src = imagenParaRestaurante(restaurant.cocina, restaurant.id);
+          }}
+        />
         <div className="modal-cuerpo">
           <p className="card-meta" style={{ color: 'var(--gris)', fontSize: '0.82rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '0 0 0.3rem' }}>{restaurant.cocina}</p>
           <h2 id="detalle-titulo" className="modal-titulo">{restaurant.nombre}</h2>
@@ -253,10 +279,15 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
               {t('detail.reservarMesa')}
             </h3>
             <div className="detail-points-preview">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10" /><path d="M12 6v12M6 12h12" /></svg>
+              <img src="/moneda-mira.png" alt="" className="detail-points-preview__coin" />
               +100 pts por reserva
               <span className="detail-points-preview__racha">x1.2 si mantienes racha</span>
             </div>
+            {descuentoPendiente?.euros > 0 && (
+              <p className="reserva-aviso-descuento" role="status">
+                {t('detail.descuentoPendiente', { euros: descuentoPendiente.euros })}
+              </p>
+            )}
             <form className="reserva-form" onSubmit={handleReserva} noValidate>
               <div className="reserva-grid">
                 <label className="campo"><span>{t('detail.fecha')}</span><input type="date" value={reserva.fecha} onChange={e => setReserva(s => ({ ...s, fecha: e.target.value }))} min={hoyLocalISO()} /></label>
@@ -297,7 +328,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
             )}
           </section>
 
-          {restaurant.coords ? (
+          {coordsValidas(restaurant.coords) ? (
             <section className="parking-section" aria-label={`${t('otros.mapaPorZonas')} — ${restaurant.nombre}`}>
               <div className="parking-grid">
                 <RestaurantMap
