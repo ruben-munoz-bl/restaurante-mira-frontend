@@ -292,13 +292,13 @@ function AppContent({ auth, tema, setTema }) {
   const miraConfirmacion = useMiraStore((s) => s.confirmPendiente);
   const abrirMira = useMiraStore((s) => s.abrir);
 
-  // Si hay un overlay por encima de z-180 el launcher se oculta solo.
-  const hayOverlayEncima = Boolean(seleccionado || libro || sheetVisible || showStreakPopup || showWheel);
-
   // Floating reservation sheet state
   const [sheetVisible, setSheetVisible] = useState(false);
   const [sheetRestaurante, setSheetRestaurante] = useState(null);
   const [sheetReserva, setSheetReserva] = useState({ fecha: '', hora: '', comensales: '2', ahorro: 0 });
+
+  // Si hay un overlay por encima de z-180 el launcher se oculta solo.
+  const hayOverlayEncima = Boolean(seleccionado || libro || sheetVisible || showStreakPopup || showWheel);
 
   useEffect(() => {
     function alCambiarHash() {
