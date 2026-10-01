@@ -48,9 +48,10 @@ const RUTA_AI = '/v1/ai/agent';
 
 // ── Flags (congelan la decision "activo por defecto") ───────────────────
 
-test('el chat viene activado por defecto (sin tocar variables de entorno)', () => {
+test('el chat viene activado por defecto y apunta a mira-api', () => {
   assert.equal(AI_HABILITADO, true, 'en Vercel no hay .env: debe funcionar igual');
-  assert.equal(USA_MOCK, true, 'sin backend hay que responder con aiMock');
+  // Por defecto habla con el backend de verdad; el mock es opt-in.
+  assert.equal(USA_MOCK, false, 'sin VITE_AI_MOCK=true tiene que llamar a /v1/ai/agent');
 });
 
 // ── Petición ────────────────────────────────────────────────────────────

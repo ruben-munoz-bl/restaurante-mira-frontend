@@ -50,6 +50,19 @@ const POR_CODIGO = Object.freeze({
 
 const GENERICO = 'Ahora no puedo consultarlo. Prueba en un momento.';
 const TIMEOUT = 'Esto está tardando más de lo normal. Prueba en un momento.';
+const SIN_SERVIDOR =
+  'No puedo conectarme con mira-api. Comprueba que esté en marcha y que VITE_API_URL apunte a él.';
+
+/**
+ * Un fetch fallido (DNS, CORS, servidor caído) llega como TypeError sin
+ * status ni data. Es el fallo más común al pasar a la API real y sin este
+ * mensaje el usuario solo ve "algo ha ido mal".
+ */
+function esFalloDeRed(err) {
+  if (err?.status || err?.data) return false;
+  const t = err?.constructor?.name;
+  return t === 'TypeError' || /failed to fetch|networkerror|load failed/i.test(String(err?.message || ''));
+}
 
 const vacio = (codigo, status, extra = {}) => ({
   mensaje: '',
@@ -77,6 +90,16 @@ export function desdeError(err) {
   // "tarda", no "está roto".
   if (err?.name === 'TimeoutError') {
     return { ...vacio('TIMEOUT', status), mensaje: TIMEOUT, reintentable: true };
+  }
+
+  // No hubo respuesta: hay que decirlo de forma accionable.
+  if (esFalloDeRed(err)) {
+    return {
+      ...vacio('SIN_SERVIDOR', status),
+      mensaje: SIN_SERVIDOR,
+      reintentable: true,
+      loginRequerido: false,
+    };
   }
 
   const delServidor = typeof err?.data?.message === 'string' ? err.data.message.trim() : '';

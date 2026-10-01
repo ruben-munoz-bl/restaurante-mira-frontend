@@ -101,3 +101,29 @@ test('lee retryAfter del 429 del backend', () => {
   assert.equal(desdeError({ status: 429 }).retryAfter, null);
   assert.equal(desdeError({ status: 429, retryAfter: 0 }).retryAfter, null);
 });
+
+// ── Fallo de red: el más común al pasar a la API real ──────────────────
+
+test('un fetch fallido dice que mira-api no está accesible', () => {
+  // Es lo que lanza el navegador si el servidor está caído o hay CORS.
+  const r = desdeError(new TypeError('Failed to fetch'));
+  assert.equal(r.codigo, 'SIN_SERVIDOR');
+  assert.match(r.mensaje, /mira-api/i);
+  assert.match(r.mensaje, /VITE_API_URL/);
+  assert.equal(r.reintentable, true);
+  assert.equal(r.loginRequerido, false);
+});
+
+test('un fallo de red no se confunde con un 401 ni con un abort', () => {
+  const red = desdeError(new TypeError('Failed to fetch'));
+  assert.equal(red.loginRequerido, false);
+  assert.equal(red.abortado, false);
+  const abort = desdeError(Object.assign(new Error('x'), { name: 'AbortError' }));
+  assert.equal(abort.abortado, true);
+});
+
+test('un error con status sigue mandando sobre el mensaje genérico de red', () => {
+  const r = desdeError({ status: 500, data: { error: 'INTERNAL_ERROR', message: 'requestId abc' } });
+  assert.equal(r.codigo, 'INTERNAL_ERROR');
+  assert.equal(r.mensaje, 'requestId abc');
+});

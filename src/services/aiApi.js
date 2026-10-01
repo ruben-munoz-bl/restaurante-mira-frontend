@@ -17,9 +17,14 @@ import { construirBody, nuevaIdempotencyKey, TIMEOUT_MS } from './aiPayload.js';
 
 const RUTA = '/v1/ai/agent';
 
-// Vite sustituye `import.meta.env` en el build; el || {} lo deja seguro en
-// Node para poder testear los flags.
+// Vite sustituye `import.meta.env` en el build; el || {} lo deja seguro en Node.
 const ENV = import.meta.env || {};
+
+// Seam para tests de integración (ver test/integrationAgente.mjs): en Node no
+// existe import.meta.env, así que se permite inyectar las variables por global.
+if (typeof globalThis !== 'undefined' && globalThis.__MIRA_ENV__) {
+  Object.assign(ENV, globalThis.__MIRA_ENV__);
+}
 
 /**
  * Interruptor de la feature. ACTIVO POR DEFECTO: si la variable no está
@@ -30,8 +35,13 @@ const ENV = import.meta.env || {};
 export const AI_HABILITADO =
   String(ENV.VITE_AI_ENABLED ?? 'true').toLowerCase() !== 'false';
 
-/** Mientras el backend no exista se responde con aiMock. MOCK=false para ir de verdad. */
-const USA_MOCK = String(ENV.VITE_AI_MOCK ?? 'true').toLowerCase() !== 'false';
+/**
+ * Apunta a mira-api de verdad por defecto: el chat llama a
+ * POST {VITE_API_URL}/v1/ai/agent. Solo usa aiMock.js si se pide
+ * explícitamente con VITE_AI_MOCK=true, que es lo que hay que poner para
+ * desarrollar la UI sin backend.
+ */
+const USA_MOCK = String(ENV.VITE_AI_MOCK ?? 'false').toLowerCase() === 'true';
 
 /**
  * Combina el abort externo (botón "Parar") con un timeout propio.

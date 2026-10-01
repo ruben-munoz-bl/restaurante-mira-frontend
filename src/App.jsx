@@ -42,6 +42,7 @@ import DailyStreakPopup from './components/DailyStreakPopup.jsx';
 import WheelModal from './components/WheelModal.jsx';
 import MiraLauncher from './components/mira/MiraLauncher.jsx';
 import MiraPanel from './components/mira/MiraPanel.jsx';
+import MiraErrorBoundary from './components/mira/MiraErrorBoundary.jsx';
 import { AI_HABILITADO } from './services/aiApi.js';
 import useMiraStore from './stores/useMiraStore.js';
 import PuntosDashboard from './pages/PuntosDashboard.jsx';
@@ -488,14 +489,18 @@ function AppContent({ auth, tema, setTema }) {
         <>
           <MiraLauncher
             alAbrir={abrirMira}
-            oculto={hayOverlayEncima || miraAbierta}
+            // Nunca se oculta por estar abierto el panel: si el panel falla,
+            // el launcher sigue ahí para poder reintentarlo.
+            oculto={hayOverlayEncima}
             hayConfirmacion={Boolean(miraConfirmacion)}
           />
-          <MiraPanel
-            esAdmin={esAdmin}
-            esEmpresa={perfil?.tipo === 'empresa'}
-            haySesion={Boolean(usuario)}
-          />
+          <MiraErrorBoundary onReiniciar={useMiraStore.getState().limpiar}>
+            <MiraPanel
+              esAdmin={esAdmin}
+              esEmpresa={perfil?.tipo === 'empresa'}
+              haySesion={Boolean(usuario)}
+            />
+          </MiraErrorBoundary>
         </>
       )}
     </>
