@@ -1,49 +1,69 @@
 /**
- * Model — cliente de POST /v1/ai/agent (el agente MIRA de mira-api).
+ * Model — cliente de POST /v1/ai/agent.
  *
- * Contrato (Fase 1 del backend):
+ * Contrato real del backend:
  *   POST /v1/ai/agent
- *     Authorization:  Bearer <idToken>   → opcional (el agente admite invitados)
- *     Idempotency-Key: <uuid>           → uno por turno de usuario
+ *     Authorization:  Bearer <ID_TOKEN>   → opcional (sin token = anónimo)
+ *     Idempotency-Key: <uuid>             → una por cada paso de confirmación
  *   body: { message, history?, confirmId? }
- *   200:  { reply, actions[], needsConfirm?, provider, model }
+ *   200 : { reply, actions[], needsConfirm?, provider, model }
+ *   400 : VALIDATION_ERROR · 404 NOT_FOUND · 429 RATE_LIMITED · 500 INTERNAL_ERROR
  *
- * `auth:'opcional'` es imprescindible: httpClient lanza un 401 sintético
- * antes de la red si no hay sesión, y el agente debe funcionar sin login.
+ * `auth:'opcional'` es imprescindible: httpClient lanzaba un 401 sintético
+ * antes de la red si no había sesión, y el agente debe funcionar sin login.
  */
 import { api } from './httpClient.js';
-import { construirBody, nuevaIdempotencyKey } from './aiPayload.js';
+import { construirBody, nuevaIdempotencyKey, TIMEOUT_MS } from './aiPayload.js';
 
 const RUTA = '/v1/ai/agent';
 
-// Misma guarda que en httpClient.js: Vite sustituye `import.meta.env` en el
-// build y el || {} lo deja seguro en Node para poder testear el flag.
+// Vite sustituye `import.meta.env` en el build; el || {} lo deja seguro en
+// Node para poder testear los flags.
 const ENV = import.meta.env || {};
 
 /**
  * Interruptor de la feature. ACTIVO POR DEFECTO: si la variable no está
  * definida, el chat se monta. Solo se oculta con VITE_AI_ENABLED=false.
- * (Importa que en Vercel, donde `.env` no se versiona, funcione sin
- * tener que añadir nada en el dashboard.)
+ * (Importa que en Vercel, donde `.env` no se versiona, funcione sin tocar
+ * el dashboard.)
  */
 export const AI_HABILITADO =
   String(ENV.VITE_AI_ENABLED ?? 'true').toLowerCase() !== 'false';
 
-/**
- * Mientras el backend no exista se responde con aiMock. También activo por
- * defecto: para hablar con mira-api de verdad, VITE_AI_MOCK=false.
- */
+/** Mientras el backend no exista se responde con aiMock. MOCK=false para ir de verdad. */
 const USA_MOCK = String(ENV.VITE_AI_MOCK ?? 'true').toLowerCase() !== 'false';
 
 /**
+ * Combina el abort externo (botón "Parar") con un timeout propio.
+ * El backend admite hasta ~25 s; la spec pide >= 30 s de timeout de red.
+ */
+function conTimeout(signal, ms) {
+  const ctl = new AbortController();
+  const t = setTimeout(() => {
+    ctl.abort(Object.assign(new Error('timeout'), { name: 'TimeoutError' }));
+  }, ms);
+  const alAbortar = () => ctl.abort(signal?.reason);
+  if (signal) {
+    if (signal.aborted) alAbortar();
+    else signal.addEventListener('abort', alAbortar);
+  }
+  return {
+    signal: ctl.signal,
+    liberar: () => {
+      clearTimeout(t);
+      signal?.removeEventListener('abort', alAbortar);
+    },
+  };
+}
+
+/**
  * Envía un turno al agente.
- * @param {object}  opts
- * @param {string}  opts.message        texto del usuario (1..2000)
- * @param {Array}   [opts.history]      últimos turnos ya enviados
- * @param {string}  [opts.confirmId]    uuid de needsConfirm, al confirmar
- * @param {string}  [opts.idempotencyKey] clave a reutilizar en un reintento
- * @param {AbortSignal} [opts.signal]   botón "Parar"
- * @returns {Promise<object>} respuesta cruda (sin normalizar)
+ * @param {object} opts
+ * @param {string} opts.message               texto del usuario (1..2000)
+ * @param {Array}  [opts.history]             últimas entradas ya enviadas
+ * @param {string} [opts.confirmId]           uuid de needsConfirm, en el paso 2
+ * @param {string} [opts.idempotencyKey]      clave a reutilizar en un reintento
+ * @param {AbortSignal} [opts.signal]        botón "Parar"
  */
 export async function enviarTurno({ message, history, confirmId, idempotencyKey, signal } = {}) {
   const body = construirBody({ message, history, confirmId });
@@ -54,11 +74,16 @@ export async function enviarTurno({ message, history, confirmId, idempotencyKey,
     return responderMock({ ...body, confirmId: body.confirmId ?? null, signal });
   }
 
-  return api.post(RUTA, body, {
-    auth: 'opcional',
-    signal,
-    headers: { 'Idempotency-Key': key },
-  });
+  const { signal: senal, liberar } = conTimeout(signal, TIMEOUT_MS);
+  try {
+    return await api.post(RUTA, body, {
+      auth: 'opcional',
+      signal: senal,
+      headers: { 'Idempotency-Key': key },
+    });
+  } finally {
+    liberar();
+  }
 }
 
 export { USA_MOCK };

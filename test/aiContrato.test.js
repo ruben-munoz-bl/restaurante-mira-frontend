@@ -162,18 +162,23 @@ test('la respuesta real del backend se normaliza bien', async () => {
   capturaFetch({
     reply: 'Casa Lucio, 4.5★ (120 reseñas). Según la API.',
     actions: [
-      { tool: 'getRestaurant', ok: true, args: { id: 'r1' }, result: { nombre: 'Casa Lucio', valoracion: 4.5, uid: 'secreto' } },
+      // Forma real: el estado va DENTRO de result.
+      { tool: 'getRestaurant', args: { id: 'r1' }, result: { ok: true, data: { nombre: 'Casa Lucio', valoracion: 4.5, uid: 'secreto' } } },
+      { tool: 'addManualPoints', args: { uid: 'x' }, result: { ok: false, error: 'FORBIDDEN', message: 'Solo admin.' } },
     ],
     needsConfirm: null,
     provider: 'gemini',
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.5-flash-lite',
   });
   const crudo = await apiFetch(RUTA_AI, { method: 'POST', auth: 'opcional', body: {} });
   const r = normalizarRespuesta(crudo);
   assert.equal(r.reply, 'Casa Lucio, 4.5★ (120 reseñas). Según la API.');
-  assert.equal(r.actions[0].result.nombre, 'Casa Lucio');
-  assert.ok(!('uid' in r.actions[0].result), 'el uid no debe llegar a la UI');
-  assert.equal(r.model, 'gemini-2.0-flash');
+  assert.equal(r.actions[0].estado, 'ok');
+  assert.equal(r.actions[0].data.nombre, 'Casa Lucio');
+  assert.ok(!('uid' in r.actions[0].data), 'el uid no debe llegar a la UI');
+  assert.equal(r.actions[1].estado, 'error', 'ok:false NO es una tarjeta de éxito');
+  assert.equal(r.actions[1].error, 'FORBIDDEN');
+  assert.equal(r.model, 'gemini-3.5-flash-lite');
 });
 
 test('si el backend devuelve 200 sin reply, la UI no se rompe', async () => {

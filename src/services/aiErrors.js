@@ -1,97 +1,123 @@
 /**
  * Mapeo de errores del agente MIRA a mensajes en español.
  *
- * Módulo PURO: cero imports, para poder testearlo con `node --test`
- * (los módulos que importan httpClient no se pueden testear porque
- * httpClient usa import.meta.env, que no existe en Node).
+ * Hay DOS caminos distintos, porque el backend reporta los errores de
+ * negocio dentro de actions[].result con HTTP 200:
+ *   1. desdeError(err)        → errores HTTP (400, 404, 429, 500)
+ *   2. desdeResultado(r)     → { ok:false, error, message } dentro de actions[]
  *
- * Precedencia (igual que DiscountPanel.jsx:28):
- *   1. err.data.message  → texto del servidor, ya escrito en español
- *   2. tabla local por código
- *   3. genérico por status
+ * Precedencia (como en DiscountPanel.jsx:28):
+ *   texto del servidor (ya viene en español) > tabla local > genérico
+ *
+ * Módulo PURO: cero imports, testeable con `node --test`.
  */
 
-/** Códigos de mira-api declarados en el contrato de /v1/ai/agent. */
-export const CODIGOS = Object.freeze([
-  'MISSING_TOKEN',
-  'INVALID_TOKEN',
-  'FORBIDDEN',
+/** `error` de HTTP + `result.error` de actions[]. */
+export const CODIGOS_HTTP = Object.freeze([
   'VALIDATION_ERROR',
   'NOT_FOUND',
-  'CONFLICT',
   'RATE_LIMITED',
-  'INSUFFICIENT',
+  'INTERNAL_ERROR',
+]);
+
+/** `result.error` dentro de actions[] (llegan con HTTP 200). */
+export const CODIGOS_ACCION = Object.freeze([
+  'MISSING_TOKEN',
+  'FORBIDDEN',
   'WHEEL_LOCKED',
+  'INSUFFICIENT',
+  'SELF_INVITE',
+  'NOT_FOUND',
+  'CONFLICT',
+  'VALIDATION_ERROR',
+  'INTERNAL_ERROR',
 ]);
 
 const POR_CODIGO = Object.freeze({
-  MISSING_TOKEN: 'Inicia sesión para que pueda ayudarte con tu cuenta.',
-  INVALID_TOKEN: 'Tu sesión ha caducado. Vuelve a iniciar sesión.',
-  FORBIDDEN: 'Esa acción no está disponible para tu tipo de cuenta.',
-  VALIDATION_ERROR: 'Revisa los datos: falta algo o el formato no es válido.',
+  // HTTP
+  VALIDATION_ERROR: 'No pude entender el mensaje. Prueba a reformularlo.',
   NOT_FOUND: 'No encuentro ese recurso.',
-  CONFLICT: 'Hay un conflicto con esa operación. Prueba con otra opción.',
-  RATE_LIMITED: 'Voy muy rápido. Prueba en unos segundos.',
-  INSUFFICIENT: 'No tienes saldo suficiente para eso.',
+  RATE_LIMITED: 'Voy muy rápido. Espera un momento y reintenta.',
+  INTERNAL_ERROR: 'Ahora no puedo consultarlo. Prueba en un momento.',
+  // actions[]
+  MISSING_TOKEN: 'Inicia sesión para que pueda ayudarte con tu cuenta.',
+  FORBIDDEN: 'Esa acción no está disponible para tu tipo de cuenta.',
   WHEEL_LOCKED: 'La ruleta se abre con una racha de 7 días.',
+  INSUFFICIENT: 'No tienes saldo suficiente para eso.',
+  SELF_INVITE: 'No puedes invitarte a ti mismo.',
+  CONFLICT: 'Hay un conflicto con esa operación.',
 });
 
-const POR_STATUS = Object.freeze({
-  400: 'No pude entender el mensaje. Prueba a reformularlo.',
-  401: 'Inicia sesión para que pueda ayudarte.',
-  403: 'Esa acción no está disponible para tu tipo de cuenta.',
-  404: 'No encuentro ese recurso.',
-  409: 'Hay un conflicto con esa operación.',
-  429: 'Voy muy rápido. Prueba en unos segundos.',
-});
+const GENERICO = 'Ahora no puedo consultarlo. Prueba en un momento.';
+const TIMEOUT = 'Esto está tardando más de lo normal. Prueba en un momento.';
 
-const GENERICO =
-  'Ahora no puedo consultarlo. Prueba en un momento.';
+const vacio = (codigo, status, extra = {}) => ({
+  mensaje: '',
+  loginRequerido: false,
+  retryAfter: null,
+  reintentable: false,
+  codigo,
+  status,
+  abortado: false,
+  ...extra,
+});
 
 /**
- * Traduce un error a la forma que consume la UI.
- * @returns {{mensaje:string, loginRequerido:boolean, retryAfter:number|null,
- *            reintentable:boolean, codigo:string|null, status:number|null,
- *            abortado:boolean}}
+ * Traduce un error HTTP al modelo que consume la UI.
+ * @returns {{mensaje, loginRequerido, retryAfter, reintentable, codigo, status, abortado}}
  */
 export function desdeError(err) {
   const status = Number(err?.status) || null;
   const codigo = err?.data?.error || err?.codigo || null;
-  const abortado = err?.name === 'AbortError' || codigo === 'ABORT_ERR';
 
   // "Parar" no es un fallo: la UI lo descarta sin pintar nada.
-  if (abortado) return {
-    mensaje: '',
-    loginRequerido: false,
-    retryAfter: null,
-    reintentable: false,
-    codigo: codigo || 'ABORT_ERR',
-    status,
-    abortado: true,
-  };
+  if (err?.name === 'AbortError') return vacio(codigo || 'ABORT_ERR', status, { abortado: true });
 
-  const delServidor =
-    typeof err?.data?.message === 'string' ? err.data.message.trim() : '';
+  // El deadline del backend es ~25 s: si llegamos al timeout de red, es
+  // "tarda", no "está roto".
+  if (err?.name === 'TimeoutError') {
+    return { ...vacio('TIMEOUT', status), mensaje: TIMEOUT, reintentable: true };
+  }
 
-  const mensaje =
-    delServidor ||
-    (codigo && POR_CODIGO[codigo]) ||
-    POR_STATUS[status] ||
-    GENERICO;
+  const delServidor = typeof err?.data?.message === 'string' ? err.data.message.trim() : '';
+  const mensaje = delServidor || POR_CODIGO[codigo] || GENERICO;
 
   return {
     mensaje,
-    loginRequerido: status === 401 || codigo === 'MISSING_TOKEN' || codigo === 'INVALID_TOKEN',
+    // Un token inválido NO da 401: el backend lo trata como anónimo y
+    // contesta 200. Así que solo un 401 real pide iniciar sesión.
+    loginRequerido: status === 401,
     retryAfter: Number(err?.retryAfter) > 0 ? Number(err.retryAfter) : null,
-    // 403 → parar y explicar (guardrail 2 del backend): nunca ofrecer reintento.
-    reintentable: status !== 403 && codigo !== 'FORBIDDEN',
+    // 403 no está en el contrato HTTP (el rol falla dentro de result), pero
+    // si apareciera: explicar y parar, nunca reintentar.
+    reintentable: status !== 401 && status !== 403,
     codigo,
     status,
     abortado: false,
   };
 }
 
-/** Texto suelto a partir de un código suelto (para errores dentro de `actions[]`). */
-export function desdeCodigo(codigo, status = null) {
-  return desdeError({ status, codigo });
+/**
+ * Traduce el error de negocio dentro de actions[].result (HTTP 200).
+ * @param {{error?:string, message?:string}} result
+ */
+export function desdeResultado(result) {
+  const codigo = typeof result?.error === 'string' ? result.error : null;
+  // result.message ya es texto amable para mostrar (según el backend).
+  const delServidor = typeof result?.message === 'string' ? result.message.trim() : '';
+  return {
+    mensaje: delServidor || POR_CODIGO[codigo] || GENERICO,
+    loginRequerido: codigo === 'MISSING_TOKEN',
+    retryAfter: null,
+    // FORBIDDEN → explicar y parar, nunca reintentar (guardrail del backend).
+    reintentable: codigo !== 'FORBIDDEN' && codigo !== 'MISSING_TOKEN',
+    codigo,
+    status: null,
+    abortado: false,
+  };
+}
+
+/** Texto suelto a partir de un código suelto. */
+export function desdeCodigo(codigo) {
+  return desdeResultado({ error: codigo });
 }

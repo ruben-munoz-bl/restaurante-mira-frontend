@@ -634,7 +634,10 @@ export default {
       "puntos": "Puntos",
       "premio": "Premio",
       "verPuntos": "Ver mis puntos",
-      "datosDeLaApi": "Datos según la API"
+      "datosDeLaApi": "Datos según la API",
+      "descuento": "Descuento",
+      "noSePudo": "No se pudo completar",
+      "misReservas": "Tus reservas"
     },
     "chips": {
       "recomienda": "¿Qué me recomiendas?",

@@ -634,7 +634,10 @@ export default {
       "puntos": "Points",
       "premio": "Prize",
       "verPuntos": "View my points",
-      "datosDeLaApi": "Data from the API"
+      "datosDeLaApi": "Data from the API",
+      "descuento": "Discount",
+      "noSePudo": "Could not complete",
+      "misReservas": "Your bookings"
     },
     "chips": {
       "recomienda": "What do you recommend?",

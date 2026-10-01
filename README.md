@@ -260,11 +260,24 @@ src/components/mira/         # Launcher, Panel, Log, Burbuja, Acciones, Composer
 
 ```
 POST /v1/ai/agent
-  Authorization:  Bearer <idToken>   → opcional (el agente admite invitados)
-  Idempotency-Key: <uuid>           → uno por turno de usuario
-body: { message, history?, confirmId? }
-200:  { reply, actions[], needsConfirm?, provider, model }
+  Authorization:  Bearer <ID_TOKEN>   → opcional (sin token = anónimo, solo tools públicas)
+  Idempotency-Key: <uuid>             → una por cada paso de confirmación
+body: { message 1..2000, history? máx 10, confirmId? uuid }
+200 : { reply, actions[], needsConfirm?, provider, model }
+400 VALIDATION_ERROR · 404 NOT_FOUND · 429 RATE_LIMITED · 500 INTERNAL_ERROR
 ```
+
+El estado de cada acción va **dentro de `result`**, no en el action:
+
+```jsonc
+result: { ok: true, data: { } }        // ejecutado
+result: { pending: true }              // preparado, SIN ejecutar (espera confirmación)
+result: { ok: false, error, message }  // error de negocio, llega con HTTP 200
+```
+
+Por eso hay dos caminos de error distintos: `desdeError()` para los HTTP y
+`desdeResultado()` para los de `actions[].result`. Un `ok:false` **nunca** se
+pinta como tarjeta de éxito.
 
 ### Dos pasos: cómo se confirma una mutación
 
@@ -280,9 +293,18 @@ body: { message, history?, confirmId? }
 
 - Las respuestas del agente se pintan como **texto plano**: el repo no usa
   `dangerouslySetInnerHTML` en ningún sitio y `reply` es contenido no confiable.
-- `camposVisibles(tool, result)` es una **allowlist por tool**: aunque el
-  backend devuelva de más, la UI solo pinta los campos conocidos. Una tool
-  desconocida no devuelve **ningún** dato. Cubierto por tests.
+- **Nunca se parsea `reply`.** Los datos salen de `actions[].result.data`, que es
+  la única fuente fiable (lo especifica el backend).
+- `camposVisibles(tool, data)` es una **allowlist con alias por tool**: acepta
+  `rating_yelp` o `valoracion`, `zona_busqueda` o `zona`… pero cualquier clave no
+  declarada se descarta. Una tool sin allowlist no devuelve **ningún** dato.
+- Un `result.ok === false` se pinta como tarjeta de error, **sin botón de reintento**
+  si es `FORBIDDEN` o `MISSING_TOKEN` (regla del backend: explicar y parar).
+- Un `result.pending === true` **nunca** se muestra como "hecho": lo explica la
+  tarjeta de confirmación.
+- Timeout de red de **35 s** (el backend admite hasta ~25 s) con mensaje propio.
+- `VITE_AI_MOCK=false` llama de verdad a `mira-api`. En mock, el chunk de `aiMock`
+  (4 KB) ni se descarga.
 
 ### Tests
 
@@ -290,9 +312,14 @@ body: { message, history?, confirmId? }
 npm.cmd test     # node --test, sin dependencias
 ```
 
-Solo lógica pura (`aiErrors`, `aiPayload`, `aiMock`): nada de JSX ni DOM, por
-eso es `node --test` y no vitest. Para probar la UI hace falta `npm.cmd run dev`
-con `VITE_AI_MOCK=true`.
+Solo lógica pura y el cliente HTTP (`aiErrors`, `aiPayload`, `aiMock`,
+`aiContrato`): nada de JSX ni DOM, por eso es `node --test` y no vitest.
+Para probar la UI hace falta `npm.cmd run dev` con `VITE_AI_MOCK=true`.
+
+En el mock puedes provocar: `bomb` → 429 con `Retry-After`, `roto` → 500,
+`largo` → 400, `ruta` → 404, `ruleta` → `WHEEL_LOCKED`, `facturación` →
+`FORBIDDEN`, `canjear puntos` → `INSUFFICIENT`, `invítame a mí mismo` →
+`SELF_INVITE`.
 
 ## Flujos para probar
 
