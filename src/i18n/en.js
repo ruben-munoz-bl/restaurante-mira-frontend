@@ -606,6 +606,8 @@ export default {
     },
     "card": {
       "resultados": "{{n}} results",
+      "verFichaYCarta": "View details & menu",
+      "preguntarMas": "Ask more",
       "preguntaPorNombre": "How about {{nombre}}?",
       "verFichaDe": "View details for",
       "sinResultados": "I couldn't find any match for those criteria.",

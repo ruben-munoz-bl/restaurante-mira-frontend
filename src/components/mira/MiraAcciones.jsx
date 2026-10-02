@@ -13,6 +13,7 @@ import ca from '../../i18n/ca.js';
 import en from '../../i18n/en.js';
 import { desdeResultado } from '../../services/aiErrors.js';
 import { ESTADO_OK, ESTADO_ERROR } from '../../services/aiPayload.js';
+import MiraPreview from './MiraPreview.jsx';
 
 const TRADS = { es, ca, en };
 
@@ -36,7 +37,7 @@ function Pastilla({ estado }) {
 
 // ── Tarjetas por tool ───────────────────────────────────────────────────
 
-function TarjetaRestaurante({ d, alSugerir, t }) {
+function TarjetaRestaurante({ d, alSugerir, onAbrirFicha, t }) {
   // `categorias` llega como texto suelto en searchResults y como array en getRestaurant.
   const cocina = d.cocina || (Array.isArray(d.categorias) ? d.categorias[0] : d.categorias) || '';
   return (
@@ -51,6 +52,14 @@ function TarjetaRestaurante({ d, alSugerir, t }) {
         <button
           type="button"
           className="btn-cta btn-peq"
+          onClick={() => onAbrirFicha?.(d.id, d.nombre)}
+          disabled={!onAbrirFicha || !d.id}
+        >
+          {t('mira.card.verFichaYCarta')}
+        </button>
+        <button
+          type="button"
+          className="btn-secundario btn-peq"
           onClick={() => alSugerir(t('mira.card.quiereReservar', { nombre: d.nombre || '' }))}
           disabled={!d.nombre}
         >
@@ -105,6 +114,42 @@ function TarjetaLista({ titulo, items, total, campo, sufijo, alSugerir, t, pregu
           );
         })}
       </ul>
+    </div>
+  );
+}
+
+/**
+ * Resultados de búsqueda: una miniatura con foto por restaurante, para que
+ * el usuario vea el sitio antes de elegir, no solo una línea de texto.
+ */
+function TarjetaBusqueda({ d, alSugerir, onAbrirFicha, t }) {
+  const items = Array.isArray(d.items) ? d.items : [];
+  if (items.length === 0) {
+    return (
+      <div className="mira-tarjeta">
+        <p className="mira-tarjeta-titulo">{t('mira.card.resultados', { n: d.total ?? 0 })}</p>
+        <p className="vacio-texto">{t('mira.card.sinResultados')}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mira-tarjeta mira-tarjeta--lista">
+      <p className="mira-tarjeta-titulo">
+        {t('mira.card.resultados', { n: d.total ?? items.length })}
+      </p>
+      <div className="mira-previews">
+        {items.map((item, i) => (
+          <MiraPreview
+            key={item.id || `r-${i}`}
+            item={item}
+            onAbrirFicha={onAbrirFicha}
+            alPreguntar={alSugerir}
+            pregunta={(nombre) => t('mira.card.preguntaPorNombre', { nombre })}
+            t={t}
+          />
+        ))}
+      </div>
     </div>
   );
 }
@@ -204,7 +249,7 @@ function AccionPlegable({ a, t }) {
   );
 }
 
-function Tarjeta({ a, alSugerir, t }) {
+function Tarjeta({ a, alSugerir, onAbrirFicha, t }) {
   if (a.estado === ESTADO_ERROR) return <TarjetaError a={a} t={t} />;
   // pending: la tarjeta de confirmación ya explica lo que va a pasar.
   if (a.estado !== ESTADO_OK) return null;
@@ -212,29 +257,13 @@ function Tarjeta({ a, alSugerir, t }) {
   const d = a.data || {};
   switch (a.tool) {
     case 'getRestaurant':
-      return <TarjetaRestaurante d={d} alSugerir={alSugerir} t={t} />;
+      return <TarjetaRestaurante d={d} alSugerir={alSugerir} onAbrirFicha={onAbrirFicha} t={t} />;
     case 'searchRestaurants':
       return (
-        <TarjetaLista
-          titulo={t('mira.card.resultados', { n: d.total ?? (d.items || []).length })}
-          items={d.items}
-          total={d.total}
-          campo="nombre"
-          sufijo={(it) => {
-            const cocina = it.cocina || (Array.isArray(it.categorias) ? it.categorias[0] : it.categorias);
-            return (
-              [
-                it.valoracion ? `${it.valoracion}★` : null,
-                cocina,
-                it.zona || it.ciudad,
-              ]
-                .filter(Boolean)
-                .join(' · ') || '—'
-            );
-          }}
-          pregunta={(nombre) => t('mira.card.preguntaPorNombre', { nombre })}
-          vacioMsg={t('mira.card.sinResultados')}
+        <TarjetaBusqueda
+          d={d}
           alSugerir={alSugerir}
+          onAbrirFicha={onAbrirFicha}
           t={t}
         />
       );
@@ -285,13 +314,13 @@ function Tarjeta({ a, alSugerir, t }) {
   }
 }
 
-export default function MiraAcciones({ acciones, alSugerir }) {
+export default function MiraAcciones({ acciones, alSugerir, onAbrirFicha }) {
   const t = useT(TRADS);
   if (!Array.isArray(acciones) || acciones.length === 0) return null;
   return (
     <>
       {acciones.map((a, i) => (
-        <Tarjeta key={`${a.tool}-${i}`} a={a} alSugerir={alSugerir} t={t} />
+        <Tarjeta key={`${a.tool}-${i}`} a={a} alSugerir={alSugerir} onAbrirFicha={onAbrirFicha} t={t} />
       ))}
     </>
   );

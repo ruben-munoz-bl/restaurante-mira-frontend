@@ -22,7 +22,7 @@ export default function MiraLauncher({ alAbrir, oculto, hayConfirmacion }) {
       aria-expanded="false"
       title={etiqueta}
     >
-      <img src="/mira_logo_3_circular_lente.svg" alt="" className="mira-launcher-img" />
+      <img src="/mochi.gif" alt="" className="mira-launcher-img" />
       {hayConfirmacion && <span className="mira-launcher-dot" aria-hidden="true" />}
     </button>
   );

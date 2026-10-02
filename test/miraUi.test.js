@@ -89,3 +89,50 @@ test('el CSS de la lista existe', () => {
     assert.ok(css.includes(c), `falta ${c} en mira.css`);
   }
 });
+
+// ── Previsualizacion con foto ───────────────────────────────────────────
+
+test('la previsualizacion ofrece ficha (con carta) y preguntar mas', () => {
+  const p = readFileSync(new URL('../src/components/mira/MiraPreview.jsx', import.meta.url), 'utf8');
+  assert.match(p, /onAbrirFicha\?\.\(item\.id, item\.nombre\)/);
+  assert.match(p, /alPreguntar\(pregunta\(item\.nombre\)\)/);
+  assert.match(p, /loading="lazy"/, 'la imagen no debe bloquear el render');
+});
+
+test('la ficha se abre con el id, no con el nombre', () => {
+  const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
+  assert.match(app, /obtenerRestaurante\(id\)/);
+  assert.match(app, /abrirDetalle\(r\)/);
+  // Si el catalogo no lo tiene, que lo narre la IA en vez de fallar en silencio.
+  assert.match(app, /abrirSugerencia\(nombre\)/);
+});
+
+test('la previsualizacion se usa en busquedas', () => {
+  assert.match(MIRACCIONES, /MiraPreview/);
+  assert.match(MIRACCIONES, /function TarjetaBusqueda/);
+});
+
+test('el CSS de la previsualizacion existe', () => {
+  const css = readFileSync(new URL('../src/components/mira/mira.css', import.meta.url), 'utf8');
+  for (const c of ['.mira-preview', '.mira-preview-img', '.mira-preview-nombre', '.mira-preview-acciones']) {
+    assert.ok(css.includes(c), `falta ${c} en mira.css`);
+  }
+});
+
+// ── Mochi es la mascota ────────────────────────────────────────────────
+
+test('mochi es la imagen de la IA en los cuatro puntos de entrada', () => {
+  const ficheros = [
+    '../src/components/mira/MiraLauncher.jsx',
+    '../src/components/mira/MiraPanel.jsx',
+    '../src/components/BottomNav.jsx',
+    '../src/components/Header.jsx',
+  ];
+  for (const f of ficheros) {
+    const src = readFileSync(new URL(f, import.meta.url), 'utf8');
+    const tieneMochi = src.includes('/mochi.gif');
+    const tieneLogo = src.includes('mira_logo_3_circular_lente');
+    assert.ok(tieneMochi, `${f} deberia usar mochi`);
+    assert.ok(!tieneLogo, `${f} sigue usando el logo`);
+  }
+});

@@ -606,6 +606,8 @@ export default {
     },
     "card": {
       "resultados": "{{n}} resultados",
+      "verFichaYCarta": "Ver ficha y carta",
+      "preguntarMas": "Preguntar más",
       "preguntaPorNombre": "¿Qué tal {{nombre}}?",
       "verFichaDe": "Ver ficha de",
       "sinResultados": "No encontré ninguno con esos criterios.",

@@ -132,7 +132,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
               aria-label={t('mira.abrir')}
               title={t('mira.abrir')}
             >
-              <img src="/mira_logo_3_circular_lente.svg" alt="" className="header-mira-btn-img" />
+              <img src="/mochi.gif" alt="" className="header-mira-btn-img" />
             </button>
           )}
           {usuario ? (

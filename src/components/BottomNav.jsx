@@ -86,7 +86,7 @@ export default function BottomNav({ ruta, numFavoritos, numReservas, puntosSaldo
             aria-expanded={Boolean(miraActiva)}
             aria-label={t('mira.abrir')}
           >
-            <img src="/mira_logo_3_circular_lente.svg" alt="" className="bottom-nav-coin" />
+            <img src="/mochi.gif" alt="" className="bottom-nav-coin" />
             <span>{t('mira.titulo')}</span>
           </button>
         )}

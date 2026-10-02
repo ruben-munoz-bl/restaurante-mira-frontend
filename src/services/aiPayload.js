@@ -255,6 +255,7 @@ const CAMPOS_ITEM_BUSQUEDA = {
   zona: ['zona', 'zona_busqueda'],
   direccion: ['direccion', 'direccion_completa'],
   descripcion: ['descripcion'],
+  imagen: ['imagen', 'imagen_url', 'image_url'],
   maxReservasPorHora: ['maxReservasPorHora'],
 };
 

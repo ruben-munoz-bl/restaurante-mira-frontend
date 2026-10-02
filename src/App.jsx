@@ -292,6 +292,16 @@ function AppContent({ auth, tema, setTema }) {
   const miraAbierta = useMiraStore((s) => s.abierto);
   const miraConfirmacion = useMiraStore((s) => s.confirmPendiente);
   const abrirMira = useMiraStore((s) => s.abrir);
+  const sugerirMira = useMiraStore((s) => s.sugerir);
+
+  // Abre el chat y lanza una pregunta (usado desde las tarjetas).
+  const abrirSugerencia = useCallback(
+    (texto) => {
+      abrirMira();
+      sugerirMira(texto);
+    },
+    [abrirMira, sugerirMira],
+  );
 
   // Floating reservation sheet state
   const [sheetVisible, setSheetVisible] = useState(false);
@@ -300,6 +310,20 @@ function AppContent({ auth, tema, setTema }) {
 
   // Si hay un overlay por encima de z-180 el launcher se oculta solo.
   const hayOverlayEncima = Boolean(seleccionado || libro || sheetVisible || showStreakPopup || showWheel);
+
+  // Abre la ficha completa (con carta) desde una tarjeta del chat de MIRA.
+  // obtenerRestaurante busca por id en el catálogo ya cargado y, si no está,
+  // lo pide a la API: por eso es async y no bloquea el chat.
+  const abrirFichaDesdeChat = useCallback(async (id, nombre) => {
+    if (!id) return;
+    const r = await obtenerRestaurante(id);
+    if (r) {
+      abrirDetalle(r);
+      return;
+    }
+    // Si el catálogo no lo tiene, se pide a la IA que lo narre.
+    if (nombre) abrirSugerencia(nombre);
+  }, [obtenerRestaurante, abrirDetalle, abrirSugerencia]);
 
   useEffect(() => {
     function alCambiarHash() {
@@ -499,6 +523,7 @@ function AppContent({ auth, tema, setTema }) {
               esAdmin={esAdmin}
               esEmpresa={perfil?.tipo === 'empresa'}
               haySesion={Boolean(usuario)}
+              onAbrirFicha={abrirFichaDesdeChat}
             />
           </MiraErrorBoundary>
         </>

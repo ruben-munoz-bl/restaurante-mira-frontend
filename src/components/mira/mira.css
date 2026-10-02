@@ -326,7 +326,69 @@
   line-height: 1;
 }
 
-/* Estado de la reserva */
+/* ---------- Previsualizacion de restaurante ---------- */
+.mira-tarjeta--lista {
+  padding: 0.7rem;
+}
+.mira-previews {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.mira-preview {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.5rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radio);
+  background: var(--fondo);
+}
+.mira-preview-img {
+  flex-shrink: 0;
+  width: 68px;
+  height: 68px;
+  border-radius: var(--radio-peq);
+  object-fit: cover;
+  background: var(--fondo-suave);
+}
+.mira-preview-cuerpo {
+  flex: 1;
+  min-width: 0;
+}
+.mira-preview-nombre {
+  margin: 0;
+  font-family: var(--fuente-display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--primary-container);
+  line-height: 1.2;
+}
+.mira-preview-meta {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  color: var(--gris);
+}
+.mira-preview-dir {
+  margin: 0.1rem 0 0;
+  font-size: 0.74rem;
+  color: var(--texto-sec);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mira-preview-acciones {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  flex-wrap: wrap;
+}
+.mira-preview-acciones .btn-cta,
+.mira-preview-acciones .btn-secundario {
+  font-size: 0.76rem;
+  padding: 0.3rem 0.6rem;
+}
+
+/* ---------- Estado de la reserva ---------- */
 .mira-estado {
   display: inline-block;
   padding: 0.1rem 0.5rem;

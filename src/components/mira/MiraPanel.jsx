@@ -21,7 +21,7 @@ const TRADS = { es, ca, en };
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select, [tabindex]:not([tabindex="-1"])';
 
-export default function MiraPanel({ esAdmin, esEmpresa, haySesion }) {
+export default function MiraPanel({ esAdmin, esEmpresa, haySesion, onAbrirFicha }) {
   const t = useT(TRADS);
   const abierto = useMiraStore((s) => s.abierto);
   const mensajes = useMiraStore((s) => s.mensajes);
@@ -101,7 +101,7 @@ export default function MiraPanel({ esAdmin, esEmpresa, haySesion }) {
         aria-labelledby="mira-titulo"
       >
         <header className="mira-header">
-          <img src="/mira_logo_3_circular_lente.svg" alt="" className="mira-header-logo" />
+          <img src="/mochi.gif" alt="" className="mira-header-logo" />
           <div className="mira-header-txt">
             <span className="mira-header-nombre" id="mira-titulo">
               {t('mira.titulo')}
@@ -128,7 +128,12 @@ export default function MiraPanel({ esAdmin, esEmpresa, haySesion }) {
           </button>
         </header>
 
-        <MiraLog mensajes={mensajes} escribiendo={enviando} alSugerir={enviar} />
+        <MiraLog
+          mensajes={mensajes}
+          escribiendo={enviando}
+          alSugerir={enviar}
+          onAbrirFicha={onAbrirFicha}
+        />
 
         {confirmPendiente && (
           <div className="mira-tarjeta mira-tarjeta-confirmacion" style={{ margin: '0 0.9rem 0.6rem' }}>
