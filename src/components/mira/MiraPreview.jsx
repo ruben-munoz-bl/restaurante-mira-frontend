@@ -6,18 +6,31 @@
  * acciones: abrir la ficha completa (donde está la carta) o seguir
  * preguntando al agente.
  */
+import { imagenParaRestaurante } from '../../models/restaurantModel.js';
+
 export default function MiraPreview({ item, onAbrirFicha, alPreguntar, pregunta, t }) {
   if (!item || !item.nombre) return null;
 
   const cocina = item.cocina || (Array.isArray(item.categorias) ? item.categorias[0] : item.categorias) || '';
   const donde = item.zona || item.ciudad || '';
   const direccion = item.direccion || '';
+  // Misma plantilla que las cards de la portada cuando no hay foto o falla.
+  const imagenPlantilla = imagenParaRestaurante(cocina, item.id);
 
   return (
     <article className="mira-preview">
-      {item.imagen && (
-        <img className="mira-preview-img" src={item.imagen} alt="" loading="lazy" />
-      )}
+      <img
+        className="mira-preview-img"
+        src={item.imagen || imagenPlantilla}
+        alt=""
+        loading="lazy"
+        onError={(e) => {
+          const el = e.currentTarget;
+          if (el.dataset.fallback === '1') return;
+          el.dataset.fallback = '1';
+          el.src = imagenPlantilla;
+        }}
+      />
 
       <div className="mira-preview-cuerpo">
         <p className="mira-preview-nombre">{item.nombre}</p>

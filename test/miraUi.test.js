@@ -99,6 +99,14 @@ test('la previsualizacion ofrece ficha (con carta) y preguntar mas', () => {
   assert.match(p, /loading="lazy"/, 'la imagen no debe bloquear el render');
 });
 
+test('si no hay foto o la foto falla, sale la imagen plantilla de la portada', () => {
+  const p = readFileSync(new URL('../src/components/mira/MiraPreview.jsx', import.meta.url), 'utf8');
+  assert.match(p, /imagenParaRestaurante/, 'debe reutilizar la plantilla de la portada');
+  assert.match(p, /src=\{item\.imagen \|\| imagenPlantilla\}/, 'sin imagen se ve la plantilla');
+  assert.match(p, /onError/, 'una imagen rota tambien cae en la plantilla');
+  assert.doesNotMatch(p, /\{item\.imagen &&/, 'la miniatura se pinta siempre');
+});
+
 test('la ficha se abre con el id, no con el nombre', () => {
   const app = readFileSync(new URL('../src/App.jsx', import.meta.url), 'utf8');
   assert.match(app, /obtenerRestaurante\(id\)/);

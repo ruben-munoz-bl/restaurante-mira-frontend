@@ -2,7 +2,8 @@
  * Libro de carta — espejo de LibroCarta.jsx web (portada + pliegos).
  * En RN: sin Reanimated (el easing de RN no es worklet y petaba al abrir
  * la carta); la navegación entre pliegos es un crossfade con RN Animated.
- * Cierre tocando el fondo y swipe horizontal con props de responder.
+ * Cierre con el botón «Cerrar» inferior, tocando el fondo y swipe
+ * horizontal con props de responder.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -375,6 +376,17 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
           {hojas}
         </Animated.View>
       </Animated.View>
+      <View style={estilos.barraCierre}>
+        <Pressable
+          onPress={onClose}
+          style={({ pressed }) => [estilos.btnSalir, pressed && { opacity: 0.75 }]}
+          accessibilityRole="button"
+          accessibilityLabel={t('libro.cerrarCarta')}
+          hitSlop={8}
+        >
+          <Text style={estilos.btnSalirTxt}>✕  {t('libro.cerrarCarta')}</Text>
+        </Pressable>
+      </View>
     </Pressable>
   );
 }
@@ -410,7 +422,7 @@ const estilos = StyleSheet.create({
     justifyContent: 'flex-start',
     paddingTop: Math.max(Dimensions.get('window').height * 0.04, 5.6),
     paddingHorizontal: 16,
-    paddingBottom: 5.6,
+    paddingBottom: 8,
   },
   fondoTinte: {
     backgroundColor: 'rgba(0, 34, 24, 0.5)',
@@ -418,8 +430,32 @@ const estilos = StyleSheet.create({
   libro: {
     width: '100%',
     maxWidth: 1180,
-    height: '100%',
+    flex: 1,
     borderRadius: 14,
+  },
+  barraCierre: {
+    flexShrink: 0,
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  btnSalir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 999,
+    backgroundColor: 'rgba(232, 190, 74, 0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(212, 175, 55, 0.55)',
+  },
+  btnSalirTxt: {
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.6,
+    color: '#f0d78c',
+    fontFamily: FUENTES.textoBold,
   },
   hojas: {
     flex: 1,
