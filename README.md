@@ -303,8 +303,8 @@ pinta como tarjeta de éxito.
 - Un `result.pending === true` **nunca** se muestra como "hecho": lo explica la
   tarjeta de confirmación.
 - Timeout de red de **35 s** (el backend admite hasta ~25 s) con mensaje propio.
-- `VITE_AI_MOCK=false` llama de verdad a `mira-api`. En mock, el chunk de `aiMock`
-  (4 KB) ni se descarga.
+- Por defecto `VITE_AI_MOCK=false`: el chat llama a `mira-api`. El mock es
+  opt-in, y su chunk (5 KB) queda en un archivo aparte que no se descarga.
 
 ### Tests
 
@@ -313,13 +313,36 @@ npm.cmd test     # node --test, sin dependencias
 ```
 
 Solo lógica pura y el cliente HTTP (`aiErrors`, `aiPayload`, `aiMock`,
-`aiContrato`): nada de JSX ni DOM, por eso es `node --test` y no vitest.
-Para probar la UI hace falta `npm.cmd run dev` con `VITE_AI_MOCK=true`.
+`aiContrato`, `miraUi`): nada de JSX ni DOM, por eso es `node --test` y no
+vitest. Para tocar la UI hace falta `npm.cmd run dev`.
 
-En el mock puedes provocar: `bomb` → 429 con `Retry-After`, `roto` → 500,
-`largo` → 400, `ruta` → 404, `ruleta` → `WHEEL_LOCKED`, `facturación` →
-`FORBIDDEN`, `canjear puntos` → `INSUFFICIENT`, `invítame a mí mismo` →
-`SELF_INVITE`.
+`VITE_AI_MOCK=true` (y solo con el backend parado) te deja provocar:
+`bomb` → 429 con `Retry-After`, `roto` → 500, `largo` → 400, `ruta` → 404,
+`ruleta` → `WHEEL_LOCKED`, `facturación` → `FORBIDDEN`, `canjear puntos` →
+`INSUFFICIENT`, `invítame a mí mismo` → `SELF_INVITE`.
+
+### Probar contra un backend de verdad
+
+`test/stub-agente.mjs` implementa el contrato documentado del backend: confirm de
+un solo uso, `needsConfirm`, `result.ok` / `result.pending`, errores de negocio
+dentro de HTTP 200, snake_case y un `email` + `serviceAccount` que la UI **no**
+debe pintar. Con `integrationAgente.mjs` se recorre el cliente real contra él
+por HTTP (29 comprobaciones):
+
+```powershell
+node test/stub-agente.mjs 4310          # terminal 1: backend de prueba
+node test/integrationAgente.mjs 4310    # terminal 2
+```
+
+### Desplegar en Vercel
+
+El build **no necesita `.env`**: sin `VITE_API_URL` el cliente usa
+`https://mira-api-xveu.onrender.com` (fallback de `httpClient.js`) y el chat va
+a la API real salvo que pongas `VITE_AI_MOCK=true`.
+
+La única variable que deberías añadir en el panel de Vercel es `VITE_API_URL`, y
+solo si la API no vive en ese dominio. Ojo: Vite hornea las variables en el
+bundle, así que cambiarla exige **redesplegar**.
 
 ## Flujos para probar
 

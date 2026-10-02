@@ -2,12 +2,12 @@
  * Stub de mira-api: implementa POST /v1/ai/agent tal y como lo documenta
  * el backend. Sirve para comprobar de verdad el camino real desde Node.
  *
- *   node test/stub-agente.mjs [puerto]
+ *   node test/stub-agente.mjs [puerto]   (por defecto 4310, para chocar con menos)
  */
 import { createServer } from 'node:http';
 import { randomUUID } from 'node:crypto';
 
-const PUERTO = Number(process.argv[2]) || 3000;
+const PUERTO = Number(process.argv[2]) || 4310;
 const pedir = /(reserv|mesa|cita)/;
 
 const RESTAURANTE = {

@@ -20,12 +20,6 @@ const RUTA = '/v1/ai/agent';
 // Vite sustituye `import.meta.env` en el build; el || {} lo deja seguro en Node.
 const ENV = import.meta.env || {};
 
-// Seam para tests de integración (ver test/integrationAgente.mjs): en Node no
-// existe import.meta.env, así que se permite inyectar las variables por global.
-if (typeof globalThis !== 'undefined' && globalThis.__MIRA_ENV__) {
-  Object.assign(ENV, globalThis.__MIRA_ENV__);
-}
-
 /**
  * Interruptor de la feature. ACTIVO POR DEFECTO: si la variable no está
  * definida, el chat se monta. Solo se oculta con VITE_AI_ENABLED=false.
@@ -74,12 +68,14 @@ function conTimeout(signal, ms) {
  * @param {string} [opts.confirmId]           uuid de needsConfirm, en el paso 2
  * @param {string} [opts.idempotencyKey]      clave a reutilizar en un reintento
  * @param {AbortSignal} [opts.signal]        botón "Parar"
+ * @param {boolean} [opts.forzarMock]         solo tests: fuerza el camino del
+ *                                            mock sin tocar variables de entorno
  */
-export async function enviarTurno({ message, history, confirmId, idempotencyKey, signal } = {}) {
+export async function enviarTurno({ message, history, confirmId, idempotencyKey, signal, forzarMock } = {}) {
   const body = construirBody({ message, history, confirmId });
   const key = idempotencyKey || nuevaIdempotencyKey();
 
-  if (USA_MOCK) {
+  if (forzarMock ?? USA_MOCK) {
     const { responderMock } = await import('./aiMock.js');
     return responderMock({ ...body, confirmId: body.confirmId ?? null, signal });
   }
