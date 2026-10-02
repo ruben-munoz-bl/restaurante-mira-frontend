@@ -40,6 +40,11 @@ import BottomNav from './components/BottomNav.jsx';
 import FloatingReservation from './components/FloatingReservation.jsx';
 import DailyStreakPopup from './components/DailyStreakPopup.jsx';
 import WheelModal from './components/WheelModal.jsx';
+import MiraLauncher from './components/mira/MiraLauncher.jsx';
+import MiraPanel from './components/mira/MiraPanel.jsx';
+import MiraErrorBoundary from './components/mira/MiraErrorBoundary.jsx';
+import { AI_HABILITADO } from './services/aiApi.js';
+import useMiraStore from './stores/useMiraStore.js';
 import PuntosDashboard from './pages/PuntosDashboard.jsx';
 import HistorialPuntos from './pages/HistorialPuntos.jsx';
 import Invitar from './pages/Invitar.jsx';
@@ -283,10 +288,42 @@ function AppContent({ auth, tema, setTema }) {
 
   const esFavorito = useCallback((id) => favoritos.includes(id), [favoritos]);
 
+  // ── Agente MIRA ──
+  const miraAbierta = useMiraStore((s) => s.abierto);
+  const miraConfirmacion = useMiraStore((s) => s.confirmPendiente);
+  const abrirMira = useMiraStore((s) => s.abrir);
+  const sugerirMira = useMiraStore((s) => s.sugerir);
+
+  // Abre el chat y lanza una pregunta (usado desde las tarjetas).
+  const abrirSugerencia = useCallback(
+    (texto) => {
+      abrirMira();
+      sugerirMira(texto);
+    },
+    [abrirMira, sugerirMira],
+  );
+
   // Floating reservation sheet state
   const [sheetVisible, setSheetVisible] = useState(false);
   const [sheetRestaurante, setSheetRestaurante] = useState(null);
   const [sheetReserva, setSheetReserva] = useState({ fecha: '', hora: '', comensales: '2', ahorro: 0 });
+
+  // Si hay un overlay por encima de z-180 el launcher se oculta solo.
+  const hayOverlayEncima = Boolean(seleccionado || libro || sheetVisible || showStreakPopup || showWheel);
+
+  // Abre la ficha completa (con carta) desde una tarjeta del chat de MIRA.
+  // obtenerRestaurante busca por id en el catálogo ya cargado y, si no está,
+  // lo pide a la API: por eso es async y no bloquea el chat.
+  const abrirFichaDesdeChat = useCallback(async (id, nombre) => {
+    if (!id) return;
+    const r = await obtenerRestaurante(id);
+    if (r) {
+      abrirDetalle(r);
+      return;
+    }
+    // Si el catálogo no lo tiene, se pide a la IA que lo narre.
+    if (nombre) abrirSugerencia(nombre);
+  }, [obtenerRestaurante, abrirDetalle, abrirSugerencia]);
 
   useEffect(() => {
     function alCambiarHash() {
@@ -448,7 +485,7 @@ function AppContent({ auth, tema, setTema }) {
       <CookieBanner usuario={usuario} />
       {seleccionado && <RestaurantDetail restaurant={seleccionado} usuario={usuario} onClose={cerrarDetalle} onVerCarta={abrirCarta} />}
       {libro && <LibroCarta restaurant={libro} dieta={dieta} onClose={cerrarCarta} />}
-      <BottomNav ruta={ruta} numFavoritos={favoritos.length} numReservas={0} puntosSaldo={puntosSaldo} esAdmin={esAdmin} perfil={perfil} usuario={usuario} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
+      <BottomNav ruta={ruta} numFavoritos={favoritos.length} numReservas={0} puntosSaldo={puntosSaldo} esAdmin={esAdmin} perfil={perfil} usuario={usuario} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} onAbrirMira={AI_HABILITADO ? abrirMira : undefined} miraActiva={miraAbierta} />
       <FloatingReservation
         visible={sheetVisible}
         restaurant={sheetRestaurante}
@@ -471,6 +508,25 @@ function AppContent({ auth, tema, setTema }) {
           onSpin={handleWheelSpin}
           onClose={handleCloseWheel}
         />
+      )}
+      {AI_HABILITADO && (
+        <>
+          <MiraLauncher
+            alAbrir={abrirMira}
+            // Nunca se oculta por estar abierto el panel: si el panel falla,
+            // el launcher sigue ahí para poder reintentarlo.
+            oculto={hayOverlayEncima}
+            hayConfirmacion={Boolean(miraConfirmacion)}
+          />
+          <MiraErrorBoundary onReiniciar={useMiraStore.getState().limpiar}>
+            <MiraPanel
+              esAdmin={esAdmin}
+              esEmpresa={perfil?.tipo === 'empresa'}
+              haySesion={Boolean(usuario)}
+              onAbrirFicha={abrirFichaDesdeChat}
+            />
+          </MiraErrorBoundary>
+        </>
       )}
     </>
   );

@@ -228,6 +228,122 @@ Sin filtros la portada pinta **27** de 690 y el scroll carga otras 27.
 Al activar cualquier filtro u orden global se trae el conjunto una vez,
 pero la UI sigue pintando de 27 en 27.
 
+## Agente IA MIRA (chat)
+
+Asistente de reservas que vive en un drawer accesible desde **tres sitios**:
+un launcher flotante (desktop), un botón en la cabecera y un tab en la barra
+inferior (móvil). Habla con `POST /v1/ai/agent` de `mira-api`.
+
+### Variables de entorno
+
+| Variable | Por defecto | Qué hace |
+|---|---|---|
+| `VITE_AI_ENABLED` | `false` | Si es `false`, el launcher y el tab no se montan. |
+| `VITE_AI_MOCK` | `true` | Si es `true`, responde `aiMock.js` sin tocar el backend. |
+
+> `.env.example` está en `.gitignore`, así que estas dos variables también
+> están documentadas aquí. Con `VITE_AI_ENABLED=true` + `VITE_AI_MOCK=true`
+> se desarrolla y prueba el chat entero sin backend.
+
+### Ficheros
+
+```
+src/services/aiErrors.js     # código de error → mensaje en español (puro, testeado)
+src/services/aiPayload.js    # historial, idempotency-key, whitelist anti-PII (puro, testeado)
+src/services/aiMock.js       # respuestas falsas, incluido el flujo de 2 pasos (puro, testeado)
+src/services/aiApi.js        # POST /v1/ai/agent con auth opcional + Idempotency-Key
+src/stores/useMiraStore.js   # conversación, confirmación, reintento
+src/components/mira/         # Launcher, Panel, Log, Burbuja, Acciones, Composer, mira.css
+```
+
+### Contrato que consume
+
+```
+POST /v1/ai/agent
+  Authorization:  Bearer <ID_TOKEN>   → opcional (sin token = anónimo, solo tools públicas)
+  Idempotency-Key: <uuid>             → una por cada paso de confirmación
+body: { message 1..2000, history? máx 10, confirmId? uuid }
+200 : { reply, actions[], needsConfirm?, provider, model }
+400 VALIDATION_ERROR · 404 NOT_FOUND · 429 RATE_LIMITED · 500 INTERNAL_ERROR
+```
+
+El estado de cada acción va **dentro de `result`**, no en el action:
+
+```jsonc
+result: { ok: true, data: { } }        // ejecutado
+result: { pending: true }              // preparado, SIN ejecutar (espera confirmación)
+result: { ok: false, error, message }  // error de negocio, llega con HTTP 200
+```
+
+Por eso hay dos caminos de error distintos: `desdeError()` para los HTTP y
+`desdeResultado()` para los de `actions[].result`. Un `ok:false` **nunca** se
+pinta como tarjeta de éxito.
+
+### Dos pasos: cómo se confirma una mutación
+
+1. El usuario pide algo que muta (`crear reserva`, `canjar puntos`…).
+2. El agente responde `needsConfirm: { confirmId, summary }` → la UI pinta una
+   tarjeta con **Sí, confirmo / Mejor no**. El `confirmId` **nunca se le pide
+   al usuario**: viaja oculto dentro del chip.
+3. Al confirmar se reenvía `{ message: 'Sí, confirmo', confirmId }` con una
+   **Idempotency-Key nueva** (el backend exige clave distinta por paso).
+4. Renegar descarta la tarjeta **sin llamar a la API**.
+
+### Seguridad en cliente
+
+- Las respuestas del agente se pintan como **texto plano**: el repo no usa
+  `dangerouslySetInnerHTML` en ningún sitio y `reply` es contenido no confiable.
+- **Nunca se parsea `reply`.** Los datos salen de `actions[].result.data`, que es
+  la única fuente fiable (lo especifica el backend).
+- `camposVisibles(tool, data)` es una **allowlist con alias por tool**: acepta
+  `rating_yelp` o `valoracion`, `zona_busqueda` o `zona`… pero cualquier clave no
+  declarada se descarta. Una tool sin allowlist no devuelve **ningún** dato.
+- Un `result.ok === false` se pinta como tarjeta de error, **sin botón de reintento**
+  si es `FORBIDDEN` o `MISSING_TOKEN` (regla del backend: explicar y parar).
+- Un `result.pending === true` **nunca** se muestra como "hecho": lo explica la
+  tarjeta de confirmación.
+- Timeout de red de **35 s** (el backend admite hasta ~25 s) con mensaje propio.
+- Por defecto `VITE_AI_MOCK=false`: el chat llama a `mira-api`. El mock es
+  opt-in, y su chunk (5 KB) queda en un archivo aparte que no se descarga.
+
+### Tests
+
+```powershell
+npm.cmd test     # node --test, sin dependencias
+```
+
+Solo lógica pura y el cliente HTTP (`aiErrors`, `aiPayload`, `aiMock`,
+`aiContrato`, `miraUi`): nada de JSX ni DOM, por eso es `node --test` y no
+vitest. Para tocar la UI hace falta `npm.cmd run dev`.
+
+`VITE_AI_MOCK=true` (y solo con el backend parado) te deja provocar:
+`bomb` → 429 con `Retry-After`, `roto` → 500, `largo` → 400, `ruta` → 404,
+`ruleta` → `WHEEL_LOCKED`, `facturación` → `FORBIDDEN`, `canjear puntos` →
+`INSUFFICIENT`, `invítame a mí mismo` → `SELF_INVITE`.
+
+### Probar contra un backend de verdad
+
+`test/stub-agente.mjs` implementa el contrato documentado del backend: confirm de
+un solo uso, `needsConfirm`, `result.ok` / `result.pending`, errores de negocio
+dentro de HTTP 200, snake_case y un `email` + `serviceAccount` que la UI **no**
+debe pintar. Con `integrationAgente.mjs` se recorre el cliente real contra él
+por HTTP (29 comprobaciones):
+
+```powershell
+node test/stub-agente.mjs 4310          # terminal 1: backend de prueba
+node test/integrationAgente.mjs 4310    # terminal 2
+```
+
+### Desplegar en Vercel
+
+El build **no necesita `.env`**: sin `VITE_API_URL` el cliente usa
+`https://mira-api-xveu.onrender.com` (fallback de `httpClient.js`) y el chat va
+a la API real salvo que pongas `VITE_AI_MOCK=true`.
+
+La única variable que deberías añadir en el panel de Vercel es `VITE_API_URL`, y
+solo si la API no vive en ese dominio. Ojo: Vite hornea las variables en el
+bundle, así que cambiarla exige **redesplegar**.
+
 ## Flujos para probar
 
 - Sin filtros → "Mostrando 27 de 690 restaurantes"; al deslizar carga más.
@@ -235,6 +351,10 @@ pero la UI sigue pintando de 27 en 27.
 - `méxico` (con tilde) → encuentra igual (búsqueda normalizada).
 - `#/registro` → crea cuenta → "Hola, {nombre}" → `#/cuenta` → salir.
 - `#/contacto` → envía un mensaje → aparece en Firestore → `contactos`.
+- Con `VITE_AI_MOCK=true`: launcher de MIRA → "Mesa para 4 el 2026-10-10 a las
+  13:00 en Casa Lucio" → tarjeta de confirmación → **Sí, confirmo** → reserva
+  creada con código. Probar también `bomb` (429), `admin` (403) y `ruleta`
+  (WHEEL_LOCKED).
 
 ## Scripts con datos
 

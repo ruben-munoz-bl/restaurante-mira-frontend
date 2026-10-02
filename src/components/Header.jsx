@@ -10,7 +10,7 @@ import en from '../i18n/en.js';
 
 const TRADS = { es, ca, en };
 
-export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeidos, puntosSaldo, tema, onCambiarTema, onSalir, onStreakClick, fetchStreakData }) {
+export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeidos, puntosSaldo, tema, onCambiarTema, onSalir, onStreakClick, fetchStreakData, onAbrirMira, miraOculta }) {
   const t = useT(TRADS);
   const { lang, cycleLang, available } = useI18n();
   const [abierto, setAbierto] = useState(false);
@@ -124,6 +124,17 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
           </ul>
         </nav>
         <div className="header-cuentas" onClick={cerrar}>
+          {onAbrirMira && !miraOculta && (
+            <button
+              type="button"
+              className="header-mira-btn"
+              onClick={onAbrirMira}
+              aria-label={t('mira.abrir')}
+              title={t('mira.abrir')}
+            >
+              <img src="/mochi.gif" alt="" className="header-mira-btn-img" />
+            </button>
+          )}
           {usuario ? (
             <>
               <a href="#/puntos" className="header-points-pill" title={t('points.title')}>
