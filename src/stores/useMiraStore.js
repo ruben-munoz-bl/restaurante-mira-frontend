@@ -78,7 +78,17 @@ export const useMiraStore = create((set, get) => ({
       return r;
     } catch (err) {
       const info = desdeError(err);
-      if (!info.abortado) console.error('MIRA: fallo al enviar el turno:', err);
+      if (!info.abortado) {
+        // El backend incluye requestId en los 500 para poder correlacionar con
+        // sus logs. Sin esto no hay forma de encontrarlo.
+        console.error('MIRA: fallo al enviar el turno:', {
+          codigo: info.codigo,
+          status: info.status,
+          requestId: err?.data?.requestId,
+          mensajeServidor: err?.data?.message,
+          error: err,
+        });
+      }
       set({
         error: info.abortado ? null : info,
         ultimoFallido: info.abortado ? get().ultimoFallido : { id: mio.id, confirmId },
