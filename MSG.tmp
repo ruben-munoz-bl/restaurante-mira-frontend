@@ -1,0 +1,19 @@
+Hace seleccionables los resultados del chat
+
+Al pedir "los 3 mejores de Tarragona" salia una lista de texto plano y
+un unico boton "Ver ficha" que actuaba sobre el primer resultado. Los
+otros nueve no habia forma de elegirlos.
+
+- TarjetaLista: cada fila es un boton que pide seguir con ese elemento
+  ("Que tal La Mossegada?"). Antes items[0] solo.
+- Allowlist propia para el item de busqueda: el backend devuelve
+  rating_yelp, total_resenas_yelp, zona_busqueda y categorias, claves
+  distintas a las de getRestaurant, por eso se quedaba solo el nombre.
+- categorias llega como texto o como array segun el restaurante; el
+  fallback cubre ambos casos.
+- Sin y fuera del item de una lista resumida: yelp_url, imagen_url,
+  coordenadas y telefono no aportan al elegir.
+- Estados vacios con texto: sin resultados / sin reservas / sin resenas.
+
+90 tests (6 nuevos). Verificado contra el backend real: cada fila
+renderiza nombre, valoracion, cocina y zona, y es pulsable.

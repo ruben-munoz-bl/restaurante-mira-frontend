@@ -56,3 +56,36 @@ test('el panel no accede a datos sin guarda', () => {
   assert.match(PANEL, /if \(!abierto\) return null/);
   assert.match(PANEL, /confirmPendiente &&/);
 });
+
+// ── Las listas deben ser seleccionables ─────────────────────────────────
+
+test('cada fila de una lista es un boton, no texto inerte', () => {
+  assert.match(MIRACCIONES, /<button\s+type="button"\s+className="mira-lista-item"/s);
+  assert.match(MIRACCIONES, /onClick=\{\(\) => alSugerir\(pregunta\(principal\)\)\}/);
+});
+
+test('no queda ningun boton que solo acted sobre el primer item', () => {
+  assert.ok(
+    !/items\[0\]/.test(MIRACCIONES),
+    'un boton para items[0] deja el resto sin elegir',
+  );
+});
+
+test('las tres listas pasan pregunta y vacioMsg', () => {
+  // searchRestaurants, listMyReservations y las reseñas.
+  const preguntas = MIRACCIONES.match(/pregunta=\{/g) || [];
+  const vacios = MIRACCIONES.match(/vacioMsg=\{/g) || [];
+  assert.ok(preguntas.length >= 2, `pregunta en ${preguntas.length} listas`);
+  assert.ok(vacios.length >= 2, `vacioMsg en ${vacios.length} listas`);
+});
+
+test('una fila sin nombre no se puede pulsar', () => {
+  assert.match(MIRACCIONES, /disabled=\{!elegible \|\| !alSugerir\}/);
+});
+
+test('el CSS de la lista existe', () => {
+  const css = readFileSync(new URL('../src/components/mira/mira.css', import.meta.url), 'utf8');
+  for (const c of ['.mira-lista', '.mira-lista-item', '.mira-lista-nombre', '.mira-lista-meta']) {
+    assert.ok(css.includes(c), `falta ${c} en mira.css`);
+  }
+});

@@ -37,7 +37,8 @@ function Pastilla({ estado }) {
 // ── Tarjetas por tool ───────────────────────────────────────────────────
 
 function TarjetaRestaurante({ d, alSugerir, t }) {
-  const cocina = d.cocina || (Array.isArray(d.categorias) ? d.categorias[0] : '');
+  // `categorias` llega como texto suelto en searchResults y como array en getRestaurant.
+  const cocina = d.cocina || (Array.isArray(d.categorias) ? d.categorias[0] : d.categorias) || '';
   return (
     <div className="mira-tarjeta">
       <p className="mira-tarjeta-titulo">{d.nombre}</p>
@@ -60,28 +61,50 @@ function TarjetaRestaurante({ d, alSugerir, t }) {
   );
 }
 
-/** Lista reutilizable (búsquedas, reservas, reseñas…). */
-function TarjetaLista({ titulo, items, total, campo, sufijo, alSugerir, t, accion }) {
-  if (!Array.isArray(items) || items.length === 0) return null;
+/**
+ * Lista seleccionable. Cada fila es un botón: al pulsarla se pide al agente
+ * que siga con ese elemento ("¿Qué tal X?"), que es lo que el usuario
+ * quiere al ver tres restaurantes. Antes solo había un botón para el
+ * primero, así que los demás no eran elegibles.
+ */
+function TarjetaLista({ titulo, items, total, campo, sufijo, alSugerir, t, pregunta, vacioMsg }) {
+  if (!Array.isArray(items) || items.length === 0) {
+    return vacioMsg ? (
+      <div className="mira-tarjeta">
+        <p className="mira-tarjeta-titulo">{titulo}</p>
+        <p className="vacio-texto">{vacioMsg}</p>
+      </div>
+    ) : null;
+  }
+
   return (
     <div className="mira-tarjeta">
       <p className="mira-tarjeta-titulo">
         {titulo}
         {typeof total === 'number' && total > items.length ? ` (${total})` : ''}
       </p>
-      {items.map((it, i) => (
-        <p key={it.id || `${campo}-${i}`} className="mira-tarjeta-linea">
-          <span>{it[campo] ?? '—'}</span>
-          <span>{sufijo(it)}</span>
-        </p>
-      ))}
-      {accion && alSugerir && (
-        <div className="mira-tarjeta-acciones">
-          <button type="button" className="btn-cta btn-peq" onClick={() => alSugerir(items[0][campo])}>
-            {accion}
-          </button>
-        </div>
-      )}
+      <ul className="mira-lista">
+        {items.map((it, i) => {
+          const principal = it[campo];
+          const etiqueta = principal ?? '—';
+          const elegible = Boolean(principal);
+          return (
+            <li key={it.id || `${campo}-${i}`}>
+              <button
+                type="button"
+                className="mira-lista-item"
+                disabled={!elegible || !alSugerir}
+                onClick={() => alSugerir(pregunta(principal))}
+                aria-label={`${t('mira.card.verFichaDe')}: ${etiqueta}`}
+              >
+                <span className="mira-lista-nombre">{etiqueta}</span>
+                <span className="mira-lista-meta">{sufijo(it)}</span>
+                {elegible && <span className="mira-lista-go" aria-hidden="true">›</span>}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -197,8 +220,20 @@ function Tarjeta({ a, alSugerir, t }) {
           items={d.items}
           total={d.total}
           campo="nombre"
-          sufijo={(it) => [it.valoracion ? `${it.valoracion}★` : null, it.cocina].filter(Boolean).join(' · ') || '—'}
-          accion={t('mira.card.verFicha')}
+          sufijo={(it) => {
+            const cocina = it.cocina || (Array.isArray(it.categorias) ? it.categorias[0] : it.categorias);
+            return (
+              [
+                it.valoracion ? `${it.valoracion}★` : null,
+                cocina,
+                it.zona || it.ciudad,
+              ]
+                .filter(Boolean)
+                .join(' · ') || '—'
+            );
+          }}
+          pregunta={(nombre) => t('mira.card.preguntaPorNombre', { nombre })}
+          vacioMsg={t('mira.card.sinResultados')}
           alSugerir={alSugerir}
           t={t}
         />
@@ -217,6 +252,9 @@ function Tarjeta({ a, alSugerir, t }) {
           total={d.total}
           campo="restauranteNombre"
           sufijo={(it) => [it.fecha, it.hora, it.estado].filter(Boolean).join(' · ') || '—'}
+          pregunta={(nombre) => t('mira.card.preguntaPorNombre', { nombre })}
+          vacioMsg={t('mira.card.sinReservas')}
+          alSugerir={alSugerir}
           t={t}
         />
       );
@@ -237,6 +275,8 @@ function Tarjeta({ a, alSugerir, t }) {
           total={d.total}
           campo="comentario"
           sufijo={(it) => (it.puntuacion ? `${it.puntuacion}★` : '—')}
+          vacioMsg={t('mira.card.sinResenas')}
+          alSugerir={alSugerir}
           t={t}
         />
       );

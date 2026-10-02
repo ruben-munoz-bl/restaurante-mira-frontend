@@ -606,6 +606,11 @@ export default {
     },
     "card": {
       "resultados": "{{n}} resultados",
+      "preguntaPorNombre": "¿Qué tal {{nombre}}?",
+      "verFichaDe": "Ver ficha de",
+      "sinResultados": "No encontré ninguno con esos criterios.",
+      "sinReservas": "No tienes reservas todavía.",
+      "sinResenas": "Todavía no hay reseñas.",
       "valoracion": "Valoración",
       "resenas": "Reseñas",
       "precio": "Precio",

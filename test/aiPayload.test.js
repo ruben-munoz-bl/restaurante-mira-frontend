@@ -154,6 +154,34 @@ test('lista sin allowlist de item no deja pasar campos', () => {
   assert.deepEqual(r, {});
 });
 
+test('item de busqueda real: snake_case y categorias como texto', () => {
+  // Forma real devuelta por el backend (verificada contra produccion).
+  const item = {
+    id: '_AJM1SrZ7Y-NsweVwUHq_A',
+    nombre: 'Viena',
+    rating_yelp: 5,
+    total_resenas_yelp: 1,
+    categorias: 'Sandwiches',
+    ciudad: 'Tarragona',
+    zona_busqueda: 'Tarragona, Spain',
+    precio: '',
+    telefono: '+34 977 55 52 14',
+    yelp_url: 'https://www.yelp.com/biz/...',
+    imagen_url: 'https://loremflickr.com/...',
+    coordenadas: { latitud: 41.13, longitud: 1.2 },
+  };
+  const r = camposVisibles('searchRestaurants', { items: [item], total: 1 });
+  const v = r.items[0];
+  assert.equal(v.nombre, 'Viena');
+  assert.equal(v.valoracion, 5, 'rating_yelp debe mapearse a valoracion');
+  assert.equal(v.totalResenasYelp, 1);
+  assert.equal(v.categorias, 'Sandwiches');
+  assert.equal(v.zona, 'Tarragona, Spain', 'zona_busqueda debe mapearse a zona');
+  assert.ok(!('yelp_url' in v), 'no deben colarse URLs externas');
+  assert.ok(!('imagen_url' in v));
+  assert.ok(!('telefono' in v), 'el telefono no va en una lista resumida');
+});
+
 test('camposVisibles acepta data como array', () => {
   const r = camposVisibles('listMyReservations', [{ restauranteNombre: 'Casa Lucio', estado: 'pendiente', uid: 'u' }]);
   assert.equal(r.items.length, 1);

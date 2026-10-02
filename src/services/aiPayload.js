@@ -238,8 +238,28 @@ function pick(src, mapa) {
   return out;
 }
 
+/**
+ * Item de búsqueda: el backend devuelve el documento crudo con snake_case
+ * (`rating_yelp`, `categorias` como string, `zona_busqueda`...).
+ * Sus claves son distintas a las de getRestaurant, de ahí su propia lista.
+ */
+const CAMPOS_ITEM_BUSQUEDA = {
+  id: ['id'],
+  nombre: ['nombre'],
+  valoracion: ['valoracion', 'rating_yelp'],
+  totalResenasYelp: ['totalResenasYelp', 'total_resenas_yelp'],
+  precio: ['precio'],
+  cocina: ['cocina', 'categoria'],
+  categorias: ['categorias'],
+  ciudad: ['ciudad'],
+  zona: ['zona', 'zona_busqueda'],
+  direccion: ['direccion', 'direccion_completa'],
+  descripcion: ['descripcion'],
+  maxReservasPorHora: ['maxReservasPorHora'],
+};
+
 const MAPA_ITEM = {
-  searchRestaurants: CAMPOS.getRestaurant,
+  searchRestaurants: CAMPOS_ITEM_BUSQUEDA,
   getRestaurant: CAMPOS.getRestaurant,
   createReservation: CAMPOS.createReservation,
   cancelReservation: CAMPOS.cancelReservation,

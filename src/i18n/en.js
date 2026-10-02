@@ -606,6 +606,11 @@ export default {
     },
     "card": {
       "resultados": "{{n}} results",
+      "preguntaPorNombre": "How about {{nombre}}?",
+      "verFichaDe": "View details for",
+      "sinResultados": "I couldn't find any match for those criteria.",
+      "sinReservas": "You have no bookings yet.",
+      "sinResenas": "There are no reviews yet.",
       "valoracion": "Rating",
       "resenas": "Reviews",
       "precio": "Price",

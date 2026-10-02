@@ -269,6 +269,63 @@
   font-size: 0.82rem;
 }
 
+/* Lista seleccionable: cada fila es un boton que pide seguir con ese elemento. */
+.mira-lista {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.mira-lista-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.5rem;
+  border: none;
+  border-radius: var(--radio-peq);
+  background: transparent;
+  font: inherit;
+  font-size: 0.86rem;
+  color: var(--tinta);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.mira-lista-item:hover:not(:disabled) {
+  background: var(--verde-suave);
+}
+.mira-lista-item:focus-visible {
+  outline: 2px solid var(--verde);
+  outline-offset: -2px;
+}
+.mira-lista-item:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+.mira-lista-nombre {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mira-lista-meta {
+  flex-shrink: 0;
+  font-size: 0.78rem;
+  color: var(--gris);
+  text-align: right;
+}
+.mira-lista-go {
+  flex-shrink: 0;
+  color: var(--gris);
+  font-size: 1rem;
+  line-height: 1;
+}
+
 /* Estado de la reserva */
 .mira-estado {
   display: inline-block;

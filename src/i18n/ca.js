@@ -606,6 +606,11 @@ export default {
     },
     "card": {
       "resultados": "{{n}} resultats",
+      "preguntaPorNombre": "Què tal {{nombre}}?",
+      "verFichaDe": "Veure fitxa de",
+      "sinResultados": "No n'he trobat cap amb aquests criteris.",
+      "sinReservas": "Encara no tens reserves.",
+      "sinResenas": "Encara no hi ha ressenyes.",
       "valoracion": "Valoració",
       "resenas": "Ressenyes",
       "precio": "Preu",
