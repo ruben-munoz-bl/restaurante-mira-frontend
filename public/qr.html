@@ -1,0 +1,125 @@
+<!DOCTYPE html><html class="h-full bg-neutral-950" lang="es" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+<title>MIRA | Experiencia Gastronómica &amp; Reservas</title>
+<!-- Google Fonts: Space Grotesk & Plus Jakarta Sans -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;family=Space+Grotesk:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<!-- Tailwind CSS CDN with plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Custom Configuration -->
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              emerald: '#10b981',
+              emeraldDeep: '#059669',
+              mint: '#34d399',
+              dark: '#0a0d0c',
+              card: 'rgba(18, 23, 21, 0.75)'
+            }
+          },
+          fontFamily: {
+            display: ['Space Grotesk', 'sans-serif'],
+            sans: ['Plus Jakarta Sans', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+<!-- Core Theme & Visual Effects Styles -->
+<style data-purpose="custom-glass-effects">
+    .glass-panel {
+      background: linear-gradient(135deg, rgba(25, 33, 30, 0.7) 0%, rgba(12, 16, 15, 0.85) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(52, 211, 153, 0.15);
+      box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+    }
+    
+    .glass-button {
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-button:active {
+      transform: scale(0.97);
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(52, 211, 153, 0.3);
+    }
+
+    .scanner-corner {
+      width: 18px;
+      height: 18px;
+      border-color: #10b981;
+      position: absolute;
+      pointer-events: none;
+    }
+  </style>
+<!-- Animations & Refinements -->
+<style data-purpose="animations">
+    @keyframes subtlePulse {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(1.05); }
+    }
+    .glow-pulse {
+      animation: subtlePulse 4s ease-in-out infinite;
+    }
+    @keyframes floatMochi {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-5px); }
+    }
+    .mochi-float {
+      animation: floatMochi 3.2s ease-in-out infinite;
+    }
+    .pixelated-render {
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-neutral-100 font-sans antialiased flex flex-col justify-between selection:bg-brand-emerald selection:text-black relative overflow-x-hidden p-4 sm:p-6">
+<!-- Subtle Ambient Glow Backgrounds -->
+<div aria-hidden="true" class="fixed top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-brand-emeraldDeep/20 rounded-full blur-[100px] pointer-events-none glow-pulse"></div>
+<div aria-hidden="true" class="fixed bottom-0 right-0 w-80 h-80 bg-teal-900/15 rounded-full blur-[90px] pointer-events-none"></div>
+<!-- Safe Area Wrapper for iOS Stand Screen -->
+<div class="w-full max-w-sm mx-auto flex flex-col justify-between flex-1 relative z-10 py-1"><!-- Minimal Elegant Header -->
+<header class="text-center pt-8 pb-4"><h1 class="text-4xl sm:text-5xl tracking-[0.35em] font-extrabold font-display bg-gradient-to-r from-white via-neutral-100 to-emerald-200 bg-clip-text text-transparent uppercase pl-1.5">M I R A</h1></header>
+
+<!-- Focal Area: QR Code with Mochi Peeking -->
+<main class="w-full flex-1 flex flex-col items-center justify-center my-auto"><div class="relative flex flex-col items-center justify-center"><div class="absolute w-72 h-72 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none -z-10 glow-pulse"></div><div class="relative p-5 bg-white rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.85)] border border-emerald-500/30"><span class="scanner-corner top-1.5 left-1.5 border-t-2 border-l-2 rounded-tl-sm"></span><span class="scanner-corner top-1.5 right-1.5 border-t-2 border-r-2 rounded-tr-sm"></span><span class="scanner-corner bottom-1.5 left-1.5 border-b-2 border-l-2 rounded-bl-sm"></span><span class="scanner-corner bottom-1.5 right-1.5 border-b-2 border-r-2 rounded-br-sm"></span><div class="relative w-64 h-64 overflow-hidden rounded-2xl flex items-center justify-center bg-white"><img alt="Código QR MIRA" class="w-full h-full object-contain p-1" src="https://api.qrserver.com/v1/create-qr-code/?size=600x600&amp;data=https%3A%2F%2Frestaurante-mira-frontend.vercel.app%2F&amp;ecc=H&amp;margin=2"><div class="absolute inset-0 m-auto w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-2xl p-1.5 shadow-[0_4px_16px_rgba(0,0,0,0.3)] border-2 border-emerald-500/40 flex items-center justify-center z-10"><img alt="Mochi Mascot" class="w-full h-full object-contain pixelated-render mochi-float drop-shadow-sm" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDESLlJpA8wvGnPl4IfNEHaoGFBZiaMGMy_8RKEhEnt6uKOem51jhXXsNyNLSJmFMnIkDUL9F0CxXVTuX023M1T5Iw7orN5f4IeVUV1098uf6RqTqeWYdpCcDBzo_35kDuhDPck7V_6KgnRbkw63jW_DvFWXONRKGjqjVmkU08Wc6NGa2oNShMoJAWx2U1i3LzioxykJx5LWUzvg803JfK3wEtmWcOLAhxCiVzOveREV2FN0ocLqni952-AYISSgZOtJa8"></div></div></div><div class="mt-8 flex items-center gap-2.5 text-neutral-400 font-display text-[11px] uppercase tracking-[0.35em]"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span><span class="">Escanea la carta</span></div></div></main>
+
+<!-- Minimal Discreet Footer -->
+<footer class="text-center pb-6 pt-2"><p class="text-[10px] text-neutral-500 tracking-[0.3em] uppercase">Experiencia Gastronómica</p></footer></div>
+<!-- Notification Toast for Waiter Call -->
+
+<!-- Micro Interaction Handler -->
+<script data-purpose="interactive-actions">
+    document.addEventListener('DOMContentLoaded', () => {
+      const waiterBtn = document.getElementById('btn-call-waiter');
+      const toast = document.getElementById('waiter-toast');
+      let timeoutId = null;
+
+      waiterBtn?.addEventListener('click', () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        
+        // Show feedback toast
+        toast.classList.remove('translate-y-24', 'opacity-0');
+        toast.classList.add('translate-y-0', 'opacity-100');
+
+        // Reset after 3 seconds
+        timeoutId = setTimeout(() => {
+          toast.classList.remove('translate-y-0', 'opacity-100');
+          toast.classList.add('translate-y-24', 'opacity-0');
+        }, 3200);
+      });
+    });
+  </script>
+
+
+</body></html>
