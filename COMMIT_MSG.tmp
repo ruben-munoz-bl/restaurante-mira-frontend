@@ -1,0 +1,11 @@
+Explica los 5xx del agente en vez de soltar "Error interno"
+
+El backend devuelve INTERNAL_ERROR con mensaje "Error interno" en un 500.
+Ese texto no dice nada ni al usuario ni a quien depura. Ahora el front lo
+envuelve indicando que es un problema del servicio y que conviene
+reintentar, sin perder el texto original ni el requestId del log.
+
+Evita ademas que un 4xx (culpa del cliente) se disfraze de caida del
+servicio: solo los 5xx reciben ese tratamiento.
+
+84 tests.

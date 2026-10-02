@@ -63,7 +63,7 @@ test('precedencia en HTTP: data.message > tabla > genérico', () => {
     'history admite 10 entradas.',
   );
   assert.equal(desdeError({ status: 429, data: { error: 'RATE_LIMITED' } }).mensaje, 'Voy muy rápido. Espera un momento y reintenta.');
-  assert.equal(desdeError({ status: 500 }).mensaje, 'Ahora no puedo consultarlo. Prueba en un momento.');
+  assert.match(desdeError({ status: 500 }).mensaje, /servicio/i);
 });
 
 test('SELF_INVITE e INSUFFICIENT tienen su propio texto', () => {
@@ -125,5 +125,29 @@ test('un fallo de red no se confunde con un 401 ni con un abort', () => {
 test('un error con status sigue mandando sobre el mensaje genérico de red', () => {
   const r = desdeError({ status: 500, data: { error: 'INTERNAL_ERROR', message: 'requestId abc' } });
   assert.equal(r.codigo, 'INTERNAL_ERROR');
-  assert.equal(r.mensaje, 'requestId abc');
+  assert.match(r.mensaje, /requestId abc/, 'conserva el texto del servidor');
+});
+
+// ── 5xx: "Error interno" no le dice nada a un usuario ───────────────────
+
+test('un 5xx añade que es un problema del servicio', () => {
+  const r = desdeError({ status: 500, data: { error: 'INTERNAL_ERROR', message: 'Error interno' } });
+  assert.match(r.mensaje, /servicio/i, 'debe explicar que es cosa del servicio');
+  assert.match(r.mensaje, /momento/i, 'debe sugerir reintentar');
+});
+
+test('un 5xx sin mensaje del servidor también se explica', () => {
+  const r = desdeError({ status: 503 });
+  assert.match(r.mensaje, /servicio/i);
+  assert.ok(r.mensaje.length > 0);
+});
+
+test('un 5xx sigue siendo reintentable', () => {
+  assert.equal(desdeError({ status: 500 }).reintentable, true);
+  assert.equal(desdeError({ status: 503 }).reintentable, true);
+});
+
+test('un 4xx no se disfraza de problema del servicio', () => {
+  const r = desdeError({ status: 400, data: { error: 'VALIDATION_ERROR', message: 'message muy largo' } });
+  assert.equal(r.mensaje, 'message muy largo', 'un 400 es culpa del cliente, no del servicio');
 });

@@ -105,8 +105,17 @@ export function desdeError(err) {
   const delServidor = typeof err?.data?.message === 'string' ? err.data.message.trim() : '';
   const mensaje = delServidor || POR_CODIGO[codigo] || GENERICO;
 
+  // 5xx del agente: "Error interno" no le dice nada a un usuario. Le damos
+  // contexto sin perder el texto del servidor.
+  const esServidorCaido = status >= 500;
+  const detalle = esServidorCaido
+    ? delServidor
+      ? `${delServidor} Es un problema del servicio; prueba en un momento.`
+      : 'El servicio no está disponible ahora mismo. Prueba en un momento.'
+    : mensaje;
+
   return {
-    mensaje,
+    mensaje: detalle,
     // Un token inválido NO da 401: el backend lo trata como anónimo y
     // contesta 200. Así que solo un 401 real pide iniciar sesión.
     loginRequerido: status === 401,
