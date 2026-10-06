@@ -55,6 +55,7 @@ import { enviarContacto } from './services/contactoApi.js';
 import { proponerNegocio } from './services/negocioApi.js';
 import useDailyLogin from './hooks/useDailyLogin.js';
 import './App.css';
+import './styles/motion.css';
 import { I18nProvider } from './i18n/index.jsx';
 
 function baseHash() {
@@ -374,7 +375,7 @@ function AppContent({ auth, tema, setTema }) {
         Saltar al buscador
       </a>
       <Header usuario={usuario} esAdmin={esAdmin} perfil={perfil} numFavoritos={favoritos.length} noLeidos={noLeidos} puntosSaldo={puntosSaldo} tema={tema} onCambiarTema={() => setTema((t) => (t === 'oscuro' ? 'claro' : 'oscuro'))} onSalir={salir} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
-      <main>
+      <main key={ruta} className="ruta">
         {usuario && !usuario.emailVerified && ruta !== 'login' && ruta !== 'registro' && ruta !== 'recuperar' && ruta !== 'restablecer' && (
           <div className="aviso-email" role="alert" style={{ background: 'var(--naranja)', color: '#fff', padding: '0.7rem 1rem', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
             <span>Tu correo no está verificado.</span>

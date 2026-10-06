@@ -1,0 +1,426 @@
+/* ===== Carta libro ===== */
+
+.carta-fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: grid;
+  place-items: center;
+  padding: max(0.75rem, env(safe-area-inset-top)) 0.75rem max(0.75rem, env(safe-area-inset-bottom));
+  background: radial-gradient(1200px 800px at 50% 40%, rgba(22, 56, 44, 0.55), rgba(3, 12, 8, 0.82));
+  backdrop-filter: blur(10px) saturate(120%);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  animation: carta-aparece 0.35s ease-out;
+}
+@keyframes carta-aparece { from { opacity: 0; } to { opacity: 1; } }
+
+.carta {
+  --carta-papel: #f6f2ea;
+  --carta-tinta: #1b1e18;
+  --carta-acento: #b97a1a;
+  --carta-cuero: color-mix(in srgb, var(--carta-acento) 42%, #140d07);
+  --oro: #e3c27a;
+  /* Tamaño de página: cabe en alto y en ancho con proporción de carta (0,7). */
+  --pw: min(calc((100svh - 200px) * 0.7), 500px, calc((100vw - 56px) / 2));
+  --ph: calc(var(--pw) / 0.7);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  animation: carta-entra 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes carta-entra {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ── Libro y hojas ── */
+.carta-libro {
+  position: relative;
+  width: calc(var(--pw) * 2);
+  height: var(--ph);
+  perspective: 2600px;
+  transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1);
+}
+/* Cerrado: la tapa (mitad derecha) queda centrada. Al final, la contraportada. */
+.carta-libro--cerrado { transform: translateX(-25%); }
+.carta-libro--final { transform: translateX(25%); }
+
+.carta-hoja {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.carta-hoja.pasada { transform: rotateY(-180deg); }
+
+.carta-cara {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.carta-cara--reverso { transform: rotateY(180deg); }
+
+/* Luz y sombra que recorren la hoja mientras gira (da volumen al papel). */
+.carta-cara::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.32) 0%, rgba(0, 0, 0, 0.08) 35%, rgba(255, 255, 255, 0.12) 70%, rgba(0, 0, 0, 0.05) 100%);
+}
+.carta-hoja.girando .carta-cara::after { animation: carta-luz 0.85s ease-in-out; }
+@keyframes carta-luz {
+  0% { opacity: 0; }
+  45% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ── Papel ── */
+.carta-papel {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  color: var(--carta-tinta);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.012) 0 2px, transparent 2px 4px),
+    var(--carta-papel);
+  box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.55), 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+/* Página derecha: el lomo queda a su izquierda. */
+.carta-papel--der {
+  border-radius: 3px 14px 14px 3px;
+  background-image:
+    linear-gradient(90deg, rgba(60, 40, 15, 0.22) 0%, rgba(60, 40, 15, 0.06) 7%, transparent 14%),
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.012) 0 2px, transparent 2px 4px);
+}
+.carta-papel--izq {
+  border-radius: 14px 3px 3px 14px;
+  background-image:
+    linear-gradient(270deg, rgba(60, 40, 15, 0.22) 0%, rgba(60, 40, 15, 0.06) 7%, transparent 14%),
+    radial-gradient(120% 90% at 50% 0%, rgba(255, 255, 255, 0.55), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.012) 0 2px, transparent 2px 4px);
+}
+.carta-papel--unica { border-radius: 4px 16px 16px 4px; }
+.carta-papel--dorso {
+  border-radius: 16px 4px 4px 16px;
+  filter: brightness(0.94);
+}
+
+.carta-cuerpo {
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(1.3rem, 2.8vw, 2.3rem) clamp(1.3rem, 3vw, 2.5rem);
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--carta-acento) 40%, transparent) transparent;
+}
+
+/* ── Tipografía de las páginas ── */
+.carta-cabecera {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--carta-acento);
+}
+.carta-num {
+  font-family: var(--fuente-display);
+  font-size: 0.85rem;
+  letter-spacing: 0;
+  opacity: 0.7;
+}
+.carta-seccion {
+  margin: 1.2rem 0 0;
+  text-align: center;
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  color: var(--carta-tinta);
+  letter-spacing: -0.01em;
+}
+.carta-ornamento {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.6rem auto 1.4rem;
+  max-width: 220px;
+  color: var(--carta-acento);
+  font-size: 0.75rem;
+}
+.carta-ornamento::before,
+.carta-ornamento::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, currentColor);
+  opacity: 0.6;
+}
+.carta-ornamento::after { background: linear-gradient(90deg, currentColor, transparent); }
+
+.carta-platos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+.carta-plato-linea {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.carta-plato-nombre {
+  font-family: var(--fuente-display);
+  font-size: 1.08rem;
+  font-weight: 600;
+}
+/* Puntos guía entre el plato y el precio, como en una carta clásica. */
+.carta-puntos {
+  flex: 1;
+  min-width: 1.5rem;
+  border-bottom: 1.5px dotted color-mix(in srgb, var(--carta-tinta) 35%, transparent);
+  transform: translateY(-0.28em);
+}
+.carta-precio {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--carta-acento);
+  white-space: nowrap;
+}
+.carta-plato-desc {
+  margin: 0.25rem 0 0;
+  font-size: 0.86rem;
+  font-style: italic;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--carta-tinta) 72%, transparent);
+}
+.carta-plato-tags {
+  margin: 0.4rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+}
+.carta-cantidad {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--carta-tinta) 55%, transparent);
+}
+
+.carta-leyenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+.carta-leyenda li { display: grid; grid-template-columns: 2.2rem 1fr; gap: 0.6rem; align-items: start; }
+.carta-leyenda-simbolo {
+  display: grid;
+  place-items: center;
+  height: 1.8rem;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--carta-acento);
+  border: 1px solid color-mix(in srgb, var(--carta-acento) 40%, transparent);
+  background: color-mix(in srgb, var(--carta-acento) 8%, transparent);
+}
+
+.carta-fin {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  color: var(--carta-acento);
+}
+.carta-fin-marca { font-size: 1.6rem; }
+.carta-fin p { margin: 0; font-family: var(--fuente-display); font-size: 1.4rem; color: var(--carta-tinta); }
+.carta-fin-sub { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; }
+
+/* ── Portada de piel ── */
+.carta-portada {
+  position: relative;
+  height: 100%;
+  border-radius: 4px 16px 16px 4px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2.4rem 1.8rem 2rem;
+  text-align: center;
+  color: var(--oro);
+  background:
+    radial-gradient(90% 70% at 30% 20%, rgba(255, 255, 255, 0.14), transparent 60%),
+    radial-gradient(140% 120% at 100% 100%, rgba(0, 0, 0, 0.45), transparent 55%),
+    repeating-radial-gradient(circle at 20% 30%, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px),
+    var(--carta-cuero);
+  box-shadow:
+    inset 6px 0 10px -4px rgba(0, 0, 0, 0.55),
+    inset -1px 0 0 rgba(255, 255, 255, 0.08),
+    0 30px 70px -20px rgba(0, 0, 0, 0.7);
+}
+.carta-portada--trasera {
+  border-radius: 16px 4px 4px 16px;
+  justify-content: center;
+}
+.carta-portada-marco {
+  position: absolute;
+  inset: 14px;
+  border: 1.5px solid color-mix(in srgb, var(--oro) 65%, transparent);
+  border-radius: 10px;
+  outline: 1px solid color-mix(in srgb, var(--oro) 30%, transparent);
+  outline-offset: 5px;
+  pointer-events: none;
+}
+.carta-portada-sello {
+  position: relative;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--oro) 55%, transparent);
+  border-radius: 999px;
+}
+.carta-portada-centro { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.6rem; }
+.carta-portada-estrella { font-size: 1.4rem; opacity: 0.9; }
+.carta-portada-titulo {
+  margin: 0;
+  font-family: var(--fuente-display);
+  font-weight: 700;
+  font-size: clamp(1.9rem, calc(var(--pw) * 0.09), 2.9rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  /* Dorado en relieve */
+  background: linear-gradient(180deg, #fbefc4 0%, #d9b264 48%, #a77c2c 52%, #f2d58a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.55));
+}
+.carta-portada-sub {
+  margin: 0;
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--oro) 80%, #fff);
+}
+.carta-portada-linea { width: 70px; height: 1px; background: currentColor; opacity: 0.6; margin: 0.4rem 0; }
+.carta-portada-datos { margin: 0; font-size: 0.78rem; opacity: 0.85; max-width: 26ch; line-height: 1.5; }
+.carta-portada-pista {
+  position: relative;
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.75;
+  animation: carta-pulso 2.4s ease-in-out infinite;
+}
+@keyframes carta-pulso { 50% { opacity: 0.35; } }
+
+/* ── Controles ── */
+.carta-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: #f7faf6;
+}
+.carta-nav button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.2s ease, opacity 0.2s ease;
+}
+.carta-nav button:hover:not(:disabled) { background: rgba(255, 255, 255, 0.14); }
+.carta-nav button:disabled { opacity: 0.3; cursor: default; }
+.carta-nav button:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+.carta-nav-indicador {
+  min-width: 7.5rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+  opacity: 0.9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14rem;
+}
+.carta-cerrar {
+  position: fixed;
+  top: max(1rem, env(safe-area-inset-top));
+  right: 1rem;
+  z-index: 2;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 1.05rem;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.carta-cerrar:hover { background: rgba(255, 255, 255, 0.22); transform: rotate(90deg); }
+.carta-cerrar:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+
+/* ── Móvil: una página ── */
+@media (max-width: 719px) {
+  .carta {
+    --pw: min(calc(100vw - 28px), calc((100svh - 140px) * 0.7));
+  }
+  .carta-libro--movil { width: var(--pw); perspective: 1800px; }
+  .carta-libro--movil .carta-hoja { left: 0; width: 100%; }
+  /* La hoja pasada se aparta y desaparece al terminar el giro. */
+  .carta-libro--movil .carta-hoja.pasada {
+    opacity: 0;
+    transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1), opacity 0.2s linear 0.6s;
+  }
+  .carta-cuerpo { padding: 1.4rem 1.25rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carta,
+  .carta-fondo,
+  .carta-portada-pista { animation: none; }
+  .carta-libro,
+  .carta-hoja { transition-duration: 0.01ms !important; }
+  .carta-hoja.girando .carta-cara::after { animation: none; }
+}

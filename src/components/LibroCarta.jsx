@@ -1,9 +1,12 @@
 /**
- * View pura: carta libro interactiva. Portada + pliegos con volteo 3D
- * (anverso = página actual, reverso = página del siguiente pliego).
- * Sin cromo de UI: solo el libro. Cerrar con clic fuera o Esc.
+ * View pura: carta como libro. Todas las hojas existen a la vez y giran sobre
+ * el lomo con una transición CSS (nada se desmonta → sin parpadeos, y se puede
+ * encadenar o deshacer un giro a medias).
+ * - Escritorio: doble página. Hoja i = anverso pág. 2i · reverso pág. 2i+1.
+ * - Móvil: una página por hoja; la hoja pasada se aparta hacia la izquierda.
+ * Cerrar con ✕, clic fuera o Esc. Flechas, swipe o clic en la página para pasar.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   cartaLibro,
   temaCarta,
@@ -16,131 +19,135 @@ import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
+import '../styles/carta.css';
 
 const TRADS = { es, ca, en };
+const GIRO_MS = 850;
 
 const EYEBROWS = {
-  Entrantes: 'Para Comenzar',
-  Principales: 'Principales de Temporada',
-  Postres: 'Dulces & Bodega',
+  Entrantes: 'Para comenzar',
+  Principales: 'De temporada',
+  Postres: 'Dulces & bodega',
 };
 
-function ContenidoSeccion({ seccion, dieta, mostrarConflictos, numero }) {
-  const eyebrow = EYEBROWS[seccion.titulo] || seccion.titulo;
-  return (
-    <>
-      <div className="libro-pagina-top">
-        <span className="libro-pagina-eyebrow">{eyebrow}</span>
-        <span className="libro-pagina-num">{numero}</span>
-      </div>
-      <h4 className="libro-seccion-titulo">{seccion.titulo}</h4>
-      <div className="libro-pagina-cuerpo">
-        <ul className="libro-platos">
-          {seccion.platos.map((p) => {
-            const conflictos = (dieta?.alergias || []).filter((a) => p.alergenos.includes(a));
-            return (
-              <li key={p.nombre} className="libro-plato">
-                <div className="libro-plato-cab">
-                  <strong className="libro-plato-nombre">{p.nombre}</strong>
-                  <span className="libro-precio">{Number(p.precio).toFixed(2)}€</span>
-                </div>
-                <p className="libro-plato-desc">{p.descripcion}</p>
-                <p className="libro-plato-tags">
-                  <Sellos plato={p} />
-                  {mostrarConflictos && <ConflictosAlergenos alergenos={conflictos} />}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
-      </div>
-    </>
-  );
+function useEsMovil() {
+  const consulta = '(max-width: 719px)';
+  const [movil, setMovil] = useState(() => window.matchMedia?.(consulta).matches ?? false);
+  useEffect(() => {
+    const mq = window.matchMedia?.(consulta);
+    if (!mq) return undefined;
+    const alCambiar = (e) => setMovil(e.matches);
+    mq.addEventListener('change', alCambiar);
+    return () => mq.removeEventListener('change', alCambiar);
+  }, []);
+  return movil;
 }
 
-function ContenidoLeyenda({ leyenda, t, numero }) {
-  return (
-    <>
-      <div className="libro-pagina-top">
-        <span className="libro-pagina-eyebrow">{t('libro.leyenda')}</span>
-        <span className="libro-pagina-num">{numero}</span>
-      </div>
-      <h4 className="libro-seccion-titulo">{t('libro.leyenda')}</h4>
-      <div className="libro-pagina-cuerpo">
-        <ul className="libro-leyenda-lista">
-          {leyenda.map((e) => (
-            <li key={e.nombre}>
-              <span className="libro-leyenda-simbolo" aria-hidden="true">
-                {e.simbolo}
-              </span>
-              <span>
-                <strong>{e.nombre}.</strong> {e.descripcion}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </>
-  );
-}
+/* ───────────── Contenido de las páginas ───────────── */
 
-function ContenidoVacia({ numero }) {
+function Cabecera({ eyebrow, numero }) {
   return (
-    <div className="libro-pagina-vacia" aria-hidden="true">
-      <span className="libro-pagina-vacia-num">{numero}</span>
-      <span className="libro-pagina-vacia-marca">✦</span>
+    <div className="carta-cabecera">
+      <span>{eyebrow}</span>
+      {numero != null && <span className="carta-num">{numero}</span>}
     </div>
   );
 }
 
-function ContenidoPortada({ restaurant, tema, libro, totalPlatos, conDieta, aptos, t }) {
-  const iniciales = (restaurant.nombre || 'M')
-    .split(/\s+/)
-    .map((w) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
+function PaginaSeccion({ pagina, dieta, conDieta }) {
+  const { seccion, num } = pagina;
   return (
     <>
-      <div className="libro-portada-marco" aria-hidden="true">
-        <div className="libro-portada-esquinas">
-          <span>✦</span><span>✦</span>
-        </div>
-        <div className="libro-portada-esquinas libro-portada-esquinas--abajo">
-          <span>✦</span><span>✦</span>
-        </div>
-      </div>
-      <div className="libro-portada-top">
-        <span className="libro-portada-badge">{tema.nombre}</span>
-      </div>
-      <div className="libro-portada-centro">
-        <div className="libro-portada-crest" aria-hidden="true">★</div>
-        <h3 className="libro-portada-titulo">{restaurant.nombre}</h3>
-        <p className="libro-portada-sub">
-          {restaurant.cocina} · {restaurant.precio}
-        </p>
-        <div className="libro-portada-linea" aria-hidden="true" />
-        <p className="libro-portada-datos">
-          {libro.secciones.length} {t('libro.secciones')} · {totalPlatos} {t('libro.platos')}
-          {conDieta && ` · ${t('libro.aptosParaTi')}: ${aptos}`}
-          {restaurant.menuInfantil === true && ` · ${t('libro.menuInfantil')}`}
-        </p>
-        <p className="libro-portada-iniciales" aria-hidden="true">{iniciales}</p>
-      </div>
-      <div className="libro-portada-cta">
-        <span className="libro-portada-cta-pill">{t('libro.abrirMenu')}</span>
-        <span className="libro-portada-cta-hint">{t('libro.desliza')}</span>
-      </div>
+      <Cabecera eyebrow={EYEBROWS[seccion.titulo] || seccion.titulo} numero={num} />
+      <h3 className="carta-seccion">{seccion.titulo}</h3>
+      <div className="carta-ornamento" aria-hidden="true"><span>✦</span></div>
+      <ul className="carta-platos">
+        {seccion.platos.map((p) => {
+          const conflictos = (dieta?.alergias || []).filter((a) => p.alergenos?.includes(a));
+          return (
+            <li key={p.nombre} className="carta-plato">
+              <div className="carta-plato-linea">
+                <strong className="carta-plato-nombre">{p.nombre}</strong>
+                <span className="carta-puntos" aria-hidden="true" />
+                <span className="carta-precio">{Number(p.precio).toFixed(2)} €</span>
+              </div>
+              {p.descripcion && <p className="carta-plato-desc">{p.descripcion}</p>}
+              <p className="carta-plato-tags">
+                {p.cantidad && <span className="carta-cantidad">{p.cantidad}</span>}
+                <Sellos plato={p} />
+                {conDieta && <ConflictosAlergenos alergenos={conflictos} />}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
     </>
   );
 }
 
+function PaginaLeyenda({ pagina, leyenda, t }) {
+  return (
+    <>
+      <Cabecera eyebrow={t('libro.leyendaCarta')} numero={pagina.num} />
+      <h3 className="carta-seccion">{t('libro.leyenda')}</h3>
+      <div className="carta-ornamento" aria-hidden="true"><span>✦</span></div>
+      <ul className="carta-leyenda">
+        {leyenda.map((e) => (
+          <li key={e.nombre}>
+            <span className="carta-leyenda-simbolo" aria-hidden="true">{e.simbolo}</span>
+            <span><strong>{e.nombre}.</strong> {e.descripcion}</span>
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+function PaginaFin({ restaurant }) {
+  return (
+    <div className="carta-fin" aria-hidden="true">
+      <span className="carta-fin-marca">✦</span>
+      <p>{restaurant.nombre}</p>
+      <span className="carta-fin-sub">Buen provecho</span>
+    </div>
+  );
+}
+
+function Portada({ restaurant, tema, numSecciones, totalPlatos, conDieta, aptos, t }) {
+  return (
+    <div className="carta-portada">
+      <div className="carta-portada-marco" aria-hidden="true" />
+      <span className="carta-portada-sello">{tema.nombre}</span>
+      <div className="carta-portada-centro">
+        <span className="carta-portada-estrella" aria-hidden="true">✦</span>
+        <h2 className="carta-portada-titulo">{restaurant.nombre}</h2>
+        <p className="carta-portada-sub">{restaurant.cocina} · {restaurant.precio}</p>
+        <span className="carta-portada-linea" aria-hidden="true" />
+        <p className="carta-portada-datos">
+          {numSecciones} {t('libro.secciones')} · {totalPlatos} {t('libro.platos')}
+          {conDieta && ` · ${t('libro.aptosParaTi')}: ${aptos}`}
+          {restaurant.menuInfantil === true && ` · ${t('libro.menuInfantil')}`}
+        </p>
+      </div>
+      <span className="carta-portada-pista">{t('libro.abrirMenu')}</span>
+    </div>
+  );
+}
+
+function Contraportada() {
+  return (
+    <div className="carta-portada carta-portada--trasera" aria-hidden="true">
+      <div className="carta-portada-marco" />
+      <span className="carta-portada-estrella">✦</span>
+    </div>
+  );
+}
+
+/* ───────────── Libro ───────────── */
+
 export default function LibroCarta({ restaurant, dieta, onClose }) {
   const t = useT(TRADS);
-  const [spread, setSpread] = useState(0);
-  const [volteo, setVolteo] = useState(null);
-  const touchX = useRef(null);
-
+  const movil = useEsMovil();
   const libro = useMemo(() => cartaLibro(restaurant), [restaurant]);
   const tema = useMemo(() => temaCarta(restaurant.cocina), [restaurant.cocina]);
   const leyenda = useMemo(() => leyendaSellos(), []);
@@ -148,264 +155,158 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
   const aptos = conDieta ? aptosEnCarta(restaurant, dieta) : null;
   const totalPlatos = libro.secciones.reduce((n, s) => n + s.platos.length, 0);
 
-  const spreads = useMemo(() => {
-    const paginas = [
-      ...libro.secciones.map((s, i) => ({ tipo: 'seccion', ...s, num: i + 1 })),
+  // Páginas en orden de lectura (la portada es la página 0).
+  const paginas = useMemo(
+    () => [
+      { tipo: 'portada' },
+      ...libro.secciones.map((seccion, i) => ({ tipo: 'seccion', seccion, num: i + 1 })),
       { tipo: 'leyenda', num: libro.secciones.length + 1 },
-    ];
-    if (paginas.length % 2 === 1) {
-      paginas.push({ tipo: 'vacia', num: paginas.length + 1 });
-    }
-    const lista = [{ tipo: 'portada' }];
+    ],
+    [libro],
+  );
+
+  // Hojas físicas: [anverso, reverso].
+  const hojas = useMemo(() => {
+    if (movil) return paginas.map((p) => [p, { tipo: 'dorso' }]);
+    const lista = [];
     for (let i = 0; i < paginas.length; i += 2) {
-      lista.push({ tipo: 'spread', izq: paginas[i], der: paginas[i + 1] });
+      lista.push([paginas[i], paginas[i + 1] ?? { tipo: 'fin' }]);
     }
+    if (paginas.length % 2 === 0) lista.push([{ tipo: 'fin' }, { tipo: 'contraportada' }]);
+    else lista[lista.length - 1][1] = { tipo: 'contraportada' };
     return lista;
-  }, [libro]);
+  }, [paginas, movil]);
 
-  const maxSpread = spreads.length - 1;
-
-  function irA(n) {
-    if (volteo) return;
-    const destino = Math.max(0, Math.min(n, maxSpread));
-    if (destino === spread) return;
-    setVolteo({ dir: destino > spread ? 1 : -1, from: spread, to: destino });
-  }
-
-  function finVolteo() {
-    setVolteo((v) => {
-      if (v) setSpread(v.to);
-      return null;
-    });
-  }
+  const H = hojas.length;
+  // En móvil la última hoja no se pasa (no hay nada detrás).
+  const maxVueltas = movil ? H - 1 : H;
+  const [vueltas, setVueltas] = useState(0);
+  const [girando, setGirando] = useState(null); // índice de la hoja en movimiento
+  const vueltasRef = useRef(0);
+  const temporizador = useRef(null);
+  const touch = useRef(null);
+  const cerrarRef = useRef(null);
 
   useEffect(() => {
-    if (!volteo) return undefined;
-    const id = setTimeout(finVolteo, 900);
-    return () => clearTimeout(id);
-  }, [volteo]);
+    vueltasRef.current = 0;
+    setVueltas(0);
+  }, [movil]);
+  useEffect(() => cerrarRef.current?.focus(), []);
+  useEffect(() => () => clearTimeout(temporizador.current), []);
+
+  const ir = useCallback(
+    (dir) => {
+      const v = vueltasRef.current;
+      const n = Math.max(0, Math.min(maxVueltas, v + dir));
+      if (n === v) return;
+      vueltasRef.current = n;
+      setVueltas(n);
+      // La hoja que se mueve: al avanzar, la que estaba arriba a la derecha; al volver, la última pasada.
+      setGirando(dir > 0 ? v : n);
+      clearTimeout(temporizador.current);
+      temporizador.current = setTimeout(() => setGirando(null), GIRO_MS);
+    },
+    [maxVueltas],
+  );
 
   useEffect(() => {
     function alTeclar(e) {
       if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowRight' || e.key === ' ') {
-        e.preventDefault();
-        irA(spread + 1);
-      }
-      if (e.key === 'ArrowLeft') irA(spread - 1);
+      else if (e.key === 'ArrowRight') { e.preventDefault(); ir(1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); ir(-1); }
     }
     window.addEventListener('keydown', alTeclar);
     return () => window.removeEventListener('keydown', alTeclar);
-  }, [onClose, spread, maxSpread, volteo]);
+  }, [ir, onClose]);
 
-  function cerrarDesdeFondo(e) {
-    if (e.target === e.currentTarget) onClose();
-  }
-
-  function onTouchStart(e) {
-    touchX.current = e.changedTouches[0].screenX;
-  }
-
-  function onTouchEnd(e) {
-    if (touchX.current == null || volteo) return;
-    const diff = touchX.current - e.changedTouches[0].screenX;
-    touchX.current = null;
-    if (diff > 48) irA(spread + 1);
-    else if (diff < -48) irA(spread - 1);
-  }
-
-  function pintarPagina(pg) {
-    if (!pg) return <ContenidoVacia numero="" />;
-    if (pg.tipo === 'portada') {
-      return (
-        <ContenidoPortada
-          restaurant={restaurant}
-          tema={tema}
-          libro={libro}
-          totalPlatos={totalPlatos}
-          conDieta={conDieta}
-          aptos={aptos}
-          t={t}
-        />
-      );
+  function pintar(pg, lado) {
+    switch (pg.tipo) {
+      case 'portada':
+        return (
+          <Portada restaurant={restaurant} tema={tema} numSecciones={libro.secciones.length}
+            totalPlatos={totalPlatos} conDieta={conDieta} aptos={aptos} t={t} />
+        );
+      case 'contraportada':
+        return <Contraportada />;
+      case 'seccion':
+        return <div className={`carta-papel carta-papel--${lado}`}><div className="carta-cuerpo"><PaginaSeccion pagina={pg} dieta={dieta} conDieta={conDieta} /></div></div>;
+      case 'leyenda':
+        return <div className={`carta-papel carta-papel--${lado}`}><div className="carta-cuerpo"><PaginaLeyenda pagina={pg} leyenda={leyenda} t={t} /></div></div>;
+      case 'fin':
+        return <div className={`carta-papel carta-papel--${lado}`}><PaginaFin restaurant={restaurant} /></div>;
+      default: // dorso en móvil
+        return <div className="carta-papel carta-papel--dorso" />;
     }
-    if (pg.tipo === 'vacia') return <ContenidoVacia numero={pg.num ?? ''} />;
-    if (pg.tipo === 'leyenda') {
-      return <ContenidoLeyenda leyenda={leyenda} t={t} numero={pg.num} />;
-    }
-    if (pg.tipo === 'seccion') {
-      return (
-        <ContenidoSeccion
-          seccion={pg}
-          dieta={dieta}
-          mostrarConflictos={conDieta}
-          numero={pg.num}
-        />
-      );
-    }
-    return <ContenidoVacia numero="" />;
   }
 
-  function caraPapel(pg, lado) {
-    return (
-      <div className={`libro-pliego-cara libro-pliego-cara--papel libro-pliego-cara--${lado}`}>
-        {pintarPagina(pg)}
-      </div>
-    );
+  // Posición del libro: cerrado → solo la tapa centrada; al final → solo la contraportada.
+  const estado = movil ? 'movil' : vueltas === 0 ? 'cerrado' : vueltas === H ? 'final' : 'abierto';
+  const totalLectura = paginas.length - 1; // sin contar la portada
+  let indicador = restaurant.nombre;
+  if (vueltas > 0) {
+    const a = movil ? vueltas : vueltas * 2 - 1;
+    const b = movil ? a : Math.min(a + 1, totalLectura);
+    indicador = `${a === b || a > totalLectura ? Math.min(a, totalLectura) : `${a}–${b}`} / ${totalLectura}`;
   }
-
-  function caraCuero(pg) {
-    return (
-      <div className="libro-pliego-cara libro-pliego-cara--cuero">
-        {pintarPagina(pg)}
-      </div>
-    );
-  }
-
-  const keyBase = volteo ? `v-${volteo.from}-${volteo.to}-${volteo.dir}` : `s-${spread}`;
-  let hojas;
-
-  if (volteo) {
-    const from = spreads[volteo.from];
-    const to = spreads[volteo.to];
-    const adelante = volteo.dir === 1;
-    const esTapa = from.tipo === 'portada' || to.tipo === 'portada';
-
-    if (esTapa) {
-      /*
-       * Portada ↔ contenido: fade puro (sin rotateY → sin zoom).
-       * Abrir: tapa visible → funde; debajo ya está el pliego destino.
-       * Cerrar: entra la tapa opaca sobre el último pliego de contenido.
-       */
-      const portada = from.tipo === 'portada' ? from : to;
-      const contenido = from.tipo === 'portada' ? to : from;
-      const contIzq = contenido.tipo === 'spread' ? contenido.izq : { tipo: 'vacia', num: '' };
-      const contDer = contenido.tipo === 'spread' ? contenido.der : { tipo: 'vacia', num: '' };
-
-      hojas = (
-        <div className="libro-spread libro-spread--volteando">
-          <div className="libro-pliego libro-pliego--izq libro-pliego--bajo">
-            {caraPapel(contIzq, 'izq')}
-          </div>
-          <div className="libro-lomo" aria-hidden="true" />
-          <div className="libro-pliego libro-pliego--der libro-pliego--bajo">
-            {caraPapel(contDer, 'der')}
-          </div>
-          <div
-            key={`tapa-${volteo.from}-${volteo.to}`}
-            className={`libro-hoja libro-hoja--tapa ${adelante ? 'libro-hoja--next' : 'libro-hoja--prev'}`}
-            onAnimationEnd={finVolteo}
-          >
-            {/* Una sola cara: la portada (no hay reverso 3D en la tapa) */}
-            <div className="libro-hoja-cara libro-hoja-cara--anverso">
-              {caraCuero(portada)}
-            </div>
-          </div>
-        </div>
-      );
-    } else {
-      /*
-       * Pliego a pliego (libro real):
-       * - Siguiente: se voltea la hoja DERECHA hacia la izquierda.
-       *     anverso = página der actual
-       *     reverso = página izq del SIGUIENTE pliego (dorso de esa hoja)
-       *     bajo der = página der del destino; bajo izq = izq actual (se cubre)
-       * - Anterior: se voltea la hoja IZQUIERDA hacia la derecha.
-       *     anverso = página izq actual
-       *     reverso = página der del pliego ANTERIOR (dorso de esa hoja)
-       *     bajo izq = página izq del destino; bajo der = der actual (se cubre)
-       */
-      const underIzq = adelante ? from.izq : to.izq;
-      const underDer = adelante ? to.der : from.der;
-      const leafAnverso = adelante ? from.der : from.izq;
-      const leafReverso = adelante ? to.izq : to.der;
-
-      hojas = (
-        <div className="libro-spread libro-spread--volteando">
-          <div className="libro-pliego libro-pliego--izq libro-pliego--bajo">
-            {caraPapel(underIzq, 'izq')}
-          </div>
-          <div className="libro-lomo" aria-hidden="true" />
-          <div className="libro-pliego libro-pliego--der libro-pliego--bajo">
-            {caraPapel(underDer, 'der')}
-          </div>
-          <div
-            key={`hoja-${volteo.from}-${volteo.to}`}
-            className={`libro-hoja ${adelante ? 'libro-hoja--next' : 'libro-hoja--prev'}`}
-            onAnimationEnd={finVolteo}
-          >
-            <div className="libro-hoja-cara libro-hoja-cara--anverso">
-              {caraPapel(leafAnverso, adelante ? 'der' : 'izq')}
-            </div>
-            <div className="libro-hoja-cara libro-hoja-cara--reverso">
-              {caraPapel(leafReverso, adelante ? 'izq' : 'der')}
-            </div>
-          </div>
-        </div>
-      );
-    }
-  } else if (spread === 0) {
-    hojas = (
-      <div className="libro-spread libro-spread--portada">
-        <div
-          className="libro-pliego libro-pliego--solo libro-pliego--portada"
-          onClick={() => irA(1)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              irA(1);
-            }
-          }}
-        >
-          {caraCuero(spreads[0])}
-        </div>
-      </div>
-    );
-  } else {
-    const pg = spreads[spread];
-    hojas = (
-      <div className="libro-spread">
-        <div
-          className="libro-pliego libro-pliego--izq"
-          onClick={() => irA(spread - 1)}
-          role="presentation"
-        >
-          {caraPapel(pg.izq, 'izq')}
-        </div>
-        <div className="libro-lomo" aria-hidden="true" />
-        <div
-          className="libro-pliego libro-pliego--der"
-          onClick={() => irA(spread + 1)}
-          role="presentation"
-        >
-          {caraPapel(pg.der, 'der')}
-        </div>
-      </div>
-    );
-  }
-
-  const esPortada = spread === 0 && !volteo;
 
   return (
-    <div className="modal-fondo libro-fondo" onClick={cerrarDesdeFondo}>
+    <div
+      className="carta-fondo"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+      role="presentation"
+    >
       <div
-        className={`libro${esPortada ? ' libro--portada' : ''}`}
+        className="carta"
         role="dialog"
         aria-modal="true"
         aria-label={t('libro.cartaDe', { nombre: restaurant.nombre })}
-        style={{
-          '--libro-fondo': tema.fondo,
-          '--libro-tinta': tema.tinta,
-          '--libro-acento': tema.acento,
+        style={{ '--carta-papel': tema.fondo, '--carta-tinta': tema.tinta, '--carta-acento': tema.acento }}
+        onTouchStart={(e) => { touch.current = e.changedTouches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (touch.current == null) return;
+          const d = touch.current - e.changedTouches[0].clientX;
+          touch.current = null;
+          if (Math.abs(d) > 45) ir(d > 0 ? 1 : -1);
         }}
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
       >
-        <div key={keyBase} className="libro-hojas">
-          {hojas}
+        <button ref={cerrarRef} type="button" className="carta-cerrar" onClick={onClose} aria-label={t('libro.cerrarCarta')}>
+          ✕
+        </button>
+
+        <div className={`carta-libro carta-libro--${estado}`}>
+          {hojas.map(([anverso, reverso], i) => {
+            const pasada = i < vueltas;
+            const z = i === girando ? 1000 : pasada ? i + 1 : H - i;
+            // Solo se pintan las hojas a la vista (la de cada lado) y las que toca el giro en curso:
+            // las tapadas con scroll propio se transparentarían en Chrome dentro del contexto 3D.
+            const visible =
+              i === vueltas || i === vueltas - 1 || (girando != null && Math.abs(i - girando) <= 1);
+            return (
+              <div
+                key={i}
+                className={`carta-hoja${pasada ? ' pasada' : ''}${i === girando ? ' girando' : ''}`}
+                style={{ zIndex: z, visibility: visible ? 'visible' : 'hidden' }}
+                onClick={() => ir(pasada ? -1 : 1)}
+                aria-hidden={!(pasada ? i === vueltas - 1 : i === vueltas)}
+              >
+                <div className="carta-cara carta-cara--anverso">{pintar(anverso, movil ? 'unica' : 'der')}</div>
+                <div className="carta-cara carta-cara--reverso">{pintar(reverso, 'izq')}</div>
+              </div>
+            );
+          })}
         </div>
+
+        <nav className="carta-nav" aria-label={t('libro.cartaDe', { nombre: restaurant.nombre })}>
+          <button type="button" onClick={() => ir(-1)} disabled={vueltas === 0} aria-label={t('libro.anteriorCorto')}>
+            ‹
+          </button>
+          <span className="carta-nav-indicador" aria-live="polite">
+            {indicador}
+          </span>
+          <button type="button" onClick={() => ir(1)} disabled={vueltas === maxVueltas} aria-label={t('libro.siguienteCorto')}>
+            ›
+          </button>
+        </nav>
       </div>
     </div>
   );
