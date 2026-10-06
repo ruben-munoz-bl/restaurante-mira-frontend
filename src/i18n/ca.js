@@ -778,5 +778,21 @@ export default {
     "maximo": "Has aconseguit l'emblema Michelin.",
     "multiplicador": "Multiplicador",
     "multiplicadorValor": "{{multi}}"
+  },
+  "descubrir": {
+    "eyebrowSeccion": "Top MIRA",
+    "titulo": "Els més ben valorats",
+    "cargando": "Preparant el vol pels millors restaurants…",
+    "error": "No s'han pogut carregar els restaurants. Torna-ho a provar més tard.",
+    "vueloAria": "Recorregut amb scroll pels restaurants més ben valorats",
+    "eyebrow": "Top MIRA · Núm. 1",
+    "puesto": "Top MIRA · Núm. {{n}}",
+    "verFicha": "Veure fitxa i reservar",
+    "pista": "Fes scroll per recórrer",
+    "ranking": "Rànquing de restaurants",
+    "destacadosEyebrow": "Selecció MIRA",
+    "destacadosTitulo": "Restaurants destacats",
+    "destacadosSub": "Locals amb nota de {{nota}} o més, ordenats per valoració i nombre d'opinions.",
+    "verTodos": "Veure tots els restaurants"
   }
 }

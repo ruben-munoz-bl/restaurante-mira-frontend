@@ -1,0 +1,360 @@
+/* «Descubrir» — vuelo con scroll por los mejor valorados (estilo MIRA: pino, oro champán, marfil). */
+
+.descubrir {
+  --dsc-oro: #e9c46a;
+  --dsc-oro-suave: rgba(233, 196, 106, 0.55);
+  --dsc-noche: #06140e;
+  background: var(--fondo);
+}
+
+/* ── Cargando ── */
+.dsc-cargando {
+  min-height: 70vh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1rem;
+  color: var(--gris);
+  font-family: var(--fuente-display);
+  font-size: 1.25rem;
+}
+.dsc-cargando-anillo {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  border: 3px solid var(--borde);
+  border-top-color: var(--dorado);
+  animation: dsc-giro 0.9s linear infinite;
+}
+@keyframes dsc-giro { to { transform: rotate(360deg); } }
+
+/* ── Fila de tarjetas ── */
+.dsc-vuelo {
+  position: relative;
+  background: var(--dsc-noche);
+}
+.dsc-escenario {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(900px 600px at 85% 0%, rgba(233, 196, 106, 0.1), transparent 60%),
+    radial-gradient(1000px 700px at 0% 100%, rgba(22, 56, 44, 0.9), transparent 65%),
+    var(--dsc-noche);
+}
+.dsc-cabecera {
+  position: absolute;
+  left: clamp(1.25rem, 6vw, 6rem);
+  right: clamp(1.25rem, 6vw, 6rem);
+  top: clamp(5.5rem, 12vh, 7.5rem);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 1.5rem;
+  color: #f7faf6;
+}
+.dsc-cabecera .dsc-eyebrow { flex-basis: 100%; }
+.dsc-titulo {
+  margin: 0;
+  color: #f7faf6; /* el escenario es siempre oscuro: no heredar --tinta del tema claro */
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  font-size: clamp(2rem, 4.4vw, 3.6rem);
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+.dsc-contador {
+  margin: 0 0 0 auto;
+  font: 500 1rem var(--fuente);
+  color: rgba(247, 250, 246, 0.55);
+  letter-spacing: 0.12em;
+}
+.dsc-contador b { color: var(--dsc-oro); font-size: 1.6rem; font-family: var(--fuente-display); }
+
+.dsc-fila {
+  position: absolute;
+  left: 0;
+  top: calc(50% + 3.5rem);
+  display: flex;
+  gap: clamp(1rem, 2.4vw, 2.5rem);
+  transform: translate3d(0, 0, 0);
+  translate: 0 -50%;
+  will-change: transform;
+}
+.dsc-tarjeta {
+  --foco: 0;
+  position: relative;
+  flex: none;
+  width: min(62vw, 980px);
+  height: min(60vh, 600px);
+  border-radius: 28px;
+  overflow: hidden;
+  background: #0d2219;
+  transform-origin: 50% 50%;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, calc(0.25 + 0.3 * var(--foco)));
+  outline: 1px solid rgba(233, 196, 106, calc(0.08 + 0.45 * var(--foco)));
+  outline-offset: -1px;
+  will-change: transform, opacity;
+}
+.dsc-tarjeta-media { position: absolute; inset: 0; overflow: hidden; }
+.dsc-tarjeta-foto { position: absolute; inset: 0; display: block; will-change: transform; }
+.dsc-velo {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(6, 20, 14, 0.9) 0%, rgba(6, 20, 14, 0.55) 38%, rgba(6, 20, 14, 0.05) 70%),
+    linear-gradient(0deg, rgba(6, 20, 14, 0.6), transparent 45%);
+}
+.dsc-puesto {
+  position: absolute;
+  right: clamp(1rem, 3vw, 2.5rem);
+  bottom: -0.12em;
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  font-size: clamp(7rem, 17vw, 15rem);
+  line-height: 1;
+  color: transparent;
+  -webkit-text-stroke: 2px rgba(233, 196, 106, calc(0.25 + 0.6 * var(--foco)));
+  user-select: none;
+}
+
+/* ── Texto de cada tarjeta ── */
+.dsc-texto {
+  position: absolute;
+  left: clamp(1.25rem, 3.5vw, 3rem);
+  bottom: clamp(1.25rem, 4vh, 2.75rem);
+  max-width: min(520px, 80%);
+  color: #f7faf6;
+}
+.dsc-eyebrow {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--dsc-oro);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.dsc-eyebrow::before {
+  content: '';
+  width: 34px;
+  height: 2px;
+  background: currentColor;
+}
+.dsc-nombre {
+  margin: 0;
+  color: #f7faf6;
+  font-family: var(--fuente-display);
+  font-weight: 600;
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-shadow: 0 6px 40px rgba(0, 0, 0, 0.45);
+}
+.dsc-meta {
+  margin: 1rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 1.05rem;
+  color: rgba(247, 250, 246, 0.85);
+}
+.dsc-meta b { color: #fff; font-size: 1.2rem; }
+.dsc-estrellas { color: var(--estrella); letter-spacing: 0.08em; }
+.dsc-chips {
+  margin: 0.9rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.dsc-chips span {
+  font-size: 0.85rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(247, 250, 246, 0.1);
+  border: 1px solid rgba(247, 250, 246, 0.22);
+  backdrop-filter: blur(8px);
+}
+.dsc-cta {
+  margin-top: 1.4rem;
+  font: 600 1rem var(--fuente);
+  color: #1b1500;
+  background: linear-gradient(180deg, #fed65b, #e9c46a);
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1.6rem;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(233, 196, 106, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.dsc-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(233, 196, 106, 0.45); }
+.dsc-cta:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+.dsc-tarjeta .dsc-texto > * {
+  opacity: calc(0.35 + 0.65 * var(--foco));
+  transform: translateY(calc((1 - var(--foco)) * 14px));
+}
+/* ── Pista de scroll ── */
+.dsc-pista {
+  position: absolute;
+  right: clamp(1.25rem, 6vw, 6rem);
+  bottom: clamp(1rem, 3.5vh, 2rem);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(247, 250, 246, 0.75);
+  pointer-events: none;
+}
+.dsc-raton {
+  width: 22px;
+  height: 34px;
+  border: 2px solid rgba(247, 250, 246, 0.7);
+  border-radius: 12px;
+  position: relative;
+}
+.dsc-raton::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 6px;
+  width: 4px;
+  height: 7px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--dsc-oro);
+  animation: dsc-rueda 1.6s ease-in-out infinite;
+}
+@keyframes dsc-rueda {
+  0% { transform: translateY(0); opacity: 1; }
+  70% { transform: translateY(10px); opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ── Ranking lateral ── */
+.dsc-rail {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(1rem, 3.5vh, 2rem);
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  gap: 0.5rem;
+}
+.dsc-rail-punto {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  background: none;
+  border: 0;
+  padding: 0.35rem 0;
+  cursor: pointer;
+  color: rgba(247, 250, 246, 0.55);
+  font: 600 0.78rem var(--fuente);
+}
+.dsc-rail-nombre {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 0.35s ease, opacity 0.35s ease;
+}
+.dsc-rail-num {
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid rgba(247, 250, 246, 0.25);
+  background: rgba(6, 20, 14, 0.35);
+  backdrop-filter: blur(6px);
+  transition: all 0.3s ease;
+}
+.dsc-rail-punto:hover .dsc-rail-nombre,
+.dsc-rail-punto.activo .dsc-rail-nombre { max-width: 14rem; opacity: 1; }
+.dsc-rail-punto:hover:not(.activo) .dsc-rail-nombre { max-width: 0; opacity: 0; }
+.dsc-rail-punto.activo { color: #fff; }
+.dsc-rail-punto.activo .dsc-rail-num {
+  background: var(--dsc-oro);
+  border-color: var(--dsc-oro);
+  color: #1b1500;
+  box-shadow: 0 0 22px rgba(233, 196, 106, 0.5);
+}
+.dsc-rail-punto:focus-visible .dsc-rail-num { outline: 2px solid #fff; outline-offset: 2px; }
+
+.dsc-progreso {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 3px;
+  z-index: 60;
+  background: rgba(247, 250, 246, 0.08);
+}
+.dsc-progreso-barra {
+  height: 100%;
+  background: linear-gradient(90deg, var(--verde), var(--dsc-oro));
+  transform-origin: left;
+  transform: scaleX(0);
+}
+
+/* ── Destacados ── */
+.dsc-destacados {
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: clamp(3.5rem, 8vw, 6rem) var(--gutter) 4rem;
+}
+.dsc-destacados .dsc-eyebrow { color: var(--dorado); }
+.dsc-destacados-titulo {
+  margin: 0;
+  font-family: var(--fuente-display);
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  color: var(--tinta);
+  letter-spacing: -0.01em;
+}
+.dsc-destacados-sub {
+  margin: 0.6rem 0 2rem;
+  color: var(--gris);
+  max-width: 60ch;
+}
+
+/* ── Sin movimiento ── */
+.dsc-estatico-escena {
+  position: relative;
+  min-height: 80vh;
+  display: flex;
+  align-items: flex-end;
+  padding: 3rem clamp(1.25rem, 6vw, 6rem);
+  overflow: hidden;
+}
+
+/* ── Móvil ── */
+@media (max-width: 720px) {
+  .dsc-cabecera { top: 5rem; }
+  .dsc-titulo { font-size: 1.9rem; }
+  .dsc-contador b { font-size: 1.2rem; }
+  .dsc-fila { top: calc(50% + 2.5rem); }
+  .dsc-tarjeta { width: 84vw; height: min(62vh, 520px); border-radius: 22px; }
+  .dsc-velo {
+    background: linear-gradient(0deg, rgba(6, 20, 14, 0.95) 0%, rgba(6, 20, 14, 0.6) 45%, rgba(6, 20, 14, 0.1) 75%);
+  }
+  .dsc-puesto { top: 0.5rem; bottom: auto; right: 1rem; font-size: 5.5rem; }
+  .dsc-texto { max-width: none; right: 1.25rem; }
+  .dsc-nombre { font-size: clamp(1.7rem, 8vw, 2.3rem); }
+  .dsc-meta { margin-top: 0.5rem; font-size: 0.9rem; }
+  .dsc-chips span { font-size: 0.75rem; padding: 0.25rem 0.65rem; }
+  .dsc-cta { margin-top: 0.9rem; padding: 0.7rem 1.2rem; font-size: 0.9rem; }
+  .dsc-rail { display: none; }
+  .dsc-pista { display: none; }
+}

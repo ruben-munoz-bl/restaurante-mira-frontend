@@ -117,7 +117,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
       <div id="menu-movil" className={`header-menu${abierto ? ' abierto' : ''}`}>
         <nav aria-label={t('nav.navegacion')} onClick={cerrar}>
           <ul className="nav-list">
-            <li><a href="#inicio">{t('nav.descubrir')}</a></li>
+            <li><a href="#/descubrir">{t('nav.descubrir')}</a></li>
             <li><a href="#/mapa">{t('nav.mapa')}</a></li>
             <li><a href="#/reservas">{t('nav.reservas')}</a></li>
             <li><a href="#/contacto">{t('nav.contacto')}</a></li>

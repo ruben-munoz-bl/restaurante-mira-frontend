@@ -778,5 +778,21 @@ export default {
     "maximo": "You've reached the Michelin badge.",
     "multiplicador": "Multiplier",
     "multiplicadorValor": "{{multi}}"
+  },
+  "descubrir": {
+    "eyebrowSeccion": "MIRA Top",
+    "titulo": "Top-rated restaurants",
+    "cargando": "Preparing the flight through the best restaurants…",
+    "error": "Restaurants could not be loaded. Please try again later.",
+    "vueloAria": "Scroll journey through the top-rated restaurants",
+    "eyebrow": "MIRA Top · No. 1",
+    "puesto": "MIRA Top · No. {{n}}",
+    "verFicha": "View details and book",
+    "pista": "Scroll to browse",
+    "ranking": "Restaurant ranking",
+    "destacadosEyebrow": "MIRA selection",
+    "destacadosTitulo": "Featured restaurants",
+    "destacadosSub": "Places rated {{nota}} or higher, ranked by rating and number of reviews.",
+    "verTodos": "See all restaurants"
   }
 }

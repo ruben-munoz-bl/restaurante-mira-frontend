@@ -30,6 +30,7 @@ import Negocio from './components/Negocio.jsx';
 import Favoritos from './components/Favoritos.jsx';
 import Mensajes from './components/Mensajes.jsx';
 import Mapa from './components/Mapa.jsx';
+import Descubrir from './components/Descubrir.jsx';
 import Privacidad from './components/Privacidad.jsx';
 import LibroCarta from './components/LibroCarta.jsx';
 import PromoBanner from './components/PromoBanner.jsx';
@@ -76,6 +77,7 @@ function rutaActual() {
   if (h === '#/favoritos') return 'favoritos';
   if (h === '#/mensajes') return 'mensajes';
   if (h === '#/mapa') return 'mapa';
+  if (h === '#/descubrir') return 'descubrir';
   if (h === '#/privacidad') return 'privacidad';
   if (h === '#/puntos') return 'puntos';
   if (h === '#/puntos/historial') return 'historialPuntos';
@@ -408,6 +410,15 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'historialPuntos' && <HistorialPuntos usuario={usuario} />}
         {ruta === 'invitar' && <Invitar />}
         {ruta === 'ticket' && <TicketPage />}
+        {ruta === 'descubrir' && (
+          <Descubrir
+            todos={todos}
+            onSelect={abrirDetalle}
+            esFavorito={esFavorito}
+            onToggleFavorito={toggleFavorito}
+            onVerCarta={abrirCarta}
+          />
+        )}
         {ruta === 'mapa' && <Mapa todos={todos} total={total} onVerDetalle={abrirDetalle} />}
         {ruta === 'home' && (
           <>

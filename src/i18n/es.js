@@ -854,5 +854,21 @@ export default {
     "maximo": "Has alcanzado el emblema Michelin.",
     "multiplicador": "Multiplicador",
     "multiplicadorValor": "{{multi}}"
+  },
+  "descubrir": {
+    "eyebrowSeccion": "Top MIRA",
+    "titulo": "Los mejor valorados",
+    "cargando": "Preparando el vuelo por los mejores restaurantes…",
+    "error": "No se han podido cargar los restaurantes. Inténtalo de nuevo más tarde.",
+    "vueloAria": "Recorrido con scroll por los restaurantes mejor valorados",
+    "eyebrow": "Top MIRA · Nº 1",
+    "puesto": "Top MIRA · Nº {{n}}",
+    "verFicha": "Ver ficha y reservar",
+    "pista": "Haz scroll para recorrer",
+    "ranking": "Ranking de restaurantes",
+    "destacadosEyebrow": "Selección MIRA",
+    "destacadosTitulo": "Restaurantes destacados",
+    "destacadosSub": "Locales con nota de {{nota}} o más, ordenados por valoración y número de opiniones.",
+    "verTodos": "Ver todos los restaurantes"
   }
 }
