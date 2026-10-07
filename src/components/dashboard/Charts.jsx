@@ -1,9 +1,16 @@
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LineChart, Line, CartesianGrid } from "recharts";
+import { useT } from "../../i18n/index.jsx";
+import es from "../../i18n/es.js";
+import ca from "../../i18n/ca.js";
+import en from "../../i18n/en.js";
+
+const TRADS = { es, ca, en };
 
 const COLORS = ["#0E6B47", "#F5A623", "#E74C3C", "#2D7FF9", "#6bfe9c", "#004393", "#85d7ab", "#bec9c0"];
 
 export function RevenueLineChart({ data, title }) {
-  if (!data || data.length === 0) return <p className="vacio-texto">Sin datos</p>;
+  const t = useT(TRADS);
+  if (!data || data.length === 0) return <p className="vacio-texto">{t('dashboard.sinDatos')}</p>;
   const chartData = Object.entries(data)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([mes, d]) => ({ mes, facturacion: Math.round(d.facturacion * 100) / 100, comisiones: Math.round(d.comisiones * 100) / 100 }));
@@ -18,8 +25,8 @@ export function RevenueLineChart({ data, title }) {
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip formatter={(v) => `${v.toFixed(2)}\u20AC`} />
           <Legend />
-          <Line type="monotone" dataKey="facturacion" stroke="#0E6B47" strokeWidth={2.2} name="Facturación" dot={{ r:3, fill:'#0E6B47'}} />
-          <Line type="monotone" dataKey="comisiones" stroke="#F5A623" strokeWidth={2} name="Comisiones" dot={{ r:3, fill:'#F5A623'}} />
+          <Line type="monotone" dataKey="facturacion" stroke="#0E6B47" strokeWidth={2.2} name={t('dashboard.facturacion')} dot={{ r:3, fill:'#0E6B47'}} />
+          <Line type="monotone" dataKey="comisiones" stroke="#F5A623" strokeWidth={2} name={t('dashboard.comisiones')} dot={{ r:3, fill:'#F5A623'}} />
         </LineChart>
       </ResponsiveContainer>
     </div>
@@ -27,13 +34,14 @@ export function RevenueLineChart({ data, title }) {
 }
 
 export function ReservationsPieChart({ completadas, canceladas, noShow, pendientes, title }) {
+  const t = useT(TRADS);
   const total = completadas + canceladas + noShow + pendientes;
-  if (total === 0) return <p className="vacio-texto">Sin datos</p>;
+  if (total === 0) return <p className="vacio-texto">{t('dashboard.sinDatos')}</p>;
   const chartData = [
-    { name: "Completadas", value: completadas },
-    { name: "Canceladas", value: canceladas },
-    { name: "No Show", value: noShow },
-    { name: "Pendientes", value: pendientes },
+    { name: t('dashboard.completadas'), value: completadas },
+    { name: t('dashboard.canceladas'), value: canceladas },
+    { name: t('dashboard.noShow'), value: noShow },
+    { name: t('dashboard.pendientes'), value: pendientes },
   ].filter(d => d.value > 0);
 
   return (
@@ -44,7 +52,7 @@ export function ReservationsPieChart({ completadas, canceladas, noShow, pendient
           <Pie data={chartData} cx="50%" cy="50%" outerRadius={90} innerRadius={45} dataKey="value" label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
             {chartData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
           </Pie>
-          <Tooltip formatter={(v) => `${v} reservas`} />
+          <Tooltip formatter={(v) => `${v} ${t('dashboard.reservas')}`} />
           <Legend />
         </PieChart>
       </ResponsiveContainer>
@@ -53,7 +61,8 @@ export function ReservationsPieChart({ completadas, canceladas, noShow, pendient
 }
 
 export function RevenueBarChart({ data, title }) {
-  if (!data || data.length === 0) return <p className="vacio-texto">Sin datos</p>;
+  const t = useT(TRADS);
+  if (!data || data.length === 0) return <p className="vacio-texto">{t('dashboard.sinDatos')}</p>;
   const chartData = Object.entries(data)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([mes, d]) => ({ mes, tickets: d.tickets || 0 }));
@@ -67,7 +76,7 @@ export function RevenueBarChart({ data, title }) {
           <XAxis dataKey="mes" tick={{ fontSize: 12 }} />
           <YAxis tick={{ fontSize: 12 }} />
           <Tooltip />
-          <Bar dataKey="tickets" fill="#0E6B47" radius={[6, 6, 0, 0]} name="Tickets" />
+          <Bar dataKey="tickets" fill="#0E6B47" radius={[6, 6, 0, 0]} name={t('dashboard.tabTickets')} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -75,7 +84,8 @@ export function RevenueBarChart({ data, title }) {
 }
 
 export function RestaurantPerformanceChart({ data, title }) {
-  if (!data || Object.keys(data).length === 0) return <p className="vacio-texto">Sin datos</p>;
+  const t = useT(TRADS);
+  if (!data || Object.keys(data).length === 0) return <p className="vacio-texto">{t('dashboard.sinDatos')}</p>;
   const chartData = Object.entries(data)
     .sort(([, a], [, b]) => b.total - a.total)
     .slice(0, 10)
@@ -97,9 +107,9 @@ export function RestaurantPerformanceChart({ data, title }) {
           <YAxis type="category" dataKey="nombre" width={120} tick={{ fontSize: 11 }} />
           <Tooltip />
           <Legend />
-          <Bar dataKey="completadas" stackId="a" fill="#0E6B47" name="Completadas" radius={[0,4,4,0]} />
-          <Bar dataKey="canceladas" stackId="a" fill="#F5A623" name="Canceladas" />
-          <Bar dataKey="noShow" stackId="a" fill="#E74C3C" name="No Show" />
+          <Bar dataKey="completadas" stackId="a" fill="#0E6B47" name={t('dashboard.completadas')} radius={[0,4,4,0]} />
+          <Bar dataKey="canceladas" stackId="a" fill="#F5A623" name={t('dashboard.canceladas')} />
+          <Bar dataKey="noShow" stackId="a" fill="#E74C3C" name={t('dashboard.noShow')} />
         </BarChart>
       </ResponsiveContainer>
     </div>

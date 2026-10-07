@@ -17,6 +17,10 @@ import {
   MAX_MENSAJE,
 } from '../services/aiPayload.js';
 import { desdeError } from '../services/aiErrors.js';
+import usePointsStore from './usePointsStore.js';
+
+/** Tools de MIRA que mutan el saldo en servidor. */
+const TOOLS_QUE_PUNTUAN = ['dailyLogin', 'spinWheel', 'redeemPoints'];
 
 const SALUDO = {
   id: 'm-saludo',
@@ -75,6 +79,10 @@ export const useMiraStore = create((set, get) => ({
         enviando: false,
         abortController: null,
       }));
+      // El saldo cambió en servidor: refresca la store que lee el header.
+      if ((r.actions || []).some((a) => TOOLS_QUE_PUNTUAN.includes(a?.tool))) {
+        usePointsStore.getState().fetchBalance().catch(() => {});
+      }
       return r;
     } catch (err) {
       const info = desdeError(err);

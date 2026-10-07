@@ -1,7 +1,8 @@
 /** View pura: "Mis reservas" — calendario con meteo + lista por pestañas. */
 import { useEffect, useState } from 'react';
 import { listarMisReservas, cancelarReserva } from '../services/reservaApi.js';
-import { diasMes, pronosticoDia, alertaTerraza } from '../services/meteoApi.js';
+import { fetchRestaurantePorId } from '../services/restaurantApi.js';
+import { diasMes, pronosticoDia, alertaTerraza, resumenTexto } from '../services/meteoApi.js';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -14,6 +15,29 @@ function hoyISO() {
 }
 
 const TRADS = { es, ca, en };
+
+/**
+ * Coordenadas del restaurante de una reserva, con caché por id.
+ * Las reservas nuevas guardan lat/lng a null (la API no los recibe), así que
+ * sin este paso Reservas.jsx nunca llegaba a pedir el pronóstico y desaparecían
+ * la temperatura del calendario, el resumen del día y la alerta de terraza.
+ */
+const coordsPorRestaurante = new Map();
+async function coordenadasReserva(r) {
+  if (r.lat != null && r.lng != null) return { lat: r.lat, lng: r.lng };
+  const id = r.restaurantId || r.restauranteId;
+  if (!id) return null;
+  if (coordsPorRestaurante.has(id)) return coordsPorRestaurante.get(id);
+  let coords = null;
+  try {
+    const rest = await fetchRestaurantePorId(id);
+    coords = rest?.coords || null;
+  } catch {
+    coords = null;
+  }
+  coordsPorRestaurante.set(id, coords);
+  return coords;
+}
 
 export default function Reservas({ usuario, esAdmin }) {
   const t = useT(TRADS);
@@ -58,26 +82,43 @@ export default function Reservas({ usuario, esAdmin }) {
   // Meteo de los días con reserva del mes visible (gratis, con caché).
   useEffect(() => {
     const prefijo = `${mesVista.anio}-${String(mesVista.mes).padStart(2, '0')}`;
-    const porDia = new Map();
+    const porDia = new Map(); // fecha -> { fecha, lat, lng }
+    const sinCoords = [];
     for (const r of lista) {
-      if (r.fecha?.startsWith(prefijo) && r.lat != null && r.lng != null && !porDia.has(r.fecha)) {
-        porDia.set(r.fecha, r);
+      if (!r.fecha?.startsWith(prefijo) || porDia.has(r.fecha)) continue;
+      if (r.lat != null && r.lng != null) {
+        porDia.set(r.fecha, { fecha: r.fecha, lat: r.lat, lng: r.lng });
+      } else {
+        sinCoords.push(r);
       }
     }
-    if (!porDia.size) return undefined;
+    if (!porDia.size && !sinCoords.length) return undefined;
     let vivo = true;
-    Promise.all(
-      [...porDia].map(async ([fecha, r]) => [fecha, await pronosticoDia(r.lat, r.lng, fecha)]),
-    ).then((pares) => {
-      if (!vivo) return;
-      setMeteo((prev) => {
-        const next = { ...prev };
-        pares.forEach(([f, p]) => {
-          next[f] = p;
+    (async () => {
+      // Reservas guardadas con lat/lng null: ubicación vía restaurantId (cacheada).
+      await Promise.all(
+        sinCoords.map(async (r) => {
+          const c = await coordenadasReserva(r);
+          if (c && !porDia.has(r.fecha)) porDia.set(r.fecha, { fecha: r.fecha, ...c });
+        }),
+      );
+      if (!vivo || !porDia.size) return;
+      try {
+        const pares = await Promise.all(
+          [...porDia.values()].map(async (d) => [d.fecha, await pronosticoDia(d.lat, d.lng, d.fecha)]),
+        );
+        if (!vivo) return;
+        setMeteo((prev) => {
+          const next = { ...prev };
+          pares.forEach(([f, p]) => {
+            next[f] = p;
+          });
+          return next;
         });
-        return next;
-      });
-    });
+      } catch {
+        /* Sin red no hay pronóstico: el calendario sigue siendo usable. */
+      }
+    })();
     return () => {
       vivo = false;
     };
@@ -170,7 +211,7 @@ export default function Reservas({ usuario, esAdmin }) {
                     type="button"
                     role="gridcell"
                     aria-pressed={diaSel === c.fecha}
-                    aria-label={`${c.dia}: ${(porDia.get(c.fecha) || []).length} reservas`}
+                    aria-label={t('reservas.ariaDia', { dia: c.dia, n: (porDia.get(c.fecha) || []).length })}
                     className={`cal-dia${c.fecha === hoy ? ' cal-hoy' : ''}${diaSel === c.fecha ? ' cal-sel' : ''}${
                       (porDia.get(c.fecha) || []).length ? ' cal-con-reservas' : ''
                     }`}
@@ -185,7 +226,7 @@ export default function Reservas({ usuario, esAdmin }) {
                       </span>
                     )}
                     {meteo[c.fecha] && meteo[c.fecha].tempMax != null && (
-                      <span className="cal-temp" title={meteo[c.fecha].resumen}>
+                      <span className="cal-temp" title={resumenTexto(meteo[c.fecha].codigo, t)}>
                         {Math.round(meteo[c.fecha].tempMax)}°
                       </span>
                     )}
@@ -199,7 +240,7 @@ export default function Reservas({ usuario, esAdmin }) {
             {delDiaSel.length === 0 && <p className="vacio-texto">{t('reservas.nadaEsteDia')}</p>}
             <ul className="lista-registros">
               {delDiaSel.map((r) => {
-                const aviso = alertaTerraza(r.terraza, meteo[r.fecha]);
+                const aviso = alertaTerraza(r.terraza, meteo[r.fecha], t);
                 const m = meteo[r.fecha];
                 return (
                   <li key={r.id} className="registro">
@@ -209,7 +250,7 @@ export default function Reservas({ usuario, esAdmin }) {
                         {r.hora} · {r.comensales} {Number(r.comensales) === 1 ? t('modelos.persona') : t('modelos.personas')} ·{' '}
                         <code>{r.codigo}</code>
                         {m && m.tempMax != null && (
-                          <> · {Math.round(m.tempMax)}° {m.resumen}</>
+                          <> · {Math.round(m.tempMax)}° {resumenTexto(m.codigo, t)}</>
                         )}
                       </div>
                       {aviso && (

@@ -3,8 +3,15 @@ import { useEffect, useState } from 'react';
 import { getOpsOverview, descargarCSV, csvReservas, mensajeErrorFirestore, nombreRestauranteDe } from './opsData.js';
 import { OpsLineChart } from './OpsCharts.jsx';
 import { getReservasGlobales } from './opsData.js';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 export default function OpsFinanzas() {
+  const t = useT(TRADS);
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -27,8 +34,8 @@ export default function OpsFinanzas() {
     }
   }
 
-  if (cargando) return <div className="ops-card" role="status"><h2>Cargando finanzas…</h2></div>;
-  if (error && !datos) return <div className="ops-card" role="alert"><h2>Error</h2><p className="ops-error">{error}</p></div>;
+  if (cargando) return <div className="ops-card" role="status"><h2>{t('ops.cargandoFinanzas')}</h2></div>;
+  if (error && !datos) return <div className="ops-card" role="alert"><h2>{t('ops.error')}</h2><p className="ops-error">{error}</p></div>;
 
   const porMes = {};
   datos.serie.forEach((s) => {
@@ -49,24 +56,24 @@ export default function OpsFinanzas() {
       <div className="ops-card">
         <div className="ops-card-head">
           <div>
-            <h2>Finanzas &amp; Comisiones</h2>
-            <p className="ops-card-sub">Datos reales de tickets · comisión {comisionPct}% · últimos 14 días</p>
+            <h2>{t('ops.seccFinanzas')}</h2>
+            <p className="ops-card-sub">{t('ops.finanzasSub', { pct: comisionPct })}</p>
           </div>
           <button type="button" className="ops-btn soft sm" onClick={exportar}>
-            <span className="material-symbols-outlined">file_present</span>Exportar Reporte Fiscal
+            <span className="material-symbols-outlined">file_present</span>{t('ops.exportarReporte')}
           </button>
         </div>
         <div className="ops-metrics-3">
           <div>
-            <span className="ops-metric-label">Comisiones (real)</span>
-            <div className="ops-metric-value">€{comisionTotal.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</div>
+            <span className="ops-metric-label">{t('ops.comisionesReal')}</span>
+            <div className="ops-metric-value">€{comisionTotal.toLocaleString(t('modelos.locale'), { minimumFractionDigits: 2 })}</div>
           </div>
           <div>
-            <span className="ops-metric-label">Facturación bruta (real)</span>
-            <div className="ops-metric-value">€{facturacionTotal.toLocaleString('es-ES', { maximumFractionDigits: 0 })}</div>
+            <span className="ops-metric-label">{t('ops.facturacionBruta')}</span>
+            <div className="ops-metric-value">€{facturacionTotal.toLocaleString(t('modelos.locale'), { maximumFractionDigits: 0 })}</div>
           </div>
           <div>
-            <span className="ops-metric-label">Asistencia</span>
+            <span className="ops-metric-label">{t('ops.asistencia')}</span>
             <div className="ops-metric-value">{datos.kpis.asistenciaPct}%</div>
           </div>
         </div>
@@ -75,26 +82,26 @@ export default function OpsFinanzas() {
 
       <div className="ops-card">
         <div className="ops-card-head">
-          <div><h2>Detalle mensual</h2></div>
+          <div><h2>{t('ops.detalleMensual')}</h2></div>
         </div>
         <div className="ops-table-wrap">
           <table className="ops-table">
-            <thead><tr><th>Mes</th><th style={{ textAlign: 'right' }}>Tickets</th><th style={{ textAlign: 'right' }}>Facturación real</th><th style={{ textAlign: 'right' }}>Comisión real</th></tr></thead>
+            <thead><tr><th>{t('ops.colMes')}</th><th style={{ textAlign: 'right' }}>{t('ops.colTickets')}</th><th style={{ textAlign: 'right' }}>{t('ops.colFacturacionReal')}</th><th style={{ textAlign: 'right' }}>{t('ops.colComisionReal')}</th></tr></thead>
             <tbody>
               {meses.map(([m, d]) => (
                 <tr key={m}>
                   <td><strong>{m}</strong></td>
                   <td className="num">{d.tickets}</td>
-                  <td className="num">€{d.facturacion.toLocaleString('es-ES')}</td>
-                  <td className="num">€{d.comisiones.toLocaleString('es-ES', { minimumFractionDigits: 2 })}</td>
+                  <td className="num">€{d.facturacion.toLocaleString(t('modelos.locale'))}</td>
+                  <td className="num">€{d.comisiones.toLocaleString(t('modelos.locale'), { minimumFractionDigits: 2 })}</td>
                 </tr>
               ))}
-              {meses.length === 0 && <tr><td colSpan="4" className="ops-empty">Sin movimientos.</td></tr>}
+              {meses.length === 0 && <tr><td colSpan="4" className="ops-empty">{t('ops.sinMovimientos')}</td></tr>}
             </tbody>
           </table>
         </div>
         <p className="ops-muted" style={{ marginTop: 10 }}>
-          Feed usado: {datos.feed.length} últimas reservas ({datos.feed.map((r) => nombreRestauranteDe(r)).slice(0, 3).join(', ')}{datos.feed.length > 3 ? '…' : ''}).
+          {t('ops.feedUsado', { n: datos.feed.length })} ({datos.feed.map((r) => nombreRestauranteDe(r)).slice(0, 3).join(', ')}{datos.feed.length > 3 ? '…' : ''}).
         </p>
       </div>
     </>

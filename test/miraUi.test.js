@@ -32,7 +32,7 @@ test('el error boundary existe y recupera sin recargar la pagina', () => {
   const b = readFileSync(new URL('../src/components/mira/MiraErrorBoundary.jsx', import.meta.url), 'utf8');
   assert.match(b, /componentDidCatch/);
   assert.match(b, /getDerivedStateFromError/);
-  assert.match(b, /Reintentar/, 'debe ofrecer reintentar');
+  assert.match(b, /mira\.error\.reintentar/, 'debe ofrecer reintentar');
 });
 
 test('el boton del header y el tab no dependen de la respuesta del agente', () => {

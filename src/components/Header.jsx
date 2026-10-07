@@ -82,7 +82,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
 
   return (
     <header className={`site-header${oculto ? ' oculto' : ''}`}>
-      <a href="#/" className="logo logo-imagen" aria-label="MIRA - inicio" onClick={cerrar}>
+      <a href="#/" className="logo logo-imagen" aria-label={t('nav.inicio')} onClick={cerrar}>
         <img src="/logo.png" alt="MIRA" />
       </a>
       <button
@@ -145,7 +145,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
                 type="button"
                 className={`header-streak-btn${loadingStreak ? ' header-streak-btn--loading' : ''}`}
                 onClick={handleStreakTap}
-                aria-label="Abrir racha diaria"
+                aria-label={t('nav.abrirRacha')}
                 title="Racha diaria"
               >
                 <img src="/racha-fuego.png" alt="" className="header-streak-btn-img" />

@@ -1,7 +1,14 @@
 import { useState } from 'react';
 import useInviteStore from '../../stores/useInviteStore.js';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 export default function InvitePanel() {
+  const t = useT(TRADS);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,7 +24,7 @@ export default function InvitePanel() {
       await createInvite(email);
       setEmail('');
     } catch (err) {
-      setError(err.message || 'Error al enviar invitación');
+      setError(err.message || t('points.inviteError'));
     } finally {
       setLoading(false);
     }
@@ -31,22 +38,22 @@ export default function InvitePanel() {
 
   return (
     <div className="invite-panel">
-      <h3>Invita amigos</h3>
-      <p className="invite-panel__info">
-        Gana <strong>200 pts</strong> cuando tu amigo haga 2 reservas.
-        Máximo 5 invitaciones por mes.
-      </p>
+      <h3>{t('points.invite')}</h3>
+      <p
+        className="invite-panel__info"
+        dangerouslySetInnerHTML={{ __html: t('points.inviteInfo') }}
+      />
 
       <form className="invite-form" onSubmit={handleInvite}>
         <input
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Email del amigo"
+          placeholder={t('points.inviteEmailPlaceholder')}
           required
         />
         <button type="submit" className="btn-cta" disabled={loading}>
-          {loading ? 'Enviando...' : 'Invitar'}
+          {loading ? t('points.inviteSending') : t('points.inviteSend')}
         </button>
       </form>
 
@@ -55,15 +62,15 @@ export default function InvitePanel() {
       <div className="invite-stats">
         <div className="invite-stat">
           <span className="invite-stat__value">{enviadas.length}</span>
-          <span className="invite-stat__label">Enviadas</span>
+          <span className="invite-stat__label">{t('points.inviteSent')}</span>
         </div>
         <div className="invite-stat">
           <span className="invite-stat__value">{aceptadas}</span>
-          <span className="invite-stat__label">Aceptadas</span>
+          <span className="invite-stat__label">{t('points.inviteAccepted')}</span>
         </div>
         <div className="invite-stat">
           <span className="invite-stat__value">{puntosTotales}</span>
-          <span className="invite-stat__label">Puntos ganados</span>
+          <span className="invite-stat__label">{t('points.invitePointsEarned')}</span>
         </div>
       </div>
 
@@ -81,7 +88,7 @@ export default function InvitePanel() {
               </span>
               {inv.link && (
                 <button className="btn-texto" onClick={() => copyLink(inv.link)}>
-                  {copied ? 'Copiado' : 'Copiar link'}
+                  {copied ? t('points.inviteCopied') : t('points.inviteCopyLink')}
                 </button>
               )}
             </div>

@@ -4,8 +4,15 @@
  */
 import MiraBurbuja from './MiraBurbuja.jsx';
 import MiraAcciones from './MiraAcciones.jsx';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 export default function MiraLog({ mensajes, escribiendo, alSugerir, onAbrirFicha }) {
+  const t = useT(TRADS);
   const finRef = (nodo) => {
     if (nodo && escribiendo) nodo.scrollIntoView({ block: 'end' });
   };
@@ -30,7 +37,7 @@ export default function MiraLog({ mensajes, escribiendo, alSugerir, onAbrirFicha
           <span />
           <span />
           <span />
-          <span className="sr-only">MIRA está escribiendo</span>
+          <span className="sr-only">{t('mira.escribiendo')}</span>
         </div>
       )}
     </div>

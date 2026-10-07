@@ -94,7 +94,7 @@ export default function BottomNav({ ruta, numFavoritos, numReservas, puntosSaldo
           <button
             className={`bottom-nav-streak${loadingStreak ? ' bottom-nav-streak--loading' : ''}`}
             onClick={handleStreakTap}
-            aria-label="Abrir racha diaria"
+            aria-label={t('nav.abrirRacha')}
             type="button"
           >
             <img src="/racha-fuego.png" alt="" className="bottom-nav-streak-img" />

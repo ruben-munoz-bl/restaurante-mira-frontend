@@ -62,7 +62,7 @@ export default function RestaurantPanel({ usuario }) {
   }
 
   if (loading) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><p>{t("otros.cargando")}</p></div></section>;
-  if (error && !data) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><h1>{t("dashboard.miRestaurante")}</h1><p className="auth-error">{error}</p><p style={{fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem'}}>Asegúrate de tener un restaurante creado. Si eres empresa, ve a "Mi cuenta" → "Añadir restaurante" para crear uno primero.</p></div></section>;
+  if (error && !data) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><h1>{t("dashboard.miRestaurante")}</h1><p className="auth-error">{error}</p><p style={{fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '0.5rem'}}>{t('dashboard.errorSinRestaurante')}</p></div></section>;
   if (!data) return null;
 
   const { restaurante, stats, proximasReservas, ingresosPorMes, ticketsRecientes } = data;

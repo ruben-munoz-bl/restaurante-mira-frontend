@@ -1,4 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useT } from '../i18n/index.jsx';
+import es from '../i18n/es.js';
+import ca from '../i18n/ca.js';
+import en from '../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 const PRIZES = [
   { puntos: 20, label: '20', color: '#006A55', textColor: '#fff' },
@@ -46,6 +52,7 @@ function createConfetti() {
 }
 
 export default function WheelModal({ onSpin, onClose }) {
+  const t = useT(TRADS);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
   const [showResult, setShowResult] = useState(false);
@@ -115,7 +122,7 @@ export default function WheelModal({ onSpin, onClose }) {
             </div>
             <div>
               <span className="wheel-modal__brand-name">MIRA Club</span>
-              <span className="wheel-modal__brand-sub">Ruleta del Día 7</span>
+              <span className="wheel-modal__brand-sub">{t('streak.wheelBrand')}</span>
             </div>
           </div>
         </div>
@@ -124,11 +131,9 @@ export default function WheelModal({ onSpin, onClose }) {
           <div className="wheel-modal__sunburst" />
 
           <h2 className="wheel-modal__title">
-            ¡Completaste la racha de 7 días! 🎉
+            {t('streak.wheelTitle')} 🎉
           </h2>
-          <p className="wheel-modal__subtitle">
-            Gira la ruleta para ganar entre <strong>20 y 100 MIRA Points</strong>
-          </p>
+          <p className="wheel-modal__subtitle" dangerouslySetInnerHTML={{ __html: t('streak.wheelSubtitle') }} />
 
           <div className="wheel-container">
             {/* Puntero */}
@@ -195,15 +200,15 @@ export default function WheelModal({ onSpin, onClose }) {
               onClick={handleSpin}
               disabled={spinning}
             >
-              {spinning ? 'Girando...' : '🎡 ¡GIRAR RULETA!'}
+              {spinning ? t('streak.wheelSpinning') : t('streak.wheelSpinBtn')}
             </button>
           )}
 
           {error && (
             <div className="wheel-error">
-              <p>Error al girar la ruleta. Inténtalo de nuevo.</p>
+              <p>{t('streak.wheelError')}</p>
               <button className="wheel-spin-btn" onClick={handleSpin}>
-                Reintentar
+                {t('mira.error.reintentar')}
               </button>
             </div>
           )}
@@ -213,12 +218,12 @@ export default function WheelModal({ onSpin, onClose }) {
         {showResult && result && (
           <div className="wheel-result">
             <div className="wheel-result__icon">🎉</div>
-            <h3 className="wheel-result__title">¡Felicidades!</h3>
+            <h3 className="wheel-result__title">{t('streak.wheelCongrats')}</h3>
             <div className="wheel-result__prize">
               <img src="/moneda-mira.png" alt="" className="wheel-result__coin" />
               <span>+{result.puntos} MIRA Points</span>
             </div>
-            <p className="wheel-result__sub">Se han añadido a tu saldo</p>
+            <p className="wheel-result__sub">{t('streak.wheelAdded')}</p>
           </div>
         )}
       </div>

@@ -7,23 +7,29 @@ import {
   eliminarRestauranteAdmin,
   enviarMensajeDueno,
 } from './opsData.js';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
 
+const TRADS = { es, ca, en };
 const LOTE = 27;
 
 const CAMPOS_EDICION = [
-  { k: 'nombre', label: 'Nombre', type: 'text' },
-  { k: 'ciudad', label: 'Ciudad', type: 'text' },
-  { k: 'direccion', label: 'Dirección', type: 'text' },
-  { k: 'telefono', label: 'Teléfono', type: 'text' },
-  { k: 'email', label: 'Email dueño', type: 'email' },
-  { k: 'precio', label: 'Precio (€ / €€ / €€€)', type: 'text' },
-  { k: 'cocina', label: 'Cocina', type: 'text' },
-  { k: 'descripcion', label: 'Descripción', type: 'text' },
-  { k: 'comisionPct', label: 'Comisión %', type: 'number' },
-  { k: 'maxReservasPorHora', label: 'Máx. reservas/hora', type: 'number' },
+  { k: 'nombre', label: 'ops.campoNombre', type: 'text' },
+  { k: 'ciudad', label: 'ops.campoCiudad', type: 'text' },
+  { k: 'direccion', label: 'ops.campoDireccion', type: 'text' },
+  { k: 'telefono', label: 'ops.campoTelefono', type: 'text' },
+  { k: 'email', label: 'ops.campoEmailDueno', type: 'email' },
+  { k: 'precio', label: 'ops.campoPrecio', type: 'text' },
+  { k: 'cocina', label: 'ops.campoCocina', type: 'text' },
+  { k: 'descripcion', label: 'ops.campoDescripcion', type: 'text' },
+  { k: 'comisionPct', label: 'ops.campoComisionPct', type: 'number' },
+  { k: 'maxReservasPorHora', label: 'ops.campoMaxReservas', type: 'number' },
 ];
 
 export default function OpsRestaurantes() {
+  const t = useT(TRADS);
   const [items, setItems] = useState([]);
   const [cursor, setCursor] = useState(null);
   const [terminado, setTerminado] = useState(false);
@@ -97,7 +103,7 @@ export default function OpsRestaurantes() {
       if (rest.categorias?.length && !rest.cocina) base.cocina = rest.categorias[0];
       setForm(base);
     } else if (tipo === 'mensaje') {
-      setAsunto(`Consulta MIRA — ${rest.nombre || ''}`);
+      setAsunto(t('ops.asuntoDefault', { nombre: rest.nombre || '' }));
       setMensaje('');
     }
     setModal({ tipo, rest });
@@ -134,7 +140,7 @@ export default function OpsRestaurantes() {
       });
       await editarRestauranteAdmin(modal.rest.id, payload);
       patchRest(modal.rest.id, payload);
-      setOk(`Restaurante «${payload.nombre || modal.rest.nombre}» actualizado.`);
+      setOk(t('ops.restActualizado', { nombre: payload.nombre || modal.rest.nombre }));
       setModal(null);
     } catch (e) {
       setError(e.message);
@@ -152,7 +158,7 @@ export default function OpsRestaurantes() {
         asunto: asunto.trim() || undefined,
         mensaje: mensaje.trim(),
       });
-      setOk(`Mensaje enviado al dueño de «${modal.rest.nombre}».`);
+      setOk(t('ops.mensajeEnviado', { nombre: modal.rest.nombre }));
       setModal(null);
       setMensaje('');
     } catch (e) {
@@ -169,7 +175,7 @@ export default function OpsRestaurantes() {
     try {
       await eliminarRestauranteAdmin(modal.rest.id);
       setItems((prev) => prev.filter((r) => r.id !== modal.rest.id));
-      setOk(`«${modal.rest.nombre}» eliminado del catálogo.`);
+      setOk(t('ops.restEliminado', { nombre: modal.rest.nombre }));
       setModal(null);
     } catch (e) {
       setError(e.message);
@@ -182,10 +188,10 @@ export default function OpsRestaurantes() {
     <div className="ops-card">
       <div className="ops-card-head">
         <div>
-          <h2>Gestión Restaurantes</h2>
+          <h2>{t('ops.seccRestaurantes')}</h2>
           <p className="ops-card-sub">
-            {items.length} cargados{terminado ? ' (fin de listado)' : cursor ? ' · más disponibles' : ''}
-            {qAplicada ? ` · filtro «${qAplicada}»` : ''} · lotes de {LOTE}
+            {t('ops.cargados', { n: items.length })}{terminado ? ` ${t('ops.finListado')}` : cursor ? ` ${t('ops.masDisponibles')}` : ''}
+            {qAplicada ? ` ${t('ops.filtroQ', { q: qAplicada })}` : ''} {t('ops.lotes', { n: LOTE })}
           </p>
         </div>
       </div>
@@ -194,41 +200,41 @@ export default function OpsRestaurantes() {
         <input
           className="ops-input"
           type="search"
-          placeholder="Nombre, ciudad, cocina…"
+          placeholder={t('ops.phNombreCiudad')}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') buscar(); }}
           style={{ flex: 1, minWidth: 220 }}
-          aria-label="Buscar restaurantes"
+          aria-label={t('ops.buscarRestaurantes')}
         />
-        <button type="button" className="ops-btn primary sm" onClick={buscar}>Buscar</button>
+        <button type="button" className="ops-btn primary sm" onClick={buscar}>{t('ops.buscar')}</button>
         {qAplicada && (
           <button
             type="button"
             className="ops-btn soft sm"
             onClick={() => { setQ(''); cargarPrimera(''); }}
           >
-            Limpiar
+            {t('ops.limpiar')}
           </button>
         )}
       </div>
 
       {error && <p className="ops-error" role="alert">{error}</p>}
       {ok && <p className="ops-success" role="status">{ok}</p>}
-      {cargando && items.length === 0 && <p className="ops-empty" role="status">Cargando restaurantes…</p>}
-      {!cargando && items.length === 0 && <p className="ops-empty">Sin resultados.</p>}
+      {cargando && items.length === 0 && <p className="ops-empty" role="status">{t('ops.cargandoRestaurantes')}</p>}
+      {!cargando && items.length === 0 && <p className="ops-empty">{t('ops.sinResultados')}</p>}
 
       {items.length > 0 && (
         <div className="ops-table-wrap">
           <table className="ops-table">
             <thead>
               <tr>
-                <th>Restaurante &amp; ciudad</th>
-                <th>Cocina</th>
-                <th style={{ textAlign: 'right' }}>Nota</th>
-                <th style={{ textAlign: 'right' }}>Reseñas</th>
-                <th style={{ textAlign: 'right' }}>Estado</th>
-                <th style={{ textAlign: 'right' }}>Acciones</th>
+                <th>{t('ops.colRestaurante')} &amp; {t('ops.campoCiudad')}</th>
+                <th>{t('ops.colCocina')}</th>
+                <th style={{ textAlign: 'right' }}>{t('ops.colNota')}</th>
+                <th style={{ textAlign: 'right' }}>{t('ops.colResenas')}</th>
+                <th style={{ textAlign: 'right' }}>{t('ops.colEstado')}</th>
+                <th style={{ textAlign: 'right' }}>{t('ops.colAcciones')}</th>
               </tr>
             </thead>
             <tbody>
@@ -245,28 +251,28 @@ export default function OpsRestaurantes() {
                     </span>
                   </td>
                   <td>{r.cocina || (r.categorias || [])[0] || '—'}</td>
-                  <td className="num">★ {(r.valoracion ?? r.rating_yelp ?? 0).toLocaleString('es-ES')}</td>
-                  <td className="num">{(r.totalResenasYelp ?? r.total_resenas_yelp ?? (r.resenas || []).length ?? 0).toLocaleString('es-ES')}</td>
+                  <td className="num">★ {(r.valoracion ?? r.rating_yelp ?? 0).toLocaleString(t('modelos.locale'))}</td>
+                  <td className="num">{(r.totalResenasYelp ?? r.total_resenas_yelp ?? (r.resenas || []).length ?? 0).toLocaleString(t('modelos.locale'))}</td>
                   <td style={{ textAlign: 'right' }}>
                     {r.activo === false
-                      ? <span className="ops-status-pill danger">Inactivo</span>
+                      ? <span className="ops-status-pill danger">{t('ops.inactivo')}</span>
                       : (r.valoracion ?? r.rating_yelp ?? 0) >= 4.5
-                        ? <span className="ops-status-pill">Verificado</span>
-                        : <span className="ops-status-pill warn">En red</span>}
+                        ? <span className="ops-status-pill">{t('ops.verificado')}</span>
+                        : <span className="ops-status-pill warn">{t('ops.enRed')}</span>}
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                      <button type="button" className="ops-btn soft sm" onClick={() => abrirModal('mensaje', r)} title="Enviar mensaje al dueño">
+                      <button type="button" className="ops-btn soft sm" onClick={() => abrirModal('mensaje', r)} title={t('ops.tituloEnviarMensaje')}>
                         <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: -2 }}>mail</span>
-                        {' '}Mensaje
+                        {' '}{t('ops.mensajeBtn')}
                       </button>
-                      <button type="button" className="ops-btn soft sm" onClick={() => abrirModal('editar', r)} title="Editar ficha">
+                      <button type="button" className="ops-btn soft sm" onClick={() => abrirModal('editar', r)} title={t('ops.tituloEditarFicha')}>
                         <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: -2 }}>edit</span>
-                        {' '}Editar
+                        {' '}{t('ops.editarBtn')}
                       </button>
-                      <button type="button" className="ops-btn danger sm" onClick={() => abrirModal('eliminar', r)} title="Eliminar restaurante">
+                      <button type="button" className="ops-btn danger sm" onClick={() => abrirModal('eliminar', r)} title={t('ops.tituloEliminarRest')}>
                         <span className="material-symbols-outlined" style={{ fontSize: 14, verticalAlign: -2 }}>delete</span>
-                        {' '}Eliminar
+                        {' '}{t('ops.eliminarBtn')}
                       </button>
                     </div>
                   </td>
@@ -280,7 +286,7 @@ export default function OpsRestaurantes() {
       {!terminado && cursor && items.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'center', marginTop: 12 }}>
           <button type="button" className="ops-btn soft sm" onClick={cargarMas} disabled={cargando}>
-            {cargando ? 'Cargando…' : `Cargar siguientes ${LOTE}`}
+            {cargando ? t('otros.cargando') : t('ops.cargarSiguientes', { n: LOTE })}
           </button>
         </div>
       )}
@@ -288,32 +294,32 @@ export default function OpsRestaurantes() {
       {modal?.tipo === 'mensaje' && (
         <div className="ops-modal-overlay" onClick={cerrarModal}>
           <div className="ops-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="ops-msg-t">
-            <h3 id="ops-msg-t">Mensaje al dueño — {modal.rest.nombre}</h3>
+            <h3 id="ops-msg-t">{t('ops.mensajeDuenoTitulo', { nombre: modal.rest.nombre })}</h3>
             <p className="ops-muted" style={{ marginTop: -4, marginBottom: 12 }}>
-              Se entrega en el buzón interno (#/mensajes){modal.rest.email ? ` · ${modal.rest.email}` : ''}
+              {t('ops.buzonInterno')}{modal.rest.email ? ` · ${modal.rest.email}` : ''}
             </p>
             <div className="ops-field">
-              <label htmlFor="ops-asunto">Asunto</label>
+              <label htmlFor="ops-asunto">{t('ops.asunto')}</label>
               <input id="ops-asunto" type="text" className="ops-input" value={asunto} onChange={(e) => setAsunto(e.target.value)} maxLength={160} />
             </div>
             <div className="ops-field">
-              <label htmlFor="ops-mensaje">Mensaje</label>
+              <label htmlFor="ops-mensaje">{t('ops.mensajeBtn')}</label>
               <textarea
                 id="ops-mensaje"
                 className="ops-input"
                 style={{ height: 120, paddingTop: 10, resize: 'vertical', fontFamily: 'inherit' }}
                 value={mensaje}
                 onChange={(e) => setMensaje(e.target.value)}
-                placeholder="Texto para el dueño…"
+                placeholder={t('ops.phTextoDueno')}
                 maxLength={4000}
                 required
               />
             </div>
             <div className="ops-modal-actions">
               <button type="button" className="ops-btn primary sm" onClick={enviarAlDueno} disabled={guardando || !mensaje.trim()}>
-                {guardando ? 'Enviando…' : 'Enviar'}
+                {guardando ? t('ops.enviando') : t('ops.enviar')}
               </button>
-              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>Cancelar</button>
+              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>{t('ops.cancelar')}</button>
             </div>
           </div>
         </div>
@@ -322,12 +328,12 @@ export default function OpsRestaurantes() {
       {modal?.tipo === 'editar' && (
         <div className="ops-modal-overlay" onClick={cerrarModal}>
           <div className="ops-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="ops-edit-t">
-            <h3 id="ops-edit-t">Editar — {modal.rest.nombre}</h3>
-            <p className="ops-muted" style={{ marginTop: -4, marginBottom: 12 }}>ID {modal.rest.id}</p>
+            <h3 id="ops-edit-t">{t('ops.editarTitulo', { nombre: modal.rest.nombre })}</h3>
+            <p className="ops-muted" style={{ marginTop: -4, marginBottom: 12 }}>{t('ops.idLabel', { id: modal.rest.id })}</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {CAMPOS_EDICION.map(({ k, label, type }) => (
                 <div className="ops-field" key={k}>
-                  <label htmlFor={`ops-f-${k}`}>{label}</label>
+                  <label htmlFor={`ops-f-${k}`}>{t(label)}</label>
                   <input
                     id={`ops-f-${k}`}
                     type={type}
@@ -341,9 +347,9 @@ export default function OpsRestaurantes() {
             </div>
             <div className="ops-modal-actions">
               <button type="button" className="ops-btn primary sm" onClick={guardarEdicion} disabled={guardando}>
-                {guardando ? 'Guardando…' : 'Guardar cambios'}
+                {guardando ? t('ops.guardando') : t('ops.guardarCambios')}
               </button>
-              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>Cancelar</button>
+              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>{t('ops.cancelar')}</button>
             </div>
           </div>
         </div>
@@ -352,16 +358,16 @@ export default function OpsRestaurantes() {
       {modal?.tipo === 'eliminar' && (
         <div className="ops-modal-overlay" onClick={cerrarModal}>
           <div className="ops-modal" onClick={(e) => e.stopPropagation()} role="alertdialog" aria-modal="true" aria-labelledby="ops-del-t">
-            <h3 id="ops-del-t">¿Eliminar restaurante?</h3>
+            <h3 id="ops-del-t">{t('ops.eliminarTitulo')}</h3>
             <p>
-              Vas a borrar <strong>«{modal.rest.nombre}»</strong> ({modal.rest.ciudad || '—'}) del catálogo.
-              Esta acción no se puede deshacer desde el panel.
+              {t('ops.borrarA')} <strong>«{modal.rest.nombre}»</strong> ({modal.rest.ciudad || '—'}) {t('ops.borrarB')}
+              {t('ops.borrarC')}
             </p>
             <div className="ops-modal-actions">
               <button type="button" className="ops-btn danger sm" onClick={confirmarEliminar} disabled={guardando}>
-                {guardando ? 'Eliminando…' : 'Sí, eliminar'}
+                {guardando ? t('ops.eliminando') : t('ops.siEliminar')}
               </button>
-              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>Cancelar</button>
+              <button type="button" className="ops-btn soft sm" onClick={cerrarModal} disabled={guardando}>{t('ops.cancelar')}</button>
             </div>
           </div>
         </div>

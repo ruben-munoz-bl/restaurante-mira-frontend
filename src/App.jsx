@@ -126,8 +126,10 @@ function AppContent({ auth, tema, setTema }) {
   const { lang, setLang } = useI18n();
   const { usuario, crearCuenta, iniciarSesion, iniciarSesionGoogle, cerrarSesion, esAdmin, perfil, recargarPerfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, favoritos, toggleFavorito, noLeidos, recargarMensajes, enviarVerificacion, enviarVerificacionEmail, recargarEmailVerified, guardarLang } = auth;
   const syncBalance = usePointsStore((s) => s.fetchBalance);
-
-  const [puntosSaldo, setPuntosSaldo] = useState(0);
+  // Fuente única del saldo: la store zustand. Así toda mutación (descuento,
+  // canje, #/puntos, cuenta, racha…) llega al header sin recargar la página.
+  const puntosSaldo = usePointsStore((s) => s.saldoActual) || 0;
+  const setPuntosSaldo = (v) => usePointsStore.setState({ saldoActual: Number(v) || 0 });
   const [inviteCodigo, setInviteCodigo] = useState(() => {
     try { return new URLSearchParams(window.location.hash.split('?')[1]).get('invite') || null; } catch { return null; }
   });
@@ -149,18 +151,17 @@ function AppContent({ auth, tema, setTema }) {
 
   useEffect(() => {
     if (!usuario) return;
+    // Un solo destino: la store (el header la lee). El resto de pantallas
+    // que ya llamaban a fetchBalance() actualizan ahora el mismo estado.
+    syncBalance();
     import('./services/api.js').then(({ pointsApi }) => {
-      Promise.all([
-        pointsApi.getBalance(),
-        pointsApi.isNewUser(),
-      ]).then(([d, isNew]) => {
-        setPuntosSaldo(d.saldoActual || 0);
+      pointsApi.isNewUser().then((isNew) => {
         if (isNew && !sessionStorage.getItem(newUserKey)) {
           openStreakPopup({
             racha: { dias: 0 },
             puntos: 0,
             yaReclamado: false,
-            nuevoSaldo: d.saldoActual,
+            nuevoSaldo: usePointsStore.getState().saldoActual,
           });
           sessionStorage.setItem(newUserKey, 'true');
         }
@@ -234,18 +235,12 @@ function AppContent({ auth, tema, setTema }) {
       setPuntosSaldo(finalResult.nuevoSaldo);
     }
     syncBalance().catch(() => {});
-    import('./services/api.js').then(({ pointsApi }) => {
-      pointsApi.getBalance().then((d) => setPuntosSaldo(d.saldoActual || 0)).catch(() => {});
-    });
   }
 
   function handleCloseStreakPopup() {
     setShowStreakPopup(false);
     sessionStorage.setItem(claimedTodayKey, 'true');
     syncBalance().catch(() => {});
-    import('./services/api.js').then(({ pointsApi }) => {
-      pointsApi.getBalance().then((d) => setPuntosSaldo(d.saldoActual || 0)).catch(() => {});
-    });
   }
 
 
@@ -374,12 +369,18 @@ function AppContent({ auth, tema, setTema }) {
       <a className="skip-link" href="#buscar">
         Saltar al buscador
       </a>
-      <Header usuario={usuario} esAdmin={esAdmin} perfil={perfil} numFavoritos={favoritos.length} noLeidos={noLeidos} puntosSaldo={puntosSaldo} tema={tema} onCambiarTema={() => setTema((t) => (t === 'oscuro' ? 'claro' : 'oscuro'))} onSalir={salir} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
+      {/* En '#/admin' el shell de ops ocupa toda la pantalla: su cabecera (con el
+          buscador de restaurantes) es la que debe verse arriba del todo y fija al
+          bajar, así que el header del sitio no se monta (tampoco el BottomNav,
+          cuyo z-index 150 taparía el pie de la sidebar ops). */}
+      {ruta !== 'admin' && (
+        <Header usuario={usuario} esAdmin={esAdmin} perfil={perfil} numFavoritos={favoritos.length} noLeidos={noLeidos} puntosSaldo={puntosSaldo} tema={tema} onCambiarTema={() => setTema((t) => (t === 'oscuro' ? 'claro' : 'oscuro'))} onSalir={salir} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
+      )}
       <main key={ruta} className="ruta">
         {usuario && !usuario.emailVerified && ruta !== 'login' && ruta !== 'registro' && ruta !== 'recuperar' && ruta !== 'restablecer' && (
           <div className="aviso-email" role="alert" style={{ background: 'var(--naranja)', color: '#fff', padding: '0.7rem 1rem', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-            <span>Tu correo no está verificado.</span>
-            <a href="#/cuenta" style={{ color: '#fff', textDecoration: 'underline' }}>Verificar ahora</a>
+            <span>{t('cuenta.emailNoVerificado')}</span>
+            <a href="#/cuenta" style={{ color: '#fff', textDecoration: 'underline' }}>{t('cuenta.verificarAhora')}</a>
           </div>
         )}
         {ruta === 'login' && <Login onLogin={iniciarSesion} onLoginGoogle={handleLoginGoogle} yaTieneSesion={Boolean(usuario)} />}
@@ -429,7 +430,16 @@ function AppContent({ auth, tema, setTema }) {
                  {t('busqueda.titulo')}
                </h2>
 
-              {estado === 'cargando' && (
+              {/* La barra vive fuera de los estados: así nunca se desmonta al buscar. */}
+              <SearchBar
+                filtros={filtros}
+                opciones={opciones}
+                hayFiltrosActivos={hayFiltrosActivos}
+                onChange={actualizarFiltro}
+                onClear={limpiarFiltros}
+              />
+
+              {estado === 'cargando' && visibles.length === 0 && (
                 <div className="grid" role="status" aria-label={t('otros.cargando')}>
                   {Array.from({ length: 8 }, (_, i) => (
                     <RestaurantSkeleton key={`skel-${i}`} />
@@ -447,16 +457,9 @@ function AppContent({ auth, tema, setTema }) {
                 </div>
               )}
 
-              {estado === 'listo' && (
+              {/* Refresco con datos previos: se mantiene la lista mientras llega lo nuevo. */}
+              {(estado === 'listo' || (estado === 'cargando' && visibles.length > 0)) && (
                 <>
-                  <SearchBar
-                    filtros={filtros}
-                    opciones={opciones}
-                    hayFiltrosActivos={hayFiltrosActivos}
-                    onChange={actualizarFiltro}
-                    onClear={limpiarFiltros}
-                  />
-
                     <p aria-live="polite" className="contador">
                       {t('lista.mostrando', {
                         n: visibles.length,
@@ -497,7 +500,9 @@ function AppContent({ auth, tema, setTema }) {
       <CookieBanner usuario={usuario} />
       {seleccionado && <RestaurantDetail restaurant={seleccionado} usuario={usuario} onClose={cerrarDetalle} onVerCarta={abrirCarta} />}
       {libro && <LibroCarta restaurant={libro} dieta={dieta} onClose={cerrarCarta} />}
-      <BottomNav ruta={ruta} numFavoritos={favoritos.length} numReservas={0} puntosSaldo={puntosSaldo} esAdmin={esAdmin} perfil={perfil} usuario={usuario} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} onAbrirMira={AI_HABILITADO ? abrirMira : undefined} miraActiva={miraAbierta} />
+      {ruta !== 'admin' && (
+        <BottomNav ruta={ruta} numFavoritos={favoritos.length} numReservas={0} puntosSaldo={puntosSaldo} esAdmin={esAdmin} perfil={perfil} usuario={usuario} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} onAbrirMira={AI_HABILITADO ? abrirMira : undefined} miraActiva={miraAbierta} />
+      )}
       <FloatingReservation
         visible={sheetVisible}
         restaurant={sheetRestaurante}

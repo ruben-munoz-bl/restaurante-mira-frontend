@@ -1,5 +1,11 @@
 /** Charts SVG del panel ops — sin dependencias, con tooltip al pasar el ratón. */
 import { useState } from 'react';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 const VERDE = '#0e6b47';
 const VERDE_CLARO = '#006d37';
@@ -28,11 +34,12 @@ function curvaSuave(pts) {
 
 /** Evolución: reservas (línea) + comisiones (área). Granularidad Días/Meses/Horas. */
 export function OpsLineChart({ serie, modo = 'dias', height = 260 }) {
+  const t = useT(TRADS);
   const [hover, setHover] = useState(null);
   const w = 800;
   const h = 240;
   const pad = 12;
-  if (!serie?.length) return <p className="ops-empty">Sin datos todavía.</p>;
+  if (!serie?.length) return <p className="ops-empty">{t('ops.sinDatos')}</p>;
 
   let datos = serie;
   let etiquetas = serie.map((s) => s.etiqueta);
@@ -48,7 +55,7 @@ export function OpsLineChart({ serie, modo = 'dias', height = 260 }) {
     etiquetas = datos.map((d) => d.etiqueta);
   }
   if (modo === 'horas') {
-    return <p className="ops-empty">La vista por horas usa los slots de reserva (13–15h y 20–22h) en la sección Reservas.</p>;
+    return <p className="ops-empty">{t('ops.vistaHoras')}</p>;
   }
 
   const { x, y } = puntosSerie(datos, (d) => d.reservas, w, h, pad);
@@ -60,7 +67,7 @@ export function OpsLineChart({ serie, modo = 'dias', height = 260 }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height, overflow: 'visible' }} role="img" aria-label="Evolución de reservas y comisiones">
+      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height, overflow: 'visible' }} role="img" aria-label={t('ops.evolucionAria')}>
         <defs>
           <linearGradient id="opsArea" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor={VERDE} stopOpacity="0.32" />
@@ -102,8 +109,8 @@ export function OpsLineChart({ serie, modo = 'dias', height = 260 }) {
       </div>
       {hover != null && datos[hover] && (
         <p className="ops-muted" aria-live="polite" style={{ margin: '6px 0 0' }}>
-          <strong>{datos[hover].etiqueta}</strong> · {datos[hover].reservas} reservas · {datos[hover].pax ?? '—'} pax ·{' '}
-          {Number(datos[hover].comisiones).toFixed(2)} € com. real.
+          <strong>{datos[hover].etiqueta}</strong> · {t('ops.nReservas', { n: datos[hover].reservas })} · {t('ops.nPax', { n: datos[hover].pax ?? '—' })} ·{' '}
+          {t('ops.comReal', { n: Number(datos[hover].comisiones).toFixed(2) })}
         </p>
       )}
     </div>
@@ -112,8 +119,9 @@ export function OpsLineChart({ serie, modo = 'dias', height = 260 }) {
 
 /** Donut de distribución (p. ej. por estado). */
 export function OpsDonut({ segmentos, centro, centroSub }) {
+  const t = useT(TRADS);
   const total = segmentos.reduce((s, x) => s + x.valor, 0);
-  if (!total) return <p className="ops-empty">Sin datos todavía.</p>;
+  if (!total) return <p className="ops-empty">{t('ops.sinDatos')}</p>;
   let acc = 0;
   const R = 15.915;
   return (
@@ -162,7 +170,8 @@ export function OpsDonut({ segmentos, centro, centroSub }) {
 
 /** Barras horizontales (p. ej. ocupación por servicio). */
 export function OpsHBars({ filas }) {
-  if (!filas?.length) return <p className="ops-empty">Sin datos todavía.</p>;
+  const t = useT(TRADS);
+  if (!filas?.length) return <p className="ops-empty">{t('ops.sinDatos')}</p>;
   const max = Math.max(1, ...filas.map((f) => f.valor));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
