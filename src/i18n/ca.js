@@ -830,5 +830,45 @@ export default {
     "destacadosTitulo": "Restaurants destacats",
     "destacadosSub": "Locals amb nota de {{nota}} o més, ordenats per valoració i nombre d'opinions.",
     "verTodos": "Veure tots els restaurants"
+  },
+  "auditoria": {
+    "titulo": "Auditoria",
+    "sub": "Historial d'esdeveniments desat a la base de dades. Tots els admins veuen el mateix.",
+    "periodo": {
+      "dia": "Dia",
+      "semana": "Setmana",
+      "mes": "Mes",
+      "todo": "Tot",
+      "personalizado": "Rang"
+    },
+    "subtabs": {
+      "resumen": "Resum",
+      "actividad": "Activitat",
+      "usuarios": "Usuaris",
+      "administracion": "Administració",
+      "eventos": "Esdeveniments",
+      "exportar": "Exportar",
+      "simulacion": "Simulació"
+    },
+    "origen": {
+      "label": "Origen",
+      "todo": "Tot",
+      "real": "Només real",
+      "sim": "Només simulat"
+    },
+    "leyenda": "{{real}} reals · {{sim}} simulats",
+    "cargando": "Carregant l'auditoria…",
+    "vacio": "No hi ha logs en aquest període. Canvia el període o executa la simulació.",
+    "irSimulacion": "Anar a Simulació",
+    "error": "No s'ha pogut carregar l'auditoria.",
+    "reintentar": "Reintentar",
+    "recalculando": "Les dades s'estan recalculant (nova versió de l'esquema).",
+    "copiarEnlace": "Copiar l'enllaç d'aquesta vista",
+    "enlaceCopiado": "Enllaç copiat",
+    "ajustesTitulo": "Registre d'auditoria",
+    "registroActivo": "Registre global actiu",
+    "registroActivoSub": "Si s'apaga, l'API deixa de desar esdeveniments nous (els existents no es toquen).",
+    "excluirPropio": "Excloure bots i trànsit propi",
+    "excluirPropioSub": "Ignora la navegació dels admins; les seves accions al panell se segueixen auditant."
   }
 }

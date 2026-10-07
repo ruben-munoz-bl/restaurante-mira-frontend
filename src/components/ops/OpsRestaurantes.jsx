@@ -132,7 +132,7 @@ export default function OpsRestaurantes() {
           payload[k] = String(raw).trim();
         }
       });
-      await editarRestauranteAdmin(modal.rest.id, payload);
+      await editarRestauranteAdmin(modal.rest.id, payload, modal.rest);
       patchRest(modal.rest.id, payload);
       setOk(`Restaurante «${payload.nombre || modal.rest.nombre}» actualizado.`);
       setModal(null);
@@ -167,7 +167,7 @@ export default function OpsRestaurantes() {
     setError('');
     setGuardando(true);
     try {
-      await eliminarRestauranteAdmin(modal.rest.id);
+      await eliminarRestauranteAdmin(modal.rest.id, modal.rest.nombre);
       setItems((prev) => prev.filter((r) => r.id !== modal.rest.id));
       setOk(`«${modal.rest.nombre}» eliminado del catálogo.`);
       setModal(null);

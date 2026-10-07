@@ -16,6 +16,7 @@ import {
   verifyPasswordResetCode,
   confirmPasswordReset,
 } from 'firebase/auth';
+import { track } from './auditoria.js';
 import { getFirebaseApp } from './firebase.js';
 import { guardarPerfil } from './perfilApi.js';
 
@@ -81,8 +82,10 @@ export async function crearCuenta({ nombre, email, password, tipo = 'cliente', p
     if (accesibilidad) perfil.accesibilidad = accesibilidad;
     await guardarPerfil(cred.user.uid, perfil);
     sendEmailVerification(cred.user, { url: urlContinuacionReset() }).catch(() => {});
+    track('registro_completado', { datos: { tipoCuenta: perfil.tipo, conPreferencias: Boolean(preferencias) } });
     return { nombre: nombre.trim(), email: cred.user.email };
   } catch (e) {
+    track('registro_completado', { resultado: 'error', codigoError: e.code || 'ERROR' });
     throw new Error(mensajeError(e.code, 'No se pudo crear la cuenta. Inténtalo de nuevo.'));
   }
 }
@@ -91,8 +94,10 @@ export async function crearCuenta({ nombre, email, password, tipo = 'cliente', p
 export async function iniciarSesion({ email, password }) {
   try {
     const cred = await signInWithEmailAndPassword(auth(), email.trim(), password);
+    track('login_exitoso', { datos: { metodo: 'password' } });
     return { nombre: cred.user.displayName || '', email: cred.user.email };
   } catch (e) {
+    track('login_fallido', { resultado: 'error', codigoError: e.code || 'ERROR', datos: { metodo: 'password' } });
     throw new Error(mensajeError(e.code, 'No se pudo iniciar sesión. Inténtalo de nuevo.'));
   }
 }
@@ -104,9 +109,11 @@ export async function iniciarSesionGoogle() {
     provider.addScope('email');
     provider.addScope('profile');
     const cred = await signInWithPopup(auth(), provider);
+    track('login_google', { datos: { metodo: 'google' } });
     return { nombre: cred.user.displayName || '', email: cred.user.email };
   } catch (e) {
     console.error('[Google Sign-In] Error:', e.code, e.message);
+    if (e.code !== 'auth/popup-closed-by-user') track('login_fallido', { resultado: 'error', codigoError: e.code || 'ERROR', datos: { metodo: 'google' } });
     const msg = mensajeErrorGoogle(e.code);
     throw new Error(msg);
   }
@@ -132,6 +139,7 @@ function mensajeErrorGoogle(code) {
 /** Envía email de recuperación de contraseña (gratis, 0 coste). No revela si el email existe. */
 export async function recuperarContrasena(email, lang = 'es') {
   const limpio = email.trim();
+  track('recuperacion_password');
   setEmailLang(lang);
   try {
     await sendPasswordResetEmail(auth(), limpio, {
@@ -197,7 +205,11 @@ export function extraerOobCode() {
   return '';
 }
 
-export function cerrarSesion() {
+export async function cerrarSesion() {
+  // Se envía antes de cerrar: después ya no hay token para atribuir el evento.
+  track('cierre_sesion');
+  const { enviar } = await import('./auditoria.js');
+  await enviar().catch(() => {});
   return signOut(auth());
 }
 
@@ -224,6 +236,8 @@ export async function enviarVerificacionEmail(lang = 'es') {
 export async function recargarEmailVerified() {
   const u = auth().currentUser;
   if (!u) return false;
+  const antes = u.emailVerified;
   await u.reload();
+  if (!antes && u.emailVerified) track('email_verificado');
   return Boolean(u.emailVerified);
 }

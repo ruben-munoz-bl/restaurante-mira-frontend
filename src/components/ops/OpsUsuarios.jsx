@@ -104,7 +104,7 @@ export default function OpsUsuarios() {
     try {
       const res = modal.simulado
         ? await API_SIMULADA.abonarPuntos(modal, n)
-        : await abonarPuntos(modal.uid, n, motivo.trim() || `Ajuste admin (${n > 0 ? '+' : ''}${n})`);
+        : await abonarPuntos(modal.uid, n, motivo.trim() || `Ajuste admin (${n > 0 ? '+' : ''}${n})`, modal.saldoPuntos ?? null);
       patchUser(modal.uid, { saldoPuntos: res?.nuevoSaldo ?? (modal.saldoPuntos || 0) + n });
       setOk(`Saldo actualizado: ${res?.nuevoSaldo ?? ((modal.saldoPuntos || 0) + n)} pts`);
       setCant('');
@@ -122,7 +122,7 @@ export default function OpsUsuarios() {
     setOk('');
     setGuardando(true);
     try {
-      const res = modal.simulado ? await API_SIMULADA.ajustarRacha(modal, delta) : await ajustarRacha(modal.uid, delta);
+      const res = modal.simulado ? await API_SIMULADA.ajustarRacha(modal, delta) : await ajustarRacha(modal.uid, delta, modal.rachaLoginDias ?? null);
       const dias = res?.rachaLogin?.dias;
       if (typeof dias === 'number') {
         patchUser(modal.uid, { rachaLoginDias: dias, yaReclamadoHoy: Boolean(res.rachaLogin.yaReclamado) });
@@ -142,7 +142,7 @@ export default function OpsUsuarios() {
     setOk('');
     setGuardando(true);
     try {
-      const res = modal.simulado ? await API_SIMULADA.deshacerLoginHoy(modal) : await deshacerLoginHoy(modal.uid);
+      const res = modal.simulado ? await API_SIMULADA.deshacerLoginHoy(modal) : await deshacerLoginHoy(modal.uid, modal.rachaLoginDias ?? null);
       const dias = res?.rachaLogin?.dias;
       if (typeof dias === 'number') {
         patchUser(modal.uid, {

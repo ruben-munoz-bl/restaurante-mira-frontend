@@ -59,6 +59,7 @@ import './App.css';
 import './styles/motion.css';
 import './styles/paneles.css';
 import { I18nProvider } from './i18n/index.jsx';
+import { instalarAuditoria } from './services/auditoria.js';
 
 function baseHash() {
   const h = window.location.hash || '';
@@ -102,6 +103,8 @@ export default function App() {
     }
     return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro';
   });
+
+  useEffect(() => { instalarAuditoria(); }, []);
 
   useEffect(() => {
     if (tema === 'oscuro') {

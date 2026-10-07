@@ -13,6 +13,7 @@ import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
+import { track } from '../services/auditoria.js';
 
 const TRADS = { es, ca, en };
 
@@ -175,6 +176,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
           `★ ${escapar(r.valoracion ?? '—')} · ${escapar(r.precio)} · ${escapar(nombreZona(r.zona, t))}<br>` +
           `<button data-ver-detalle="${escapar(r.id)}" style="margin-top:0.4rem">${t('card.verMas')}</button>`,
       );
+      mk.on('click', () => track('mapa_marcador_pulsado', { entidadTipo: 'restaurante', entidadId: String(r.id), entidadNombre: r.nombre }));
       mk.addTo(capa);
       puntos.push([lat, lng]);
     });

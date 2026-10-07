@@ -1,4 +1,5 @@
 import { api } from './httpClient.js';
+import { conAuditoria } from './auditoria.js';
 
 /* ────────────── POINTS ────────────── */
 
@@ -27,9 +28,13 @@ export const pointsApi = {
     return api.get(`/v1/points/ledger${qs ? `?${qs}` : ''}`);
   },
 
-  dailyLogin: async () => api.post('/v1/points/daily-login'),
+  dailyLogin: async () => {
+    const r = await api.post('/v1/points/daily-login');
+    if (r?.puntos) conAuditoria('puntos_ganados', { accion: 'login_diario', meta: { cantidad: r.puntos } }, Promise.resolve());
+    return r;
+  },
 
-  claimWheelReward: async () => api.post('/v1/points/wheel'),
+  claimWheelReward: async () => conAuditoria('rueda_girada', { pagina: 'puntos' }, api.post('/v1/points/wheel')),
 
   getWheelPrizes: async () => {
     try {
@@ -41,9 +46,9 @@ export const pointsApi = {
     }
   },
 
-  redeem: async (puntos) => api.post('/v1/points/redeem', { puntos }),
+  redeem: async (puntos) => conAuditoria('puntos_canjeados', { meta: { cantidad: puntos } }, api.post('/v1/points/redeem', { puntos })),
 
-  claimDiscount: async (euros) => api.post('/v1/points/discount/claim', { euros }),
+  claimDiscount: async (euros) => conAuditoria('puntos_canjeados', { accion: 'descuento', meta: { valor: euros } }, api.post('/v1/points/discount/claim', { euros })),
 
   review: async () => api.post('/v1/points/review', {}),
 };
@@ -73,12 +78,12 @@ export const reservationsApi = {
   },
 
   cancel: async (id) => {
-    await api.put(`/v1/reservations/${id}/cancel`);
+    await conAuditoria('reserva_cancelada', { entidadTipo: 'reserva', entidadId: String(id) }, api.put(`/v1/reservations/${id}/cancel`));
     return { ok: true };
   },
 
   complete: async (id, precioBase) => {
-    await api.put(`/v1/reservations/${id}/complete`, { precioBase });
+    await conAuditoria('reserva_completada', { entidadTipo: 'reserva', entidadId: String(id) }, api.put(`/v1/reservations/${id}/complete`, { precioBase }));
     return { ok: true };
   },
 };
@@ -96,9 +101,10 @@ export const ticketsApi = {
 /* ────────────── INVITATIONS ────────────── */
 
 export const invitationsApi = {
-  create: async (email) => api.post('/v1/invite', { email }),
+  // El email del invitado no se audita (PII): solo que hubo invitación.
+  create: async (email) => conAuditoria('invitación_enviada', { pagina: 'invitar' }, api.post('/v1/invite', { email })),
 
-  accept: async (codigo) => api.post('/v1/invite/accept', { codigo }),
+  accept: async (codigo) => conAuditoria('invitación_aceptada', { pagina: 'invitar' }, api.post('/v1/invite/accept', { codigo })),
 
   getMy: async () => {
     const d = await api.get('/v1/invite/my');
@@ -170,15 +176,21 @@ export const dashboardApi = {
     const d = await api.get('/v1/dashboard/users');
     return Array.isArray(d) ? d : d.data || d;
   },
-  updateRestaurant: async (restaurantId, data) => api.put(`/v1/dashboard/restaurant/${restaurantId}`, data),
-  updateReservationStatus: async (reservaId, status) =>
-    api.put(`/v1/dashboard/reservations/${reservaId}/status`, { status }),
-  subirTicket: async (reservaId, payload = {}) =>
-    api.post(`/v1/dashboard/reservations/${reservaId}/ticket`, payload),
-  confirmAttendance: async (reservaId, data = {}) =>
-    api.post(`/v1/dashboard/reservations/${reservaId}/confirm-attendance`, data),
-  markNoShow: async (reservaId) =>
-    api.post(`/v1/dashboard/reservations/${reservaId}/mark-no-show`, {}),
+  // Panel del restaurante (rol empresa): origen 'app'; el servidor marca actorTipo='empresa'.
+  updateRestaurant: async (restaurantId, data) => conAuditoria(
+    'aforoLimit' in data || 'maxReservasPorHora' in data ? 'franja_desbloqueada' : 'negocio_actualizado',
+    { entidadTipo: 'restaurante', entidadId: String(restaurantId), cambios: Object.keys(data).slice(0, 30).map((campo) => ({ campo, antes: null, despues: data[campo] })) },
+    api.put(`/v1/dashboard/restaurant/${restaurantId}`, data)),
+  updateReservationStatus: async (reservaId, status) => conAuditoria('reserva_estado_cambiada',
+    { entidadTipo: 'reserva', entidadId: String(reservaId), cambios: [{ campo: 'estado', antes: null, despues: status }] },
+    api.put(`/v1/dashboard/reservations/${reservaId}/status`, { status })),
+  subirTicket: async (reservaId, payload = {}) => conAuditoria('ticket_asignado',
+    { entidadTipo: 'reserva', entidadId: String(reservaId), datos: { asistio: payload.asistio ?? null, importe: Number(payload.totalPagado) || null } },
+    api.post(`/v1/dashboard/reservations/${reservaId}/ticket`, payload)),
+  confirmAttendance: async (reservaId, data = {}) => conAuditoria('confirmacion_asistencia', { entidadTipo: 'reserva', entidadId: String(reservaId) },
+    api.post(`/v1/dashboard/reservations/${reservaId}/confirm-attendance`, data)),
+  markNoShow: async (reservaId) => conAuditoria('marcado_no_show', { entidadTipo: 'reserva', entidadId: String(reservaId) },
+    api.post(`/v1/dashboard/reservations/${reservaId}/mark-no-show`, {})),
   addPointsManual: async (uid, cantidad, motivo) =>
     api.post('/v1/dashboard/points/add-manual', { uid, cantidad, motivo }),
 };

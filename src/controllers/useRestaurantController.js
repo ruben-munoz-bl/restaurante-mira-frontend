@@ -19,6 +19,8 @@ import { filterRestaurants, sortRestaurants, necesitaCargaTotal } from '../servi
 import { completarRestaurante, dietaActiva, accesibilidadActiva, ZONAS_CATALUNA, COCINAS } from '../models/restaurantModel.js';
 import { centroDeZona } from '../services/cityCenters.js';
 
+import { track } from '../services/auditoria.js';
+
 const FILTROS_INICIALES = {
   q: '',
   precio: '',
@@ -52,6 +54,7 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
   // Accesibilidad: incluir también locales con dato ESTIMADO (no verificado). Solo sesión.
   const [incluirEstimados, setIncluirEstimados] = useState(false);
   const reqId = useRef(0); // evita que una carga vieja pise a la nueva
+  const inicioBusqueda = useRef(0);
   const cargandoRef = useRef(false); // evita doble tanda si el centinela dispara 2 veces
 
   // Total barato (agregado) + recarga con Reintentar.
@@ -138,6 +141,7 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
         return [...prev, ...pg.items.filter((r) => !ids.has(r.id))];
       });
       setPaginaVisible((p) => p + TAMANO_PAGINA);
+      track('paginacion', { pagina: 'buscar', meta: { valor: Math.round((datos.length + pg.items.length) / TAMANO_PAGINA) } });
     } catch {
       setHayMasApi(false);
     } finally {
@@ -160,11 +164,15 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
   /** Actualiza un solo campo del filtro (lo usa SearchBar en cada onChange). */
   function actualizarFiltro(campo, valor) {
     setFiltros((prev) => ({ ...prev, [campo]: valor }));
+    if (campo === 'q') inicioBusqueda.current = Date.now();
+    else if (campo === 'orden') track('orden_cambiado', { pagina: 'buscar', datos: { orden: valor } });
+    else track('filtro_aplicado', { pagina: 'buscar', datos: { faceta: campo, valor: Array.isArray(valor) ? valor.join(',') : valor } });
   }
 
   /** Atajo del Hero: elige cocina y baja al buscador. */
   function elegirCocina(cocina) {
     setFiltros((prev) => ({ ...prev, cocina }));
+    track('filtro_aplicado', { pagina: 'buscar', datos: { faceta: 'cocina', valor: cocina, desde: 'hero' } });
   }
 
   function limpiarFiltros() {
@@ -241,6 +249,26 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     filtros.hora !== '' ||
     filtros.servicios.length > 0;
 
+  // Registra la búsqueda cuando el usuario deja de teclear y ya hay resultados.
+  useEffect(() => {
+    const consulta = filtros.q.trim();
+    if (!consulta || estado !== 'listo') return undefined;
+    const id = setTimeout(() => {
+      track('busqueda', {
+        pagina: 'buscar',
+        datos: {
+          consulta,
+          consultaNorm: consulta.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''),
+          resultados: filtrados.length,
+          vacio: filtrados.length === 0,
+        },
+        meta: { duracionMs: inicioBusqueda.current ? Date.now() - inicioBusqueda.current : null },
+      });
+    }, 800);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtros.q, estado]);
+
   return {
     filtros,
     filtrados,
@@ -269,9 +297,15 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     elegirCocina,
     limpiarFiltros,
     recargar,
-    abrirDetalle: setSeleccionado,
+    abrirDetalle: (r) => {
+      if (r) track('restaurante_pulsado', { entidadTipo: 'restaurante', entidadId: String(r.id), entidadNombre: r.nombre });
+      setSeleccionado(r);
+    },
     cerrarDetalle: () => setSeleccionado(null),
-    abrirCarta: setLibro,
+    abrirCarta: (r) => {
+      if (r) track('carta_abierta', { entidadTipo: 'restaurante', entidadId: String(r.id), entidadNombre: r.nombre });
+      setLibro(r);
+    },
     cerrarCarta: () => setLibro(null),
     verTodosIgual: () => setIgnorarDieta(true),
     obtenerRestaurante,

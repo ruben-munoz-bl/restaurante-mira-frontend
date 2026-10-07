@@ -2,6 +2,7 @@
  * Model — incidencias sobre `contactos` vía API.
  */
 import { api } from './httpClient.js';
+import { conAuditoria } from './auditoria.js';
 
 export async function esAdmin() {
   try {
@@ -23,5 +24,6 @@ export async function listarPendientes() {
 }
 
 export async function resolverIncidencia(id) {
-  await api.put(`/v1/contactos/${encodeURIComponent(id)}/resolve`);
+  await conAuditoria('incidencia_resuelta', { entidadTipo: 'incidencia', entidadId: String(id), cambios: [{ campo: 'estado', antes: 'pendiente', despues: 'resuelta' }] },
+    api.put(`/v1/contactos/${encodeURIComponent(id)}/resolve`), { panel: true });
 }

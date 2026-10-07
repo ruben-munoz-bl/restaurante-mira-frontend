@@ -19,6 +19,7 @@ import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
 import '../styles/detalle.css';
+import { track } from '../services/auditoria.js';
 
 const TRADS = { es, ca, en };
 const MOSTRAR_INICIAL = 6;
@@ -200,6 +201,11 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     fetchBalance();
   }, [usuario?.uid]);
 
+  useEffect(() => {
+    track('restaurante_visto', { entidadTipo: 'restaurante', entidadId: String(restaurant.id), entidadNombre: restaurant.nombre, datos: { cocina: restaurant.cocina, precio: restaurant.precio } });
+  }, [restaurant.id]);
+
+  // POST /v1/interactions (puntos por promo) queda en la auditoría como `interaccion` desde el servidor.
   useEffect(() => {
     if (!usuario?.uid) return;
     import('../services/api.js').then(({ interactionsApi }) => {
@@ -588,7 +594,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
               })}
             </ul>
             {todas.length > MOSTRAR_INICIAL && (
-              <button type="button" className="btn-secundario det-ver-mas" onClick={() => setVerTodas((v) => !v)}>
+              <button type="button" className="btn-secundario det-ver-mas" onClick={() => { if (!verTodas) track('resena_vista', { entidadTipo: 'restaurante', entidadId: String(restaurant.id), meta: { cantidad: todas.length } }); setVerTodas((v) => !v); }}>
                 {verTodas ? t('detail.verMenos') : t('detail.verMasResenas', { n: todas.length - MOSTRAR_INICIAL })}
               </button>
             )}

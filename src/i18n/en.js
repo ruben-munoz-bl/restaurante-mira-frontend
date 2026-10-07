@@ -830,5 +830,45 @@ export default {
     "destacadosTitulo": "Featured restaurants",
     "destacadosSub": "Places rated {{nota}} or higher, ranked by rating and number of reviews.",
     "verTodos": "See all restaurants"
+  },
+  "auditoria": {
+    "titulo": "Audit",
+    "sub": "Event history stored in the database. Every admin sees the same.",
+    "periodo": {
+      "dia": "Day",
+      "semana": "Week",
+      "mes": "Month",
+      "todo": "All",
+      "personalizado": "Range"
+    },
+    "subtabs": {
+      "resumen": "Overview",
+      "actividad": "Activity",
+      "usuarios": "Users",
+      "administracion": "Administration",
+      "eventos": "Events",
+      "exportar": "Export",
+      "simulacion": "Simulation"
+    },
+    "origen": {
+      "label": "Source",
+      "todo": "All",
+      "real": "Real only",
+      "sim": "Simulated only"
+    },
+    "leyenda": "{{real}} real · {{sim}} simulated",
+    "cargando": "Loading audit…",
+    "vacio": "No logs in this period. Change the period or run the simulation.",
+    "irSimulacion": "Go to Simulation",
+    "error": "Could not load the audit.",
+    "reintentar": "Retry",
+    "recalculando": "Data is being recalculated (new schema version).",
+    "copiarEnlace": "Copy link to this view",
+    "enlaceCopiado": "Link copied",
+    "ajustesTitulo": "Audit log",
+    "registroActivo": "Global logging on",
+    "registroActivoSub": "When off, the API stops saving new events (existing ones are kept).",
+    "excluirPropio": "Exclude bots and own traffic",
+    "excluirPropioSub": "Ignores admin browsing; their panel actions are still audited."
   }
 }

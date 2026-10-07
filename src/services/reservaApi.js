@@ -3,6 +3,7 @@
  * SLOTS alineados con el backend (11 franjas cada 30 min).
  */
 import { api } from './httpClient.js';
+import { track, conAuditoria } from './auditoria.js';
 
 /** Franjas fijas de reserva (comida + cena, 30 min). */
 export const SLOTS = [
@@ -59,7 +60,9 @@ export async function crearReserva({ restaurante, usuario, fecha, hora, comensal
   if (!usuario?.uid) throw new Error('Debes iniciar sesión para reservar.');
   validarReserva({ fecha, hora, comensales, comentarios });
   const restaurantId = String(restaurante.id);
-  const d = await api.post('/v1/reservations', {
+  const ent = { entidadTipo: 'restaurante', entidadId: restaurantId, entidadNombre: restaurante.nombre };
+  track('reserva_iniciada', ent);
+  const d = await conAuditoria('reserva_creada', { ...ent, datos: { comensales: Number(comensales), franja: Number(String(hora).slice(0, 2)) < 17 ? 'comida' : 'cena' } }, api.post('/v1/reservations', {
     restaurantId,
     restauranteId: restaurantId,
     fecha,
@@ -69,7 +72,7 @@ export async function crearReserva({ restaurante, usuario, fecha, hora, comensal
     nombreRestaurante: restaurante.nombre || '',
     usuarioNombre: usuario.displayName || usuario.nombre || usuario.email || '',
     usuarioEmail: usuario.email || '',
-  });
+  }));
   return {
     id: d.id,
     codigo: d.codigo,
@@ -88,6 +91,6 @@ export async function listarMisReservas() {
 }
 
 export async function cancelarReserva(reservaId) {
-  await api.put(`/v1/reservations/${reservaId}/cancel`);
+  await conAuditoria('reserva_cancelada', { entidadTipo: 'reserva', entidadId: String(reservaId) }, api.put(`/v1/reservations/${reservaId}/cancel`));
   return { ok: true };
 }

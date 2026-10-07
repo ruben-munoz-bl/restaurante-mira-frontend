@@ -906,5 +906,45 @@ export default {
     "destacadosTitulo": "Restaurantes destacados",
     "destacadosSub": "Locales con nota de {{nota}} o más, ordenados por valoración y número de opiniones.",
     "verTodos": "Ver todos los restaurantes"
+  },
+  "auditoria": {
+    "titulo": "Auditoría",
+    "sub": "Historial de eventos guardado en la base de datos. Todos los admins ven lo mismo.",
+    "periodo": {
+      "dia": "Día",
+      "semana": "Semana",
+      "mes": "Mes",
+      "todo": "Todo",
+      "personalizado": "Rango"
+    },
+    "subtabs": {
+      "resumen": "Resumen",
+      "actividad": "Actividad",
+      "usuarios": "Usuarios",
+      "administracion": "Administración",
+      "eventos": "Eventos",
+      "exportar": "Exportar",
+      "simulacion": "Simulación"
+    },
+    "origen": {
+      "label": "Origen",
+      "todo": "Todo",
+      "real": "Solo real",
+      "sim": "Solo simulado"
+    },
+    "leyenda": "{{real}} reales · {{sim}} simulados",
+    "cargando": "Cargando auditoría…",
+    "vacio": "No hay logs en este periodo. Cambia el periodo o ejecuta la simulación.",
+    "irSimulacion": "Ir a Simulación",
+    "error": "No se pudo cargar la auditoría.",
+    "reintentar": "Reintentar",
+    "recalculando": "Los datos se están recalculando (nueva versión del esquema).",
+    "copiarEnlace": "Copiar enlace de esta vista",
+    "enlaceCopiado": "Enlace copiado",
+    "ajustesTitulo": "Registro de auditoría",
+    "registroActivo": "Registro global activo",
+    "registroActivoSub": "Si se apaga, la API deja de guardar eventos nuevos (los existentes no se tocan).",
+    "excluirPropio": "Excluir bots y tráfico propio",
+    "excluirPropioSub": "Ignora la navegación de los admins; sus acciones en el panel se siguen auditando."
   }
 }

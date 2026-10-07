@@ -1050,3 +1050,51 @@ e6ef14a fix: iniciarSesionGoogle no pasaba a AppContent + selector idioma redise
 ---
 
 *Documentación generada automáticamente el 17 de septiembre de 2026.*
+
+## 19. Auditoría (panel admin → Auditoría)
+
+Historial de eventos **persistido en Firestore** (colección `auditoria`, append-only) que cualquier admin
+puede consultar, filtrar y exportar. No es tracking de terceros ni usa cookies: es un log en servidor.
+La web envía eventos reales; el simulador añade 100 usuarios con `fuente: 'sim'`.
+
+### Cómo funciona
+
+- **Cliente** (`src/services/auditoria.js`): `track(tipo, props)` y `trackPanel(...)` encolan eventos y los envían
+  en lotes (≤100, cada 4 s y al ocultar la pestaña) a `POST /v1/auditoria/batch`. `anonId` (UUID en localStorage) y
+  `sesionId` (sessionStorage, 30 min de inactividad) solo identifican la sesión; el actor lo pone el servidor desde el token.
+- **Catálogo único** (`src/components/ops/auditoriaCatalog.js`): etiqueta, categoría, icono y color de cada tipo.
+  Debe coincidir con `mira-api/src/modules/auditoria/catalogo.js` (lo comprueba `test/auditoria.test.js` en ambos lados).
+- **Todos los admins ven lo mismo**: los agregados se calculan y cachean en el backend (copia en memoria compartida,
+  caché 90 s por clave periodo+filtros, invalidada al insertar). Periodo y filtros viven en la URL:
+  `#/admin?seccion=auditoria&sub=eventos&periodo=semana&tipos=login_exitoso`.
+- **Real + simulado sumados por defecto**; el selector «Origen» filtra solo real o solo simulado.
+- **Ajustes del Sistema**: interruptores «Registro global activo» y «Excluir bots y tráfico propio» (se guardan en
+  `auditoria_estado/global`, comunes a todos los admins y auditados como `ajustes_cambiados`).
+
+### Endpoints (`mira-api`, base `/v1/auditoria`)
+
+| Método | Ruta | Permiso | Parámetros | Respuesta |
+|---|---|---|---|---|
+| POST | `/` | cualquiera (token opcional) | evento | `202 { aceptados, descartados, motivos }` |
+| POST | `/batch` | cualquiera (token opcional) | `{ eventos: [...] }` (máx. 100) | `202 { aceptados, descartados, motivos }` |
+| GET | `/overview` | admin | `periodo=dia\|semana\|mes\|todo`, `desde`, `hasta`, filtros* | `{ version, revision, kpis{eventos,sesiones,usuariosActivos,adminsActivos,pctErrores,cambiosConfig,accesosDenegados}, deltas, porTipo[], porOrigen[], porFuente{real,sim} }` |
+| GET | `/series` | admin | `periodo`, `granularidad=hora\|dia\|semana\|mes`, `metrica`, filtros* | `{ version, granularidad, puntos[{clave,eventos,real,sim,errores,sesiones,usuarios}] }` |
+| GET | `/breakdown` | admin | `dimension=tipo\|origen\|fuente\|actorTipo\|dispositivo.tipo\|dispositivo.os\|dispositivo.navegador\|pagina\|pais\|entidadTipo\|categoria`, `top`, `periodo`, filtros* | `{ total, items[{valor,n,pct,share}], resto }` |
+| GET | `/actividad` | admin | `periodo`, filtros* | `{ calor[7][24], funnels{registro[],reserva[]} }` |
+| GET | `/usuarios` | admin | `periodo`, filtros* | `{ items[{uid,nombre,fuente,eventos,ultimaActividad,ultimoLogin,dispositivo}] }` |
+| GET | `/logs` | admin | `tipos`, `actorUid`, `actorTipo`, `entidadId`, `resultado`, `origen`, `fuente`, `dispositivo`, `buscar`, `periodo`/`desde`/`hasta`, `limite` (≤500), `cursor` | `{ total, items[], cursor }` |
+| GET | `/usuario/:uid` · `/usuario?entidadId=` | admin | — | `{ total, items[] }` (incluye `cambios` y quién los hizo) |
+| GET | `/export` | admin | `periodo`, filtros*, `formato=csv\|json`, `estimar=1` | fichero (CSV `;` con BOM o JSON); con `estimar=1`, `{ eventos, bytesAprox }`. Registra `export_auditoria` |
+| GET | `/estado` | admin | — | `{ versionEsquema, revision, ajustes, simRunId, sim, totales{eventos,real,sim} }` |
+| PUT | `/ajustes` | admin | `{ registroActivo?, excluirPropio? }` | `{ ajustes }` |
+| POST | `/sim/run` | admin | `{ usuarios?=100, dias?=30 }` | `202 { simRunId, total, resumen }` (escribe en segundo plano) |
+| GET | `/sim/estado` | admin | — | `{ simRunId, sim{estado,escritos,total,resumen}, enCurso }` |
+| POST | `/sim/reset` | admin | `{ simRunId? }` | `{ borrados }` — solo `fuente:'sim'` |
+| POST | `/purge?anios=N` | admin | body `{ confirmacion: 'PURGAR' }` | `{ borrados, limite }` |
+
+\*Filtros comunes: `fuente=real|sim`, `tipos` (lista con comas), `categoria`, `origen`, `resultado`, `actorUid`, `actorTipo`,
+`entidadId`, `dispositivo`, `buscar`. Periodos normalizados a **UTC**: día = hoy, semana = semana ISO (lunes), mes = mes en curso,
+todo = histórico (por meses).
+
+`POST /v1/interactions` mantiene su formato `{ restauranteId, tipo }` y ahora escribe un evento `interaccion` en `auditoria`.
+Un 403 en una ruta solo-admin queda registrado como `admin_acceso_denegado`.

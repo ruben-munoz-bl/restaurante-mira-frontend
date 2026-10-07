@@ -4,6 +4,8 @@
 import { api } from '../../services/httpClient.js';
 import { listarPendientes } from '../../services/incidenciaApi.js';
 import { listarNegociosPendientes } from '../../services/negocioApi.js';
+import { conAuditoria, trackPanel } from '../../services/auditoria.js';
+import { diffCambios } from '../../services/auditoriaCore.js';
 
 /** Comisión real si la reserva ya tiene ticket; si no, null (no inventar). */
 export function comisionRealDeReserva(r) {
@@ -48,8 +50,9 @@ function antiguedadCorta(ts) {
   return `hace ${Math.round(h / 24)} d`;
 }
 
-export async function updateReservationStatus(reservaId, estado) {
-  await api.put(`/v1/dashboard/reservations/${reservaId}/status`, { status: estado });
+export async function updateReservationStatus(reservaId, estado, estadoAntes = null) {
+  await conAuditoria('reserva_estado_cambiada', { entidadTipo: 'reserva', entidadId: String(reservaId), cambios: [{ campo: 'estado', antes: estadoAntes, despues: estado }] },
+    api.put(`/v1/dashboard/reservations/${reservaId}/status`, { status: estado }), { panel: true });
   return { updated: true, estado };
 }
 
@@ -72,20 +75,30 @@ export async function listarUsuarios() {
   }));
 }
 
-export async function abonarPuntos(uid, cantidad, motivo) {
-  return api.post('/v1/dashboard/points/add-manual', { uid, cantidad, motivo });
+export async function abonarPuntos(uid, cantidad, motivo, saldoAntes = null) {
+  const r = await api.post('/v1/dashboard/points/add-manual', { uid, cantidad, motivo });
+  const despues = r?.nuevoSaldo ?? null;
+  trackPanel(cantidad >= 0 ? 'puntos_abonados' : 'puntos_ajustados', {
+    entidadTipo: 'usuario', entidadId: uid, meta: { cantidad },
+    cambios: [{ campo: 'saldoPuntos', antes: saldoAntes ?? (despues != null ? despues - cantidad : null), despues }],
+  });
+  return r;
 }
 
 export async function setRacha(uid, dias) {
   return api.post('/v1/dashboard/points/racha/set', { uid, dias });
 }
 
-export async function ajustarRacha(uid, delta) {
-  return api.post('/v1/dashboard/points/racha/delta', { uid, delta });
+export async function ajustarRacha(uid, delta, diasAntes = null) {
+  const r = await api.post('/v1/dashboard/points/racha/delta', { uid, delta });
+  trackPanel('racha_modificada', { entidadTipo: 'usuario', entidadId: uid, meta: { cantidad: delta }, cambios: [{ campo: 'rachaLoginDias', antes: diasAntes, despues: r?.rachaLogin?.dias ?? null }] });
+  return r;
 }
 
-export async function deshacerLoginHoy(uid) {
-  return api.post('/v1/dashboard/points/racha/unclaim-today', { uid });
+export async function deshacerLoginHoy(uid, diasAntes = null) {
+  const r = await api.post('/v1/dashboard/points/racha/unclaim-today', { uid });
+  trackPanel('login_revertido', { entidadTipo: 'usuario', entidadId: uid, cambios: [{ campo: 'rachaLoginDias', antes: diasAntes, despues: r?.rachaLogin?.dias ?? null }, { campo: 'yaReclamadoHoy', antes: Boolean(r?.estabaReclamadoHoy), despues: false }] });
+  return r;
 }
 
 export function mensajeErrorFirestore(e) {
@@ -118,16 +131,20 @@ export async function listarRestaurantesAdmin({ q = '', cursor = null, limit = 2
   };
 }
 
-export async function editarRestauranteAdmin(id, data) {
-  return api.put(`/v1/dashboard/restaurant/${encodeURIComponent(id)}`, data);
+export async function editarRestauranteAdmin(id, data, antes = {}) {
+  return conAuditoria('restaurante_editado', { entidadTipo: 'restaurante', entidadId: String(id), entidadNombre: antes?.nombre, cambios: diffCambios(antes, data) },
+    api.put(`/v1/dashboard/restaurant/${encodeURIComponent(id)}`, data), { panel: true });
 }
 
-export async function eliminarRestauranteAdmin(id) {
-  return api.del(`/v1/dashboard/restaurant/${encodeURIComponent(id)}`);
+export async function eliminarRestauranteAdmin(id, nombre = null) {
+  return conAuditoria('restaurante_eliminado', { entidadTipo: 'restaurante', entidadId: String(id), entidadNombre: nombre },
+    api.del(`/v1/dashboard/restaurant/${encodeURIComponent(id)}`), { panel: true });
 }
 
 export async function enviarMensajeDueno(id, { asunto, mensaje }) {
-  return api.post(`/v1/dashboard/restaurant/${encodeURIComponent(id)}/message`, { asunto, mensaje });
+  // Solo se audita que hubo mensaje y su longitud, nunca el texto (puede llevar datos personales).
+  return conAuditoria('mensaje_enviado_dueno', { entidadTipo: 'restaurante', entidadId: String(id), meta: { cantidad: String(mensaje || '').length } },
+    api.post(`/v1/dashboard/restaurant/${encodeURIComponent(id)}/message`, { asunto, mensaje }), { panel: true });
 }
 
 function csvCell(v) {
@@ -138,6 +155,19 @@ function csvCell(v) {
 export function descargarCSV(nombre, cabeceras, filas) {
   const lineas = [cabeceras.map(csvCell).join(';'), ...filas.map((f) => f.map(csvCell).join(';'))];
   const blob = new Blob([`﻿${lineas.join('\n')}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = nombre;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+/** Descarga un texto ya generado (p. ej. el export de auditoría que produce el backend). */
+export function descargarTexto(nombre, texto, tipo = 'text/plain;charset=utf-8') {
+  const blob = new Blob([texto], { type: tipo });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
