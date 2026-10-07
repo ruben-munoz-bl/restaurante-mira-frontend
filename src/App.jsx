@@ -56,6 +56,7 @@ import { proponerNegocio } from './services/negocioApi.js';
 import useDailyLogin from './hooks/useDailyLogin.js';
 import './App.css';
 import './styles/motion.css';
+import './styles/paneles.css';
 import { I18nProvider } from './i18n/index.jsx';
 
 function baseHash() {

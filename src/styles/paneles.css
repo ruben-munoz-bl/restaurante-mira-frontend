@@ -1,0 +1,126 @@
+/* ===== Paneles admin (.ops-*) y restaurante (.op-*): movimiento y gráficos =====
+   Curvas fuertes ease-out, entradas escalonadas cortas, feedback al pulsar.
+   Todo respeta «reducir movimiento». */
+
+:root {
+  --pn-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --pn-ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* ── Entrada escalonada de KPIs y tarjetas ── */
+@keyframes pn-subir { from { opacity: 0; transform: translateY(10px); } }
+@keyframes pn-aparecer { from { opacity: 0; transform: translateY(14px) scale(0.99); } }
+
+.ops-kpis > *, .op-kpi-grid > * {
+  animation: pn-subir 420ms var(--pn-ease-out) both;
+}
+.ops-kpis > :nth-child(2), .op-kpi-grid > :nth-child(2) { animation-delay: 50ms; }
+.ops-kpis > :nth-child(3), .op-kpi-grid > :nth-child(3) { animation-delay: 100ms; }
+.ops-kpis > :nth-child(4), .op-kpi-grid > :nth-child(4) { animation-delay: 150ms; }
+.ops-kpis > :nth-child(5), .op-kpi-grid > :nth-child(5) { animation-delay: 200ms; }
+.ops-kpis > :nth-child(6), .op-kpi-grid > :nth-child(6) { animation-delay: 250ms; }
+
+.ops-hero, .ops-grid-8-4 > *, .ops-grid-2 > *, .ops-content > .ops-card, .op-panel, .dash-chart {
+  animation: pn-aparecer 520ms var(--pn-ease-out) both;
+  animation-delay: 180ms;
+}
+.ops-grid-8-4 > :nth-child(2), .ops-grid-2 > :nth-child(2) { animation-delay: 240ms; }
+
+/* KPIs y paneles: elevación sutil al pasar el ratón (solo con puntero fino) */
+.ops-kpi, .op-kpi-card, .ops-card, .op-panel {
+  transition: transform 220ms var(--pn-ease-out), box-shadow 220ms ease;
+}
+@media (hover: hover) and (pointer: fine) {
+  .ops-kpi:hover, .op-kpi-card:hover { transform: translateY(-3px); }
+}
+
+/* Barras de progreso: crecen desde la izquierda */
+.ops-bar i { transform-origin: left; animation: pn-barra 900ms var(--pn-ease-out) both 250ms; }
+@keyframes pn-barra { from { transform: scaleX(0); } }
+
+/* Botones: respuesta inmediata al pulsar */
+.ops-btn, .op-btn-primary, .op-btn-ghost, .ops-seg button, .chart-toggle, .op-dir-filter {
+  transition: transform 160ms var(--pn-ease-out), background-color 160ms ease, box-shadow 160ms ease, color 160ms ease;
+}
+.ops-btn:active:not(:disabled), .op-btn-primary:active, .op-btn-ghost:active,
+.ops-seg button:active, .chart-toggle:active, .op-dir-filter:active { transform: scale(0.97); }
+
+/* Filas de tabla con hover suave */
+@media (hover: hover) and (pointer: fine) {
+  .ops-table tbody tr, .op-table tbody tr { transition: background-color 150ms ease; }
+  .ops-table tbody tr:hover, .op-table tbody tr:hover { background: rgba(14, 107, 71, 0.05); }
+}
+
+/* Feed en vivo: tarjetas que entran en cascada */
+.ops-feed > * { animation: pn-subir 380ms var(--pn-ease-out) both; }
+.ops-feed > :nth-child(2) { animation-delay: 40ms; }
+.ops-feed > :nth-child(3) { animation-delay: 80ms; }
+.ops-feed > :nth-child(4) { animation-delay: 120ms; }
+.ops-feed > :nth-child(n+5) { animation-delay: 160ms; }
+
+/* ── Gráficos ── */
+.chart-anim { position: relative; }
+.chart-anim .recharts-surface { overflow: visible; }
+.chart-anim .recharts-wrapper:focus, .chart-anim .recharts-surface:focus { outline: none; }
+
+.dash-chart-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.dash-chart-head .dash-chart-title { margin: 0; }
+
+.chart-toggles { display: flex; gap: 6px; flex-wrap: wrap; margin: 4px 0 10px; }
+.chart-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 600 12px/1 inherit; font-family: inherit;
+  padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  border: 1px solid color-mix(in srgb, var(--c) 30%, transparent);
+  background: transparent; color: inherit; opacity: 0.55;
+}
+.chart-toggle i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); transition: transform 200ms var(--pn-ease-out); }
+.chart-toggle.on { opacity: 1; background: color-mix(in srgb, var(--c) 10%, transparent); }
+.chart-toggle:not(.on) i { transform: scale(0.6); }
+
+.chart-tip {
+  min-width: 160px; padding: 10px 12px; border-radius: 12px;
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 12px 28px -10px rgba(0, 40, 25, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  font-size: 12px; color: #111c2d;
+  animation: pn-tip 140ms var(--pn-ease-out);
+}
+@keyframes pn-tip { from { opacity: 0; transform: scale(0.97); } }
+.chart-tip-label { font-weight: 800; margin-bottom: 6px; text-transform: capitalize; }
+.chart-tip-row { display: flex; align-items: center; gap: 8px; padding: 2px 0; }
+.chart-tip-row strong { margin-left: auto; font-variant-numeric: tabular-nums; }
+.chart-tip-dot { width: 8px; height: 8px; border-radius: 3px; }
+[data-theme='dark'] .chart-tip { background: rgba(23, 27, 23, 0.86); border-color: rgba(255,255,255,0.08); color: #e8eee9; }
+[data-theme='dark'] { --chart-grid: #2b332b; --chart-tick: #a7b0a6; }
+
+/* Donut: centro que cambia con un pequeño fundido, celdas que se destacan */
+.donut-centro { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+.donut-centro strong { font-size: 24px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; animation: pn-centro 220ms var(--pn-ease-out); }
+.donut-centro span { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.7; }
+@keyframes pn-centro { from { opacity: 0; transform: translateY(4px); filter: blur(2px); } }
+.donut-celda { transform-box: view-box; transform-origin: center; transition: opacity 200ms ease, transform 240ms var(--pn-ease-out); cursor: pointer; outline: none; }
+
+.ops-donut-wrap { display: flex; align-items: center; gap: 20px; margin: 12px 0; flex-wrap: wrap; }
+.ops-legend { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 150px; }
+button.ops-legend-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; border: 0; background: transparent; color: inherit; cursor: pointer;
+  font: 600 12px/1.2 inherit; font-family: inherit; text-align: left;
+  padding: 7px 8px; border-radius: 8px;
+  transition: background-color 150ms ease;
+}
+button.ops-legend-row.activo { background: rgba(14, 107, 71, 0.08); }
+.ops-legend-row .ops-dot { display: inline-block; width: 12px; height: 12px; border-radius: 4px; margin-right: 8px; }
+.ops-legend-row strong { font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ops-kpis > *, .op-kpi-grid > *, .ops-hero, .ops-grid-8-4 > *, .ops-grid-2 > *, .ops-content > .ops-card,
+  .op-panel, .dash-chart, .ops-feed > *, .ops-bar i, .donut-centro strong, .chart-tip {
+    animation: pn-fundido 200ms ease both; animation-delay: 0ms;
+  }
+  @keyframes pn-fundido { from { opacity: 0; } }
+  .ops-kpi:hover, .op-kpi-card:hover { transform: none; }
+}

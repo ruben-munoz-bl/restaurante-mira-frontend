@@ -1,179 +1,163 @@
-/** Charts SVG del panel ops — sin dependencias, con tooltip al pasar el ratón. */
+/** Charts del panel ops — Recharts con tooltips de cristal, series conmutables y sectores activos. */
 import { useState } from 'react';
+import {
+  ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell, ReferenceLine,
+} from 'recharts';
 
 const VERDE = '#0e6b47';
-const VERDE_CLARO = '#006d37';
-const AZUL = '#004393';
+const AZUL = '#2d6fd8';
+const ORO = '#c9a227';
 
-function puntosSerie(serie, getY, w, h, pad) {
-  const vals = serie.map(getY);
-  const max = Math.max(1, ...vals);
-  const n = serie.length;
-  const x = (i) => pad + (i * (w - pad * 2)) / Math.max(1, n - 1);
-  const y = (v) => h - pad - (v / max) * (h - pad * 2);
-  return { x, y, max };
+const fmtEur = (v) => `${Number(v || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+
+/** Tooltip compartido (también lo usa el panel de restaurante). */
+export function GlassTooltip({ active, payload, label, unidades = {} }) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="chart-tip">
+      <div className="chart-tip-label">{label}</div>
+      {payload.map((p) => (
+        <div className="chart-tip-row" key={p.dataKey}>
+          <span className="chart-tip-dot" style={{ background: p.color || p.payload?.color }} />
+          <span>{p.name}</span>
+          <strong>{unidades[p.dataKey] === '€' ? fmtEur(p.value) : `${Number(p.value).toLocaleString('es-ES')}${unidades[p.dataKey] ? ` ${unidades[p.dataKey]}` : ''}`}</strong>
+        </div>
+      ))}
+    </div>
+  );
 }
 
-function curvaSuave(pts) {
-  if (pts.length < 2) return '';
-  let d = `M${pts[0][0]},${pts[0][1]}`;
-  for (let i = 1; i < pts.length; i++) {
-    const [x0, y0] = pts[i - 1];
-    const [x1, y1] = pts[i];
-    const mx = (x0 + x1) / 2;
-    d += ` C${mx},${y0} ${mx},${y1} ${x1},${y1}`;
-  }
-  return d;
+/** Píldoras que encienden/apagan series. */
+export function SerieToggles({ series, visibles, onToggle }) {
+  return (
+    <div className="chart-toggles" role="group" aria-label="Series visibles">
+      {series.map((s) => (
+        <button key={s.key} type="button" aria-pressed={visibles[s.key]} className={`chart-toggle ${visibles[s.key] ? 'on' : ''}`}
+          style={{ '--c': s.color }} onClick={() => onToggle(s.key)}>
+          <i />{s.nombre}
+        </button>
+      ))}
+    </div>
+  );
 }
 
-/** Evolución: reservas (línea) + comisiones (área). Granularidad Días/Meses/Horas. */
-export function OpsLineChart({ serie, modo = 'dias', height = 260 }) {
-  const [hover, setHover] = useState(null);
-  const w = 800;
-  const h = 240;
-  const pad = 12;
+/** Evolución: reservas (área) + comisiones (línea, eje derecho). Granularidad Días/Meses. */
+export function OpsLineChart({ serie, modo = 'dias', height = 280 }) {
+  const [vis, setVis] = useState({ reservas: true, pax: false, comisiones: true });
   if (!serie?.length) return <p className="ops-empty">Sin datos todavía.</p>;
-
-  let datos = serie;
-  let etiquetas = serie.map((s) => s.etiqueta);
-  if (modo === 'meses') {
-    const porMes = {};
-    serie.forEach((s) => {
-      const k = s.fecha.slice(0, 7);
-      if (!porMes[k]) porMes[k] = { fecha: k, etiqueta: k.slice(5), reservas: 0, comisiones: 0 };
-      porMes[k].reservas += s.reservas;
-      porMes[k].comisiones = Math.round((porMes[k].comisiones + s.comisiones) * 100) / 100;
-    });
-    datos = Object.values(porMes);
-    etiquetas = datos.map((d) => d.etiqueta);
-  }
   if (modo === 'horas') {
     return <p className="ops-empty">La vista por horas usa los slots de reserva (13–15h y 20–22h) en la sección Reservas.</p>;
   }
 
-  const { x, y } = puntosSerie(datos, (d) => d.reservas, w, h, pad);
-  const { y: yC } = puntosSerie(datos, (d) => d.comisiones, w, h, pad);
-  const ptsR = datos.map((d, i) => [x(i), y(d.reservas)]);
-  const ptsC = datos.map((d, i) => [x(i), yC(d.comisiones)]);
-  const area = `${curvaSuave(ptsR)} L${x(datos.length - 1)},${h - pad} L${x(0)},${h - pad} Z`;
-  const pico = datos.reduce((m, d, i) => (d.reservas > (datos[m]?.reservas ?? -1) ? i : m), 0);
+  let datos = serie.map((s) => ({ etiqueta: s.etiqueta, reservas: s.reservas, pax: s.pax || 0, comisiones: s.comisiones || 0 }));
+  if (modo === 'meses') {
+    const porMes = {};
+    serie.forEach((s) => {
+      const k = s.fecha.slice(0, 7);
+      if (!porMes[k]) porMes[k] = { etiqueta: k, reservas: 0, pax: 0, comisiones: 0 };
+      porMes[k].reservas += s.reservas;
+      porMes[k].pax += s.pax || 0;
+      porMes[k].comisiones = Math.round((porMes[k].comisiones + (s.comisiones || 0)) * 100) / 100;
+    });
+    datos = Object.values(porMes);
+  }
+  const media = datos.reduce((a, d) => a + d.reservas, 0) / datos.length;
+  const series = [
+    { key: 'reservas', nombre: 'Reservas', color: VERDE },
+    { key: 'pax', nombre: 'Comensales', color: ORO },
+    { key: 'comisiones', nombre: 'Comisión €', color: AZUL },
+  ];
 
   return (
-    <div>
-      <svg viewBox={`0 0 ${w} ${h}`} style={{ width: '100%', height, overflow: 'visible' }} role="img" aria-label="Evolución de reservas y comisiones">
-        <defs>
-          <linearGradient id="opsArea" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={VERDE} stopOpacity="0.32" />
-            <stop offset="100%" stopColor={VERDE} stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        {[40, 100, 160].map((gy) => (
-          <line key={gy} x1="0" x2={w} y1={gy} y2={gy} stroke="#d8e3fb" strokeDasharray="4 4" strokeWidth="1" />
-        ))}
-        <path d={area} fill="url(#opsArea)" />
-        <path d={curvaSuave(ptsC)} fill="none" stroke={AZUL} strokeDasharray="2 2" strokeWidth="2" opacity="0.6" />
-        <path d={curvaSuave(ptsR)} fill="none" stroke={VERDE} strokeWidth="3.5" strokeLinecap="round" />
-        <circle cx={x(pico)} cy={y(datos[pico].reservas)} r="5" fill={VERDE} stroke="#fff" strokeWidth="2" />
-        {datos.map((d, i) => (
-          <rect
-            key={d.fecha}
-            x={x(i) - (w / Math.max(1, datos.length)) / 2}
-            y="0"
-            width={w / Math.max(1, datos.length)}
-            height={h}
-            fill="transparent"
-            onMouseEnter={() => setHover(i)}
-            onMouseLeave={() => setHover(null)}
-          />
-        ))}
-        {hover != null && datos[hover] && (
-          <g pointerEvents="none">
-            <line x1={x(hover)} x2={x(hover)} y1="0" y2={h} stroke={VERDE} strokeDasharray="3 3" strokeWidth="1" />
-            <circle cx={x(hover)} cy={y(datos[hover].reservas)} r="5" fill={VERDE} stroke="#fff" strokeWidth="2" />
-          </g>
-        )}
-      </svg>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-        <div className="ops-xlabels" style={{ flex: 1 }}>
-          {etiquetas.filter((_, i) => i % Math.ceil(etiquetas.length / 8) === 0).map((e) => (
-            <span key={e}>{e}</span>
-          ))}
-        </div>
-      </div>
-      {hover != null && datos[hover] && (
-        <p className="ops-muted" aria-live="polite" style={{ margin: '6px 0 0' }}>
-          <strong>{datos[hover].etiqueta}</strong> · {datos[hover].reservas} reservas · {datos[hover].pax ?? '—'} pax ·{' '}
-          {Number(datos[hover].comisiones).toFixed(2)} € com. real.
-        </p>
-      )}
+    <div className="chart-anim">
+      <SerieToggles series={series} visibles={vis} onToggle={(k) => setVis((v) => ({ ...v, [k]: !v[k] }))} />
+      <ResponsiveContainer width="100%" height={height}>
+        <ComposedChart data={datos} margin={{ top: 10, right: 4, left: -18, bottom: 0 }}>
+          <defs>
+            <linearGradient id="opsGradR" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={VERDE} stopOpacity={0.35} />
+              <stop offset="100%" stopColor={VERDE} stopOpacity={0} />
+            </linearGradient>
+            <linearGradient id="opsGradP" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={ORO} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={ORO} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid vertical={false} stroke="var(--chart-grid, #e3e9f5)" strokeDasharray="4 4" />
+          <XAxis dataKey="etiqueta" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--chart-tick, #6f7a72)' }} minTickGap={16} />
+          <YAxis yAxisId="izq" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--chart-tick, #6f7a72)' }} allowDecimals={false} />
+          <YAxis yAxisId="der" orientation="right" hide />
+          <Tooltip content={<GlassTooltip unidades={{ comisiones: '€', pax: 'pax' }} />} cursor={{ stroke: VERDE, strokeDasharray: '3 3', strokeOpacity: 0.5 }} />
+          {vis.reservas && <ReferenceLine yAxisId="izq" y={media} stroke={VERDE} strokeOpacity={0.35} strokeDasharray="2 4" label={{ value: 'media', position: 'insideTopRight', fontSize: 10, fill: VERDE }} />}
+          {vis.pax && <Area yAxisId="izq" type="monotone" dataKey="pax" name="Comensales" stroke={ORO} strokeWidth={2} fill="url(#opsGradP)" animationDuration={900} activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} />}
+          {vis.reservas && <Area yAxisId="izq" type="monotone" dataKey="reservas" name="Reservas" stroke={VERDE} strokeWidth={3} fill="url(#opsGradR)" animationDuration={900} activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }} />}
+          {vis.comisiones && <Line yAxisId="der" type="monotone" dataKey="comisiones" name="Comisión" stroke={AZUL} strokeWidth={2} strokeDasharray="5 4" dot={false} animationDuration={1100} activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} />}
+        </ComposedChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
-/** Donut de distribución (p. ej. por estado). */
+/** Donut interactivo: el sector y la fila de leyenda se resaltan juntos. */
 export function OpsDonut({ segmentos, centro, centroSub }) {
-  const total = segmentos.reduce((s, x) => s + x.valor, 0);
+  const [activo, setActivo] = useState(null);
+  const datos = segmentos.filter((s) => s.valor > 0);
+  const total = datos.reduce((s, x) => s + x.valor, 0);
   if (!total) return <p className="ops-empty">Sin datos todavía.</p>;
-  let acc = 0;
-  const R = 15.915;
+  const sel = activo != null ? datos[activo] : null;
+
   return (
     <div className="ops-donut-wrap">
-      <div style={{ position: 'relative', width: 144, height: 144, flexShrink: 0 }}>
-        <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }}>
-          <circle cx="18" cy="18" r={R} fill="none" stroke="#e7eeff" strokeWidth="4" />
-          {segmentos.map((s) => {
-            const frac = (s.valor / total) * 100;
-            const el = (
-              <circle
-                key={s.nombre}
-                cx="18"
-                cy="18"
-                r={R}
-                fill="none"
-                stroke={s.color}
-                strokeWidth="4"
-                strokeDasharray={`${frac}, 100`}
-                strokeDashoffset={-acc}
-              />
-            );
-            acc += frac;
-            return el;
-          })}
-        </svg>
-        <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <strong style={{ fontSize: 20, fontVariantNumeric: 'tabular-nums' }}>{centro}</strong>
-          <span style={{ fontSize: 11, color: 'var(--ops-on-variant)', textTransform: 'uppercase' }}>{centroSub}</span>
+      <div style={{ position: 'relative', width: 170, height: 170, flexShrink: 0 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie data={datos} dataKey="valor" nameKey="nombre" innerRadius={52} outerRadius={70} paddingAngle={3} cornerRadius={4}
+              stroke="none" rootTabIndex={-1}
+              onMouseEnter={(_, i) => setActivo(i)} onMouseLeave={() => setActivo(null)}
+              animationDuration={900} animationBegin={100}>
+              {datos.map((s, i) => (
+                <Cell key={s.nombre} fill={s.color} className="donut-celda"
+                  style={{ opacity: activo == null || activo === i ? 1 : 0.28, transform: activo === i ? 'scale(1.06)' : 'scale(1)' }} />
+              ))}
+            </Pie>
+          </PieChart>
+        </ResponsiveContainer>
+        <div className="donut-centro">
+          <strong key={sel?.nombre || 'total'}>{sel ? `${Math.round((sel.valor / total) * 100)}%` : centro}</strong>
+          <span>{sel ? sel.nombre : centroSub}</span>
         </div>
       </div>
       <div className="ops-legend">
-        {segmentos.map((s) => (
-          <div className="ops-legend-row" key={s.nombre}>
+        {datos.map((s, i) => (
+          <button type="button" className={`ops-legend-row ${activo === i ? 'activo' : ''}`} key={s.nombre}
+            onMouseEnter={() => setActivo(i)} onMouseLeave={() => setActivo(null)} onFocus={() => setActivo(i)} onBlur={() => setActivo(null)}>
             <span style={{ display: 'flex', alignItems: 'center' }}>
               <span className="ops-dot" style={{ background: s.color }} />
               {s.nombre}
             </span>
-            <strong>{Math.round((s.valor / total) * 100)}%</strong>
-          </div>
+            <strong>{s.valor} · {Math.round((s.valor / total) * 100)}%</strong>
+          </button>
         ))}
       </div>
     </div>
   );
 }
 
-/** Barras horizontales (p. ej. ocupación por servicio). */
+/** Barras horizontales (p. ej. ocupación por servicio) que crecen al montarse. */
 export function OpsHBars({ filas }) {
   if (!filas?.length) return <p className="ops-empty">Sin datos todavía.</p>;
   const max = Math.max(1, ...filas.map((f) => f.valor));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      {filas.map((f) => (
-        <div key={f.nombre}>
+      {filas.map((f, i) => (
+        <div key={f.nombre} className="ops-hbar" title={f.texto}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
             <span>{f.nombre}</span>
             <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{f.texto}</strong>
           </div>
           <div className="ops-bar" style={{ height: 8, marginTop: 0 }}>
-            <i className={f.clase || ''} style={{ width: `${Math.round((f.valor / max) * 100)}%` }} />
+            <i className={f.clase || ''} style={{ width: `${Math.round((f.valor / max) * 100)}%`, animationDelay: `${150 + i * 80}ms` }} />
           </div>
         </div>
       ))}

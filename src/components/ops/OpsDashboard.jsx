@@ -1,9 +1,11 @@
 /** OpsDashboard — vista "Dashboard General" (la de la imagen), con datos reales. */
 import { useEffect, useState } from 'react';
-import { getOpsOverview, nombreRestauranteDe, descargarCSV, csvReservas, mensajeErrorFirestore } from './opsData.js';
+import { getOpsOverview, nombreRestauranteDe, mensajeErrorFirestore } from './opsData.js';
 import { OpsLineChart, OpsDonut, OpsHBars } from './OpsCharts.jsx';
 import { resolverIncidencia } from '../../services/incidenciaApi.js';
 import { aprobarNegocio, rechazarNegocio } from '../../services/negocioApi.js';
+import DocumentoFiscal from '../fiscal/DocumentoFiscal.jsx';
+import CountUp from './CountUp.jsx';
 
 function euros(n) {
   return `${Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -26,6 +28,7 @@ export default function OpsDashboard() {
   const [error, setError] = useState('');
   const [granularidad, setGranularidad] = useState('dias');
   const [resolviendo, setResolviendo] = useState('');
+  const [documento, setDocumento] = useState(null);
 
   useEffect(() => {
     let vivo = true;
@@ -109,6 +112,11 @@ export default function OpsDashboard() {
   return (
     <>
       {error && <p className="ops-error" role="alert">{error}</p>}
+      {documento && (
+        <DocumentoFiscal tipo={documento} comisionPct={comisionPct}
+          restaurante={documento === 'factura' ? { nombre: top[0]?.nombre || 'Can Solé', ciudad: 'Barcelona' } : null}
+          onClose={() => setDocumento(null)} />
+      )}
       {avisos.length > 0 && (
         <p className="ops-error" role="alert">
           Sin permiso de lectura en: {avisos.join(', ')}. Se muestra el resto con datos reales.
@@ -125,10 +133,10 @@ export default function OpsDashboard() {
           <p>Visión global en tiempo real de reservas, comisiones reales y estado de la red gastronómica.</p>
         </div>
         <div className="ops-actions">
-          <button type="button" className="ops-btn soft" onClick={() => { const c = csvReservas(feed); descargarCSV('facturas.csv', c.cabeceras, c.filas); }}>
+          <button type="button" className="ops-btn soft" onClick={() => setDocumento('factura')}>
             <span className="material-symbols-outlined">download</span>Descargar Facturas
           </button>
-          <button type="button" className="ops-btn soft" onClick={() => { const c = csvReservas(feed); descargarCSV('reporte-fiscal.csv', c.cabeceras, c.filas); }}>
+          <button type="button" className="ops-btn soft" onClick={() => setDocumento('fiscal')}>
             <span className="material-symbols-outlined">file_present</span>Exportar Reporte Fiscal
           </button>
         </div>
@@ -141,7 +149,7 @@ export default function OpsDashboard() {
             <span className="ops-kpi-label">Ingresos brutos (tickets)</span>
             <span className="material-symbols-outlined ops-kpi-icon">euro</span>
           </div>
-          <div className="ops-kpi-value">€{euros(facturacionTotal)}</div>
+          <div className="ops-kpi-value">€<CountUp valor={facturacionTotal} decimales={2} /></div>
           <div className="ops-kpi-trend"><span className="ops-pill">{ticketsTotal} tickets</span></div>
           <div className="ops-kpi-sub"><span>Ticket medio</span><strong>€{euros(ticketPromedio)}</strong></div>
           <div className="ops-bar"><i style={{ width: ticketsTotal ? '100%' : '0%' }} /></div>
@@ -151,7 +159,7 @@ export default function OpsDashboard() {
             <span className="ops-kpi-label">Comisión MIRA (real)</span>
             <span className="material-symbols-outlined ops-kpi-icon">receipt_long</span>
           </div>
-          <div className="ops-kpi-value">€{euros(comisionTotal)}</div>
+          <div className="ops-kpi-value">€<CountUp valor={comisionTotal} decimales={2} /></div>
           <div className="ops-kpi-trend"><span className="ops-pill">{comisionPct}% base</span></div>
           <div className="ops-kpi-sub"><span>Media comensal</span><strong>€{euros(mediaComensal)}</strong></div>
           <div className="ops-bar"><i style={{ width: facturacionTotal ? '100%' : '0%' }} /></div>
@@ -161,7 +169,7 @@ export default function OpsDashboard() {
             <span className="ops-kpi-label">Reservas Globales</span>
             <span className="material-symbols-outlined ops-kpi-icon green">event_available</span>
           </div>
-          <div className="ops-kpi-value">{kpis.reservasTotal.toLocaleString('es-ES')}</div>
+          <div className="ops-kpi-value"><CountUp valor={kpis.reservasTotal} /></div>
           <div className="ops-kpi-trend"><span className="ops-pill">{kpis.asistenciaPct}% asistencia</span></div>
           <div className="ops-kpi-sub"><span>Tasa asistencia</span><strong>{kpis.asistenciaPct}%</strong></div>
           <div className="ops-bar"><i style={{ width: `${Math.min(100, kpis.asistenciaPct)}%` }} /></div>
@@ -171,7 +179,7 @@ export default function OpsDashboard() {
             <span className="ops-kpi-label">Restaurantes Activos</span>
             <span className="material-symbols-outlined ops-kpi-icon blue">storefront</span>
           </div>
-          <div className="ops-kpi-value">{kpis.restaurantesActivos.toLocaleString('es-ES')} <small>locales</small></div>
+          <div className="ops-kpi-value"><CountUp valor={kpis.restaurantesActivos} /> <small>locales</small></div>
           <div className="ops-kpi-trend"><span className="ops-pill info">{altas7d} altas 7d</span></div>
           <div className="ops-kpi-sub"><span>Cubiertos 14 días</span><strong>{totalPax.toLocaleString('es-ES')} pax</strong></div>
           <div className="ops-bar"><i className="blue" style={{ width: kpis.restaurantesActivos ? '100%' : '0%' }} /></div>
@@ -191,7 +199,7 @@ export default function OpsDashboard() {
             <span className="ops-kpi-label">Comunidad MIRA</span>
             <span className="material-symbols-outlined ops-kpi-icon green">loyalty</span>
           </div>
-          <div className="ops-kpi-value">{kpis.usuariosTotal.toLocaleString('es-ES')} <small>users</small></div>
+          <div className="ops-kpi-value"><CountUp valor={kpis.usuariosTotal} /> <small>users</small></div>
           <div className="ops-kpi-trend"><span className="ops-pill info">puntos MIRA</span></div>
           <div className="ops-kpi-sub"><span>Comensales</span><strong>red activa</strong></div>
           <div className="ops-bar"><i style={{ width: kpis.usuariosTotal ? '100%' : '0%' }} /></div>
