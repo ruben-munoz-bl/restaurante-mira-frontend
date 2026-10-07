@@ -11,7 +11,13 @@ import OpsRestaurantes from './OpsRestaurantes.jsx';
 import OpsFinanzas from './OpsFinanzas.jsx';
 import OpsUsuarios from './OpsUsuarios.jsx';
 import OpsAjustes from './OpsAjustes.jsx';
+import { crearOverviewSimulado } from './opsDemo.js';
 import '../../styles/ops.css';
+
+const CLAVE_SIM = 'mira:ops-simulado';
+function leerSimulado() {
+  try { return localStorage.getItem(CLAVE_SIM) !== 'no'; } catch { return true; }
+}
 
 const SECCIONES = [
   { id: 'dashboard', nombre: 'Dashboard General', icono: 'dashboard' },
@@ -29,9 +35,19 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
   const [busqueda, setBusqueda] = useState('');
   const [criticas, setCriticas] = useState(0);
   const [sidebarFija, setSidebarFija] = useState(false);
+  const [simulado, setSimulado] = useState(leerSimulado);
+  const [demo] = useState(crearOverviewSimulado);
+
+  function cambiarSimulado() {
+    setSimulado((v) => {
+      try { localStorage.setItem(CLAVE_SIM, v ? 'no' : 'si'); } catch { /* sin almacenamiento */ }
+      return !v;
+    });
+  }
 
   useEffect(() => {
     if (!esAdmin) return;
+    if (simulado) { setCriticas(demo.kpis.criticas); return; }
     let vivo = true;
     import('../../services/incidenciaApi.js').then(({ listarPendientes }) =>
       listarPendientes()
@@ -42,7 +58,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
         .catch(() => {}),
     );
     return () => { vivo = false; };
-  }, [esAdmin]);
+  }, [esAdmin, simulado, demo]);
 
   if (!usuario?.uid) {
     window.location.hash = '#/login';
@@ -151,6 +167,11 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
               />
             </div>
             <div className="ops-header-spacer" />
+            <button type="button" role="switch" aria-checked={simulado} className={`ops-sim-switch${simulado ? ' on' : ''}`}
+              onClick={cambiarSimulado} title="Muestra cifras simuladas en Dashboard y Finanzas (sin consultas)">
+              <span className="ops-sim-track"><i /></span>
+              <span className="hide-m">Datos de presentación</span>
+            </button>
             <div className="ops-select hide-m">
               <span className="material-symbols-outlined">calendar_today</span>
               <select aria-label="Periodo">
@@ -180,10 +201,10 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
           </header>
 
           <main className="ops-content">
-            {seccion === 'dashboard' && <OpsDashboard usuario={usuario} todos={todos} />}
+            {seccion === 'dashboard' && <OpsDashboard key={simulado ? 'sim' : 'real'} usuario={usuario} todos={todos} demo={simulado ? demo : null} />}
             {seccion === 'restaurantes' && <OpsRestaurantes />}
             {seccion === 'reservas' && <OpsReservas busquedaInicial={busqueda} />}
-            {seccion === 'finanzas' && <OpsFinanzas />}
+            {seccion === 'finanzas' && <OpsFinanzas key={simulado ? 'sim' : 'real'} demo={simulado ? demo : null} />}
             {seccion === 'incidencias' && <OpsIncidencias />}
             {seccion === 'usuarios' && <OpsUsuarios />}
             {seccion === 'ajustes' && <OpsAjustes usuario={usuario} tema={tema} onCambiarTema={onCambiarTema} />}

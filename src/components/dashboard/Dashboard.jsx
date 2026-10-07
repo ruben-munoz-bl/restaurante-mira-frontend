@@ -29,9 +29,14 @@ function pct(v){ return `${(Number(v)||0).toFixed(1)}%`; }
 const isPendienteLocal = (s)=> ['pendiente','confirmada','activa','en_mesa','en mesa'].includes(String(s||'').toLowerCase());
 const isCanceladaLocal = (s)=> String(s||'').toLowerCase()==='cancelada';
 
-export default function Dashboard({ usuario, esAdmin, perfil }) {
+export default function Dashboard(props) {
+  // El admin no tiene panel de restaurante: se le lleva al suyo (antes de montar hooks).
+  if (props.esAdmin) { window.location.hash = '#/admin'; return null; }
+  return <DashboardRestaurante {...props} />;
+}
+
+function DashboardRestaurante({ usuario, perfil }) {
   const t = useT(TRADS);
-  if (esAdmin) { window.location.hash = '#/admin'; return null; }
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

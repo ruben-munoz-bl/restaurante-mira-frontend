@@ -124,3 +124,17 @@ button.ops-legend-row.activo { background: rgba(14, 107, 71, 0.08); }
   @keyframes pn-fundido { from { opacity: 0; } }
   .ops-kpi:hover, .op-kpi-card:hover { transform: none; }
 }
+
+/* Interruptor «Datos de presentación» del header del panel admin */
+.ops-sim-switch {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--ops-outline-variant, #bec9c0); background: var(--ops-surface-lowest, #fff); color: inherit;
+  font: 600 12px/1 inherit; font-family: inherit; padding: 6px 12px 6px 6px; border-radius: 999px; cursor: pointer;
+  transition: transform 160ms var(--pn-ease-out), border-color 160ms ease;
+}
+.ops-sim-switch:active { transform: scale(0.97); }
+.ops-sim-track { position: relative; width: 30px; height: 18px; border-radius: 999px; background: var(--ops-surface-highest, #d8e3fb); transition: background-color 200ms ease; }
+.ops-sim-track i { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,0.2); transition: transform 220ms var(--pn-ease-out); }
+.ops-sim-switch.on { border-color: var(--ops-primary-container, #0e6b47); }
+.ops-sim-switch.on .ops-sim-track { background: var(--ops-primary-container, #0e6b47); }
+.ops-sim-switch.on .ops-sim-track i { transform: translateX(12px); }

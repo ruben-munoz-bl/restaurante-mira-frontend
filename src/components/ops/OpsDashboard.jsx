@@ -43,7 +43,9 @@ export default function OpsDashboard({ demo = null }) {
     setError('');
     setResolviendo(item.id);
     try {
-      if (item.kind === 'negocio') {
+      if (demo) {
+        // modo presentación: no se toca la base de datos
+      } else if (item.kind === 'negocio') {
         await aprobarNegocio(item.id);
       } else {
         await resolverIncidencia(item.id);
@@ -64,7 +66,7 @@ export default function OpsDashboard({ demo = null }) {
     setError('');
     setResolviendo(item.id);
     try {
-      await rechazarNegocio(item.id);
+      if (!demo) await rechazarNegocio(item.id);
       setDatos((prev) => ({
         ...prev,
         incidenciasPreview: prev.incidenciasPreview.filter((x) => x.id !== item.id),
@@ -213,7 +215,7 @@ export default function OpsDashboard({ demo = null }) {
           <div className="ops-card-head">
             <div>
               <h2>Evolución de Comisiones y Facturación Bruta</h2>
-              <p className="ops-card-sub">Comida (13–15h) y cena (20–22h) · últimos 14 días · datos reales de tickets</p>
+              <p className="ops-card-sub">Comida (13–15h) y cena (20–22h) · últimos 14 días · {demo ? 'datos de presentación' : 'datos reales de tickets'}</p>
             </div>
             <div className="ops-seg" role="tablist" aria-label="Granularidad">
               {['horas', 'dias', 'meses'].map((g) => (
@@ -238,7 +240,7 @@ export default function OpsDashboard({ demo = null }) {
               <div className="ops-metric-value">{kpis.asistenciaPct}%</div>
             </div>
           </div>
-          <OpsLineChart serie={serie} modo={granularidad} />
+          <OpsLineChart serie={serie} serieMeses={datos.serieMeses} modo={granularidad} />
         </div>
         <div className="ops-card">
           <div className="ops-card-head">
@@ -248,7 +250,7 @@ export default function OpsDashboard({ demo = null }) {
             </div>
             <span className="material-symbols-outlined" style={{ color: 'var(--ops-outline)' }}>devices</span>
           </div>
-          <OpsDonut segmentos={estadosDonut} centro={kpis.reservasTotal} centroSub="PAX" />
+          <OpsDonut segmentos={estadosDonut} centro={kpis.reservasTotal} centroSub="reservas" />
           <div style={{ background: 'var(--ops-surface-low)', borderRadius: 8, padding: '12px 14px', marginTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700 }}>
               <span style={{ color: 'var(--ops-on-variant)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ocupación por servicio (7 días)</span>

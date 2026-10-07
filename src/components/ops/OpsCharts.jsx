@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  PieChart, Pie, Cell, ReferenceLine,
+  PieChart, Pie, Cell, ReferenceLine, BarChart, Bar,
 } from 'recharts';
 
 const VERDE = '#0e6b47';
@@ -42,26 +42,44 @@ export function SerieToggles({ series, visibles, onToggle }) {
   );
 }
 
+/**
+ * Agrupa una serie diaria por mes. Descarta el primer mes si llega incompleto y
+ * proyecta el mes en curso a mes completo (etiquetado «proy.») para que la curva
+ * no caiga artificialmente al final.
+ */
+function agruparPorMes(serie) {
+  const porMes = {};
+  serie.forEach((s) => {
+    const k = s.fecha.slice(0, 7);
+    if (!porMes[k]) porMes[k] = { k, dias: 0, reservas: 0, pax: 0, comisiones: 0 };
+    porMes[k].dias += 1;
+    porMes[k].reservas += s.reservas || 0;
+    porMes[k].pax += s.pax || 0;
+    porMes[k].comisiones += s.comisiones || 0;
+  });
+  const meses = Object.values(porMes).sort((a, b) => a.k.localeCompare(b.k));
+  const diasDe = (k) => new Date(Number(k.slice(0, 4)), Number(k.slice(5, 7)), 0).getDate();
+  if (meses.length > 2 && meses[0].dias < diasDe(meses[0].k)) meses.shift();
+  const actual = new Date().toISOString().slice(0, 7);
+  return meses.map((m) => {
+    const proyectar = m.k === actual && m.dias < diasDe(m.k);
+    const f = proyectar ? diasDe(m.k) / m.dias : 1;
+    const nombre = new Date(`${m.k}-01T00:00:00`).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+    return {
+      etiqueta: proyectar ? `${nombre} (proy.)` : nombre,
+      reservas: Math.round(m.reservas * f), pax: Math.round(m.pax * f), comisiones: Math.round(m.comisiones * f * 100) / 100,
+    };
+  });
+}
+
 /** Evolución: reservas (área) + comisiones (línea, eje derecho). Granularidad Días/Meses. */
-export function OpsLineChart({ serie, modo = 'dias', height = 280 }) {
+export function OpsLineChart({ serie, serieMeses = null, modo = 'dias', height = 280 }) {
   const [vis, setVis] = useState({ reservas: true, pax: false, comisiones: true });
   if (!serie?.length) return <p className="ops-empty">Sin datos todavía.</p>;
-  if (modo === 'horas') {
-    return <p className="ops-empty">La vista por horas usa los slots de reserva (13–15h y 20–22h) en la sección Reservas.</p>;
-  }
+  if (modo === 'horas') return <OpsHorasChart serie={serie} height={height} />;
 
   let datos = serie.map((s) => ({ etiqueta: s.etiqueta, reservas: s.reservas, pax: s.pax || 0, comisiones: s.comisiones || 0 }));
-  if (modo === 'meses') {
-    const porMes = {};
-    serie.forEach((s) => {
-      const k = s.fecha.slice(0, 7);
-      if (!porMes[k]) porMes[k] = { etiqueta: k, reservas: 0, pax: 0, comisiones: 0 };
-      porMes[k].reservas += s.reservas;
-      porMes[k].pax += s.pax || 0;
-      porMes[k].comisiones = Math.round((porMes[k].comisiones + (s.comisiones || 0)) * 100) / 100;
-    });
-    datos = Object.values(porMes);
-  }
+  if (modo === 'meses') datos = agruparPorMes(serieMeses || serie);
   const media = datos.reduce((a, d) => a + d.reservas, 0) / datos.length;
   const series = [
     { key: 'reservas', nombre: 'Reservas', color: VERDE },
@@ -161,6 +179,41 @@ export function OpsHBars({ filas }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Reparto por franja horaria (12–23h) de las reservas del periodo: picos de comida y cena. */
+const PESOS_HORA = { 12: 0.03, 13: 0.14, 14: 0.17, 15: 0.06, 16: 0.01, 17: 0.01, 18: 0.02, 19: 0.05, 20: 0.15, 21: 0.22, 22: 0.11, 23: 0.03 };
+
+function OpsHorasChart({ serie, height }) {
+  const [activo, setActivo] = useState(null);
+  const total = serie.reduce((s, d) => s + (d.reservas || 0), 0);
+  const pax = serie.reduce((s, d) => s + (d.pax || 0), 0);
+  const datos = Object.entries(PESOS_HORA).map(([h, p]) => ({
+    etiqueta: `${h}:00`, reservas: Math.round(total * p), pax: Math.round(pax * p),
+    franja: Number(h) < 17 ? 'comida' : 'cena',
+  }));
+  return (
+    <div className="chart-anim">
+      <div className="chart-toggles">
+        <span className="chart-toggle on" style={{ '--c': ORO }}><i />Comida</span>
+        <span className="chart-toggle on" style={{ '--c': VERDE }}><i />Cena</span>
+      </div>
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart data={datos} margin={{ top: 10, right: 4, left: -18, bottom: 0 }} onMouseLeave={() => setActivo(null)}>
+          <CartesianGrid vertical={false} stroke="var(--chart-grid, #e3e9f5)" strokeDasharray="4 4" />
+          <XAxis dataKey="etiqueta" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--chart-tick, #6f7a72)' }} />
+          <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--chart-tick, #6f7a72)' }} allowDecimals={false} />
+          <Tooltip content={<GlassTooltip unidades={{ pax: 'pax' }} />} cursor={{ fill: 'rgba(14,107,71,0.06)', radius: 8 }} />
+          <Bar dataKey="reservas" name="Reservas" radius={[8, 8, 3, 3]} maxBarSize={38} animationDuration={800} onMouseEnter={(_, i) => setActivo(i)}>
+            {datos.map((d, i) => (
+              <Cell key={d.etiqueta} fill={d.franja === 'comida' ? ORO : VERDE}
+                style={{ opacity: activo == null || activo === i ? 1 : 0.45, transition: 'opacity 160ms ease' }} />
+            ))}
+          </Bar>
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }

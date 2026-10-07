@@ -8,49 +8,10 @@ import OpsFinanzas from './OpsFinanzas.jsx';
 import { RevenueLineChart, ReservationsPieChart, RevenueBarChart } from '../dashboard/Charts.jsx';
 import DocumentoFiscal from '../fiscal/DocumentoFiscal.jsx';
 import OpsInformeUsuarios from './OpsInformeUsuarios.jsx';
+import { crearOverviewSimulado } from './opsDemo.js';
 import '../../styles/ops.css';
 
-function crearDemo() {
-  const hoy = new Date();
-  const serie = Array.from({ length: 14 }, (_, i) => {
-    const d = new Date(hoy); d.setDate(hoy.getDate() - 13 + i);
-    const reservas = Math.round(18 + Math.sin(i / 1.6) * 7 + i * 0.8 + (d.getDay() >= 5 ? 9 : 0));
-    const pax = Math.round(reservas * 2.7);
-    const facturacion = Math.round(pax * 34.5 * 100) / 100;
-    return {
-      fecha: d.toISOString().slice(0, 10),
-      etiqueta: d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' }),
-      reservas, pax, facturacion, comisiones: Math.round(facturacion * 0.08 * 100) / 100, tickets: Math.round(reservas * 0.8),
-    };
-  });
-  const sum = (k) => serie.reduce((s, d) => s + d[k], 0);
-  const locales = ['Can Solé', 'La Taverna del Port', 'El Celler de Gràcia', 'Mar i Muntanya', 'Sushi Born'];
-  const clientes = ['Laura Martí', 'Jordi Puig', 'Marta Soler', 'Pau Ferrer', 'Anna Vidal', 'Marc Roca', 'Clara Font', 'Sergi Mas'];
-  const estados = ['confirmada', 'completada', 'pendiente', 'confirmada', 'cancelada', 'completada', 'no_show', 'pendiente'];
-  return {
-    kpis: {
-      facturacionTotal: sum('facturacion'), comisionTotal: sum('comisiones'), mediaComensal: 34.5, comisionPct: 8,
-      ticketPromedio: 93.15, ticketsTotal: sum('tickets'), altas7d: 3, reservasTotal: sum('reservas'), asistenciaPct: 91,
-      restaurantesActivos: 48, incidenciasPendientes: 2, criticas: 1, usuariosTotal: 1284,
-    },
-    serie,
-    porEstado: { confirmada: 182, completada: 96, pendiente: 41, cancelada: 23, no_show: 9 },
-    ocupacion: { comida: { pax: 312 }, cena: { pax: 468 } },
-    incidenciasPreview: [
-      { id: 'd1', kind: 'incidencia', nombreRestaurante: 'Brasa Lleida', motivo: 'Cargo no-show', mensaje: 'El cliente reclama un cargo por no presentarse que asegura haber cancelado a tiempo.', email: 'cliente@demo.es', creado: Date.now() - 42 * 60000 },
-      { id: 'd2', kind: 'negocio', nombre: 'Trattoria Sitges', ciudad: 'Sitges', categorias: ['Italiana', 'Pasta'], email: 'hola@trattoria.demo', creado: Date.now() - 5 * 3600000 },
-    ],
-    top: locales.map((nombre, i) => ({ id: `t${i}`, nombre, paxHoy: 64 - i * 9, comisionHoy: (64 - i * 9) * 34.5 * 0.08, reservasHoy: 22 - i * 3 })),
-    feed: clientes.map((c, i) => ({
-      id: `f${i}abcdef`, codigo: `MR-${48210 + i * 37}`, usuarioNombre: c, restauranteNombre: locales[i % locales.length],
-      fecha: hoy.toISOString().slice(0, 10), hora: i % 2 ? '21:00' : '14:00', comensales: 2 + (i % 4), estado: estados[i],
-      comisionReal: estados[i] === 'completada', comision: (2 + (i % 4)) * 34.5 * 0.08,
-    })),
-    avisos: [],
-  };
-}
-
-const DEMO = crearDemo();
+const DEMO = crearOverviewSimulado();
 const ING_MES = {
   '2026-05': { facturacion: 6120, comisiones: 489.6, tickets: 64 },
   '2026-06': { facturacion: 7480, comisiones: 598.4, tickets: 78 },
