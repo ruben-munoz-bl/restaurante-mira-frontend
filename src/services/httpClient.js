@@ -7,12 +7,17 @@ const BASE_URL = (
   (ENV.PROD ? 'https://mira-api-xveu.onrender.com' : 'http://localhost:3000')
 ).replace(/\/$/, '');
 
+import { registrarPeticion } from './trazaReal.js';
+
+let uidActual = null;
+
 async function getToken() {
   try {
     const { getAuth } = await import('firebase/auth');
     const { getFirebaseApp } = await import('./firebase.js');
     const auth = getAuth(getFirebaseApp());
     const user = auth.currentUser;
+    uidActual = user?.uid || null;
     if (!user) return null;
     return await user.getIdToken();
   } catch {
@@ -45,12 +50,20 @@ export async function apiFetch(path, { method = 'GET', body, headers = {}, auth 
     }
   }
 
-  const res = await fetch(url, {
-    method,
-    headers: finalHeaders,
-    signal,
-    body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
-  });
+  const inicio = Date.now();
+  let res;
+  try {
+    res = await fetch(url, {
+      method,
+      headers: finalHeaders,
+      signal,
+      body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+    });
+  } catch (e) {
+    registrarPeticion({ metodo: method, path, status: 0, ms: Date.now() - inicio, uid: auth ? uidActual : null });
+    throw e;
+  }
+  registrarPeticion({ metodo: method, path, status: res.status, ms: Date.now() - inicio, uid: auth ? uidActual : null });
 
   let data = null;
   const text = await res.text();

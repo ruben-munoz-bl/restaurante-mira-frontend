@@ -1,5 +1,5 @@
 /** OpsUsuarios — comensales: puntos (±) y racha diaria (± días / quitar login de hoy). */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   mensajeErrorFirestore,
   listarUsuarios,
@@ -8,6 +8,36 @@ import {
   deshacerLoginHoy,
 } from './opsData.js';
 import OpsInformeUsuarios from './OpsInformeUsuarios.jsx';
+import OpsTrazabilidadSimulada from './OpsTrazabilidadSimulada.jsx';
+import { generarUsuariosSimulados } from './informeUsuarios.js';
+import { registrarAccionSimulada } from '../../services/trazaReal.js';
+
+const CLAVE_SIM = 'mira:usuarios-simulados';
+function leerConSimulados() {
+  try { return localStorage.getItem(CLAVE_SIM) !== 'no'; } catch { return true; }
+}
+
+/**
+ * Las acciones sobre un usuario simulado se aplican solo en pantalla: su uid
+ * (sim-xxx) no existe en la base de datos, así que nunca se llama a la API.
+ */
+const API_SIMULADA = {
+  abonarPuntos: async (u, n) => {
+    registrarAccionSimulada({ path: '/v1/dashboard/points/add-manual', uid: u.uid });
+    return { nuevoSaldo: Math.max(0, (u.saldoPuntos || 0) + n) };
+  },
+  ajustarRacha: async (u, delta) => {
+    registrarAccionSimulada({ path: '/v1/dashboard/points/racha/delta', uid: u.uid });
+    return { rachaLogin: { dias: Math.max(0, Math.min(7, (u.rachaLoginDias || 0) + delta)), yaReclamado: u.yaReclamadoHoy } };
+  },
+  deshacerLoginHoy: async (u) => {
+    registrarAccionSimulada({ path: '/v1/dashboard/points/racha/unclaim-today', uid: u.uid });
+    return {
+      estabaReclamadoHoy: Boolean(u.yaReclamadoHoy),
+      rachaLogin: { dias: u.yaReclamadoHoy ? Math.max(0, (u.rachaLoginDias || 0) - 1) : (u.rachaLoginDias || 0), yaReclamado: false },
+    };
+  },
+};
 
 export default function OpsUsuarios() {
   const [lista, setLista] = useState([]);
@@ -21,21 +51,36 @@ export default function OpsUsuarios() {
   const [rachaOk, setRachaOk] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [verInforme, setVerInforme] = useState(false);
+  const [verTraza, setVerTraza] = useState(false);
+  const [conSimulados, setConSimulados] = useState(leerConSimulados);
+  const [simulados, setSimulados] = useState(() => generarUsuariosSimulados(100, 2026));
+  const [origen, setOrigen] = useState(''); // '', 'real', 'simulado'
 
   useEffect(() => {
     let vivo = true;
     listarUsuarios()
       .then((u) => { if (vivo) { setLista(u); setCargando(false); } })
-      .catch((e) => { if (vivo) { setError(mensajeErrorFirestore(e, 'usuarios')); setCargando(false); } });
+      .catch((e) => { if (vivo) { if (!e.noSession) setError(mensajeErrorFirestore(e, 'usuarios')); setCargando(false); } });
     return () => { vivo = false; };
   }, []);
 
-  const filtrados = lista.filter((u) =>
-    !q.trim() || [u.nombre, u.email].filter(Boolean).join(' ').toLowerCase().includes(q.trim().toLowerCase()),
+  const todos = useMemo(() => (conSimulados ? [...lista, ...simulados] : lista), [lista, simulados, conSimulados]);
+  const filtrados = todos.filter((u) =>
+    (!origen || (origen === 'simulado') === Boolean(u.simulado))
+    && (!q.trim() || [u.nombre, u.email, u.uid].filter(Boolean).join(' ').toLowerCase().includes(q.trim().toLowerCase())),
   );
+  const nReales = lista.length;
+
+  function cambiarSimulados() {
+    setConSimulados((v) => {
+      try { localStorage.setItem(CLAVE_SIM, v ? 'no' : 'si'); } catch { /* sin almacenamiento */ }
+      return !v;
+    });
+  }
 
   function patchUser(uid, patch) {
     setLista((prev) => prev.map((u) => (u.uid === uid ? { ...u, ...patch } : u)));
+    setSimulados((prev) => prev.map((u) => (u.uid === uid ? { ...u, ...patch } : u)));
     setModal((prev) => (prev && prev.uid === uid ? { ...prev, ...patch } : prev));
   }
 
@@ -57,7 +102,9 @@ export default function OpsUsuarios() {
     setOk('');
     setGuardando(true);
     try {
-      const res = await abonarPuntos(modal.uid, n, motivo.trim() || `Ajuste admin (${n > 0 ? '+' : ''}${n})`);
+      const res = modal.simulado
+        ? await API_SIMULADA.abonarPuntos(modal, n)
+        : await abonarPuntos(modal.uid, n, motivo.trim() || `Ajuste admin (${n > 0 ? '+' : ''}${n})`);
       patchUser(modal.uid, { saldoPuntos: res?.nuevoSaldo ?? (modal.saldoPuntos || 0) + n });
       setOk(`Saldo actualizado: ${res?.nuevoSaldo ?? ((modal.saldoPuntos || 0) + n)} pts`);
       setCant('');
@@ -75,7 +122,7 @@ export default function OpsUsuarios() {
     setOk('');
     setGuardando(true);
     try {
-      const res = await ajustarRacha(modal.uid, delta);
+      const res = modal.simulado ? await API_SIMULADA.ajustarRacha(modal, delta) : await ajustarRacha(modal.uid, delta);
       const dias = res?.rachaLogin?.dias;
       if (typeof dias === 'number') {
         patchUser(modal.uid, { rachaLoginDias: dias, yaReclamadoHoy: Boolean(res.rachaLogin.yaReclamado) });
@@ -95,7 +142,7 @@ export default function OpsUsuarios() {
     setOk('');
     setGuardando(true);
     try {
-      const res = await deshacerLoginHoy(modal.uid);
+      const res = modal.simulado ? await API_SIMULADA.deshacerLoginHoy(modal) : await deshacerLoginHoy(modal.uid);
       const dias = res?.rachaLogin?.dias;
       if (typeof dias === 'number') {
         patchUser(modal.uid, {
@@ -116,22 +163,42 @@ export default function OpsUsuarios() {
 
   return (
     <>
-    {verInforme && <OpsInformeUsuarios lista={lista} />}
+    {verInforme && <OpsInformeUsuarios lista={todos} />}
+    {verTraza && (
+      <div className="ops-card"><OpsTrazabilidadSimulada usuarios={conSimulados ? simulados : []} /></div>
+    )}
     <div className="ops-card">
       <div className="ops-card-head">
         <div>
           <h2>Usuarios &amp; Comensales ({filtrados.length})</h2>
-          <p className="ops-card-sub">Puntos (añadir/restar) y racha diaria de login</p>
+          <p className="ops-card-sub">
+            {nReales} reales{conSimulados ? ` · ${simulados.length} simulados` : ''} · puntos (añadir/restar) y racha diaria de login
+          </p>
         </div>
-        <button type="button" className="ops-btn primary sm" onClick={() => setVerInforme((v) => !v)}>
-          {verInforme ? 'Ocultar informe' : 'Informe y exportar'}
-        </button>
+        <div className="ops-actions">
+          <button type="button" className="ops-btn soft sm" onClick={() => setVerTraza((v) => !v)}>
+            <span className="material-symbols-outlined">timeline</span>{verTraza ? 'Ocultar trazabilidad' : 'Trazabilidad'}
+          </button>
+          <button type="button" className="ops-btn primary sm" onClick={() => setVerInforme((v) => !v)}>
+            {verInforme ? 'Ocultar informe' : 'Informe y exportar'}
+          </button>
+        </div>
       </div>
       {error && <p className="ops-error" role="alert">{error}</p>}
       {ok && <p className="ops-success" role="status">{ok}</p>}
       <div className="ops-toolbar" role="search">
-        <input className="ops-input" type="search" placeholder="Nombre o email…" value={q}
+        <input className="ops-input" type="search" placeholder="Nombre, email o uid (sim-007)…" value={q}
           onChange={(e) => setQ(e.target.value)} style={{ flex: 1, minWidth: 220 }} />
+        {conSimulados && (
+          <select className="ops-input" value={origen} onChange={(e) => setOrigen(e.target.value)} aria-label="Origen">
+            <option value="">Reales y simulados</option>
+            <option value="real">Solo reales</option>
+            <option value="simulado">Solo simulados</option>
+          </select>
+        )}
+        <label className="ops-muted" style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+          <input type="checkbox" checked={conSimulados} onChange={cambiarSimulados} /> Incluir usuarios simulados
+        </label>
       </div>
       {cargando && <p className="ops-empty" role="status">Cargando usuarios…</p>}
       {!cargando && filtrados.length === 0 && <p className="ops-empty">Sin usuarios.</p>}
@@ -140,6 +207,7 @@ export default function OpsUsuarios() {
           <li key={u.uid} className="ops-list-item">
             <div>
               <strong>{u.nombre || '(sin nombre)'}</strong>
+              {' '}<span className={`ops-pill ${u.simulado ? 'warn' : ''}`}>{u.simulado ? 'Simulado' : 'Real'}</span>
               <div className="ops-muted">
                 {u.email} · {u.saldoPuntos || 0} pts · {u.tipo || 'cliente'} · 🔥 {u.rachaLoginDias || 0}d
                 {u.yaReclamadoHoy ? ' · hoy ✓' : ''}
@@ -156,6 +224,9 @@ export default function OpsUsuarios() {
         <div className="ops-modal-overlay" onClick={cerrarModal}>
           <div className="ops-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="ops-user-t">
             <h3 id="ops-user-t">{modal.nombre || modal.email}</h3>
+            {modal.simulado && (
+              <p className="ops-pill warn" style={{ marginBottom: 8 }}>Usuario simulado · los cambios solo se ven aquí, no se guardan en la base de datos</p>
+            )}
             <p className="ops-muted" style={{ marginTop: -4, marginBottom: 12 }}>
               {modal.email} · {modal.saldoPuntos || 0} pts · racha {modal.rachaLoginDias || 0}/7
               {modal.yaReclamadoHoy ? ' · reclamado hoy' : ' · sin reclamar hoy'}
