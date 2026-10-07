@@ -29,6 +29,7 @@ const FILTROS_INICIALES = {
   dia: '',
   franja: '',
   hora: '',
+  servicios: [],
 };
 
 export function useRestaurantController({ dieta = null, accesibilidad = null } = {}) {
@@ -48,6 +49,8 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
   const [seleccionado, setSeleccionado] = useState(null); // Restaurant | null (modal detalle)
   const [libro, setLibro] = useState(null); // Restaurant | null (modal carta libro)
   const [ignorarDieta, setIgnorarDieta] = useState(false); // ver todo igual (solo sesión)
+  // Accesibilidad: incluir también locales con dato ESTIMADO (no verificado). Solo sesión.
+  const [incluirEstimados, setIncluirEstimados] = useState(false);
   const reqId = useRef(0); // evita que una carga vieja pise a la nueva
   const cargandoRef = useRef(false); // evita doble tanda si el centinela dispara 2 veces
 
@@ -194,9 +197,16 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
   const filtrados = useMemo(() => {
     const dietaEfectiva = ignorarDieta ? null : dieta;
     const accEfectiva = ignorarDieta ? null : accesibilidad;
-    const base = filterRestaurants(conDistancia, { ...filtros, dieta: dietaEfectiva, accesibilidad: accEfectiva });
+    const base = filterRestaurants(conDistancia, { ...filtros, dieta: dietaEfectiva, accesibilidad: accEfectiva, incluirEstimados });
     return sortRestaurants(base, filtros.orden);
-  }, [conDistancia, filtros, dieta, accesibilidad, ignorarDieta]);
+  }, [conDistancia, filtros, dieta, accesibilidad, ignorarDieta, incluirEstimados]);
+
+  // Cuántos locales más aparecerían aceptando accesibilidad estimada («posiblemente aptos»).
+  const posiblesAptos = useMemo(() => {
+    if (!accesibilidadActiva(accesibilidad) || ignorarDieta || incluirEstimados) return 0;
+    const conEstimados = filterRestaurants(conDistancia, { ...filtros, dieta: ignorarDieta ? null : dieta, accesibilidad, incluirEstimados: true });
+    return Math.max(0, conEstimados.length - filtrados.length);
+  }, [conDistancia, filtros, dieta, accesibilidad, ignorarDieta, incluirEstimados, filtrados.length]);
 
   // Lo que se pinta: SIEMPRE de 27 en 27 (con o sin filtros).
   const visibles = useMemo(
@@ -228,7 +238,8 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     filtros.orden !== 'Relevancia' ||
     filtros.dia !== '' ||
     filtros.franja !== '' ||
-    filtros.hora !== '';
+    filtros.hora !== '' ||
+    filtros.servicios.length > 0;
 
   return {
     filtros,
@@ -250,6 +261,9 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     libro,
     ocultosDieta,
     ignorarDieta,
+    incluirEstimados,
+    setIncluirEstimados,
+    posiblesAptos,
     hayFiltrosActivos,
     actualizarFiltro,
     elegirCocina,

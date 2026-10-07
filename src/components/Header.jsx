@@ -3,6 +3,7 @@
  * En móvil el menú colapsa tras el botón hamburguesa (estado solo visual).
  */
 import { useEffect, useState } from 'react';
+import '../styles/logo.css';
 import { useT, useI18n } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -15,6 +16,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
   const { lang, cycleLang, available } = useI18n();
   const [abierto, setAbierto] = useState(false);
   const [oculto, setOculto] = useState(false);
+  const [compacto, setCompacto] = useState(() => window.scrollY > 40);
   const [loadingStreak, setLoadingStreak] = useState(false);
 
   useEffect(() => {
@@ -55,6 +57,22 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
     return () => window.removeEventListener('scroll', alDesplazar);
   }, [abierto]);
 
+  // Logo: palabra completa arriba del todo; monograma «M●» en cuanto se hace scroll.
+  useEffect(() => {
+    let turno = false;
+    function alDesplazar() {
+      if (turno) return;
+      turno = true;
+      requestAnimationFrame(() => {
+        setCompacto(window.scrollY > 40);
+        turno = false;
+      });
+    }
+    alDesplazar();
+    window.addEventListener('scroll', alDesplazar, { passive: true });
+    return () => window.removeEventListener('scroll', alDesplazar);
+  }, []);
+
   function cerrar() {
     setAbierto(false);
   }
@@ -82,8 +100,20 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
 
   return (
     <header className={`site-header${oculto ? ' oculto' : ''}`}>
-      <a href="#/" className="logo logo-imagen" aria-label="MIRA - inicio" onClick={cerrar}>
-        <img src="/logo.png" alt="MIRA" />
+      <a
+        href="#/"
+        className={`logo logo-imagen logo-mira${compacto ? ' compacto' : ''}`}
+        aria-label="MIRA - inicio"
+        onClick={cerrar}
+      >
+        {/* Letras reales para poder plegarlas al hacer scroll (como el logo de Anthropic). */}
+        <span className="lm-letra lm-m" aria-hidden="true">M</span>
+        <span className="lm-i" aria-hidden="true">
+          <span className="lm-palo" />
+          <span className="lm-punto" />
+        </span>
+        <span className="lm-plegable" style={{ '--orden': 1 }} aria-hidden="true">R</span>
+        <span className="lm-plegable" style={{ '--orden': 0 }} aria-hidden="true">A</span>
       </a>
       <button
         type="button"
@@ -117,7 +147,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
       <div id="menu-movil" className={`header-menu${abierto ? ' abierto' : ''}`}>
         <nav aria-label={t('nav.navegacion')} onClick={cerrar}>
           <ul className="nav-list">
-            <li><a href="#inicio">{t('nav.descubrir')}</a></li>
+            <li><a href="#/descubrir">{t('nav.descubrir')}</a></li>
             <li><a href="#/mapa">{t('nav.mapa')}</a></li>
             <li><a href="#/reservas">{t('nav.reservas')}</a></li>
             <li><a href="#/contacto">{t('nav.contacto')}</a></li>

@@ -1,0 +1,144 @@
+/* Documento fiscal simulado (factura / reporte). Namespace .fx-* */
+.fx-overlay {
+  --fx-verde: #0e6b47;
+  --fx-verde-osc: #005134;
+  --fx-menta: #e3f6ec;
+  --fx-tinta: #111c2d;
+  --fx-gris: #5d6862;
+  --fx-linea: #e4e9f2;
+  --fx-papel: #ffffff;
+  --fx-fondo: #f6f8fc;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+
+  position: fixed; inset: 0; z-index: 2000;
+  display: grid; place-items: start center;
+  overflow-y: auto; padding: 32px 16px;
+  background: rgba(10, 20, 15, 0.42);
+  backdrop-filter: blur(6px);
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+  color: var(--fx-tinta);
+  animation: fx-fundido 200ms ease-out both;
+}
+@keyframes fx-fundido { from { opacity: 0; } }
+
+.fx-hoja {
+  width: min(960px, 100%);
+  animation: fx-entra 320ms var(--ease-out) both;
+}
+@keyframes fx-entra { from { opacity: 0; transform: translateY(16px) scale(0.98); } }
+
+.fx-barra {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.fx-sim {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: #fff; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25);
+  padding: 5px 10px; border-radius: 999px;
+}
+.fx-barra-acciones { display: flex; gap: 8px; }
+.fx-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 0; border-radius: 10px; padding: 9px 14px; cursor: pointer;
+  font: 600 13px/1 inherit; font-family: inherit;
+  background: #fff; color: var(--fx-tinta);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  transition: transform 160ms var(--ease-out), background-color 160ms ease;
+}
+.fx-btn .material-symbols-outlined { font-size: 18px; }
+.fx-btn.primario { background: var(--fx-verde); color: #fff; }
+.fx-btn.icono { padding: 9px; }
+.fx-btn:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) {
+  .fx-btn:hover { background: #f0f3f8; }
+  .fx-btn.primario:hover { background: var(--fx-verde-osc); }
+}
+
+.fx-papel {
+  background: var(--fx-papel);
+  border-radius: 18px;
+  padding: clamp(20px, 4vw, 44px);
+  box-shadow: 0 30px 60px -20px rgba(0, 40, 25, 0.35), 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+.fx-cabecera { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding-bottom: 24px; border-bottom: 2px solid var(--fx-tinta); }
+.fx-logo { font-size: 30px; font-weight: 800; letter-spacing: -0.04em; color: var(--fx-verde); display: flex; align-items: flex-end; gap: 4px; }
+.fx-logo i { width: 9px; height: 9px; border-radius: 50%; background: #c9a227; margin-bottom: 8px; }
+.fx-mini { font-size: 12px; color: var(--fx-gris); margin: 6px 0 0; line-height: 1.5; }
+.fx-titulo { text-align: right; }
+.fx-titulo h2 { font-family: inherit; color: var(--fx-tinta); margin: 4px 0 0; font-size: 22px; font-weight: 800; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.fx-etiqueta { display: inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fx-verde); background: var(--fx-menta); padding: 4px 10px; border-radius: 999px; }
+
+.fx-partes, .fx-resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 24px 0; }
+.fx-parte, .fx-resumen > div { background: var(--fx-fondo); border-radius: 12px; padding: 14px 16px; }
+.fx-parte span, .fx-resumen span { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--fx-gris); }
+.fx-parte strong, .fx-resumen strong { display: block; margin-top: 4px; font-size: 15px; font-variant-numeric: tabular-nums; }
+.fx-parte p { margin: 4px 0 0; font-size: 12px; color: var(--fx-gris); line-height: 1.5; }
+.fx-resumen strong { font-size: 18px; letter-spacing: -0.01em; }
+.fx-resumen .acento { background: var(--fx-verde); color: #fff; }
+.fx-resumen .acento span { color: rgba(255,255,255,0.75); }
+
+.fx-tabla-wrap { overflow-x: auto; border: 1px solid var(--fx-linea); border-radius: 14px; }
+.fx-tabla { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 640px; }
+.fx-tabla th {
+  text-align: left; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--fx-gris); background: var(--fx-fondo); padding: 11px 14px; border-bottom: 1px solid var(--fx-linea);
+  position: sticky; top: 0;
+}
+.fx-tabla td { padding: 11px 14px; border-bottom: 1px solid var(--fx-linea); vertical-align: middle; }
+.fx-tabla tbody tr { animation: fx-fila 360ms var(--ease-out) both; animation-delay: calc(var(--i, 0) * 30ms + 120ms); transition: background-color 150ms ease; }
+@keyframes fx-fila { from { opacity: 0; transform: translateY(6px); } }
+.fx-tabla tbody tr:nth-child(even) { background: #fbfcfe; }
+@media (hover: hover) and (pointer: fine) { .fx-tabla tbody tr:hover { background: var(--fx-menta); } }
+.fx-tabla tbody tr:last-child td { border-bottom: 0; }
+.fx-tabla .n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-tabla .mono { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fx-tabla .tenue { color: var(--fx-gris); }
+.fx-tabla .fuerte { font-weight: 700; }
+.fx-tabla .verde { color: var(--fx-verde); }
+.fx-tabla tfoot td { font-weight: 800; background: var(--fx-tinta); color: #fff; border: 0; }
+.fx-sub { display: block; font-size: 11.5px; color: var(--fx-gris); }
+.fx-barrita { display: block; height: 4px; width: 120px; margin-top: 6px; border-radius: 999px; background: var(--fx-linea); overflow: hidden; }
+.fx-barrita i { display: block; height: 100%; width: 100%; border-radius: inherit; background: var(--fx-verde); transform-origin: left; transform: scaleX(var(--w, 0)); animation: fx-barra 700ms var(--ease-out) both 300ms; }
+@keyframes fx-barra { from { transform: scaleX(0); } }
+
+.fx-chip { display: inline-block; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #fff4d6; color: #7a5b00; }
+.fx-chip.noche { background: #e5ecff; color: #1f3f8f; }
+
+.fx-cierre { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; flex-wrap: wrap; margin-top: 24px; }
+.fx-nota { max-width: 380px; font-size: 13px; color: var(--fx-gris); }
+.fx-nota strong { color: var(--fx-tinta); }
+.fx-nota p { margin: 4px 0 0; line-height: 1.55; }
+.fx-totales { margin: 0; min-width: 280px; }
+.fx-totales div { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed var(--fx-linea); font-variant-numeric: tabular-nums; }
+.fx-totales dt { color: var(--fx-gris); }
+.fx-totales dd { margin: 0; font-weight: 700; }
+.fx-totales .total { border: 0; margin-top: 6px; padding: 14px 16px; border-radius: 12px; background: var(--fx-verde); color: #fff; }
+.fx-totales .total dt { color: rgba(255,255,255,0.8); font-weight: 600; }
+.fx-totales .total dd { font-size: 20px; font-weight: 800; }
+
+.fx-modelos { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 24px; }
+.fx-modelo { display: flex; align-items: center; gap: 12px; border: 1px solid var(--fx-linea); border-radius: 12px; padding: 12px 14px; }
+.fx-modelo > div { flex: 1; }
+.fx-modelo strong { font-size: 13px; }
+.fx-modelo p { margin: 2px 0 0; font-size: 12px; color: var(--fx-gris); font-variant-numeric: tabular-nums; }
+.fx-modelo-cod { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 10px; background: var(--fx-tinta); color: #fff; font-weight: 800; font-size: 13px; }
+.fx-estado { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--fx-fondo); color: var(--fx-gris); }
+.fx-estado.ok { background: var(--fx-menta); color: var(--fx-verde); }
+
+.fx-pie { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--fx-linea); font-size: 11px; color: var(--fx-gris); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-overlay, .fx-hoja, .fx-tabla tbody tr, .fx-barrita i { animation-duration: 1ms; animation-delay: 0ms; }
+}
+
+/* Impresión: solo el papel */
+@media print {
+  body.fx-abierto > *:not(.fx-overlay) { display: none !important; }
+  .fx-overlay { position: static; background: none; backdrop-filter: none; padding: 0; overflow: visible; }
+  .fx-barra { display: none; }
+  .fx-papel { box-shadow: none; border-radius: 0; padding: 0; }
+  .fx-tabla tbody tr, .fx-hoja { animation: none; }
+  .fx-tabla-wrap { overflow: visible; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

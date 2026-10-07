@@ -26,10 +26,12 @@ import Contacto from './components/Contacto.jsx';
 import Reservas from './components/Reservas.jsx';
 import Admin from './components/Admin.jsx';
 import OpsPanel from './components/ops/OpsPanel.jsx';
+import DemoPaneles from './components/ops/DemoPaneles.jsx';
 import Negocio from './components/Negocio.jsx';
 import Favoritos from './components/Favoritos.jsx';
 import Mensajes from './components/Mensajes.jsx';
 import Mapa from './components/Mapa.jsx';
+import Descubrir from './components/Descubrir.jsx';
 import Privacidad from './components/Privacidad.jsx';
 import LibroCarta from './components/LibroCarta.jsx';
 import PromoBanner from './components/PromoBanner.jsx';
@@ -54,6 +56,8 @@ import { enviarContacto } from './services/contactoApi.js';
 import { proponerNegocio } from './services/negocioApi.js';
 import useDailyLogin from './hooks/useDailyLogin.js';
 import './App.css';
+import './styles/motion.css';
+import './styles/paneles.css';
 import { I18nProvider } from './i18n/index.jsx';
 
 function baseHash() {
@@ -72,10 +76,12 @@ function rutaActual() {
   if (h === '#/contacto') return 'contacto';
   if (h === '#/reservas') return 'reservas';
   if (h === '#/admin') return 'admin';
+  if (h === '#/demo-paneles') return 'demoPaneles';
   if (h === '#/negocio') return 'negocio';
   if (h === '#/favoritos') return 'favoritos';
   if (h === '#/mensajes') return 'mensajes';
   if (h === '#/mapa') return 'mapa';
+  if (h === '#/descubrir') return 'descubrir';
   if (h === '#/privacidad') return 'privacidad';
   if (h === '#/puntos') return 'puntos';
   if (h === '#/puntos/historial') return 'historialPuntos';
@@ -264,6 +270,9 @@ function AppContent({ auth, tema, setTema }) {
     libro,
     ocultosDieta,
     ignorarDieta,
+    incluirEstimados,
+    setIncluirEstimados,
+    posiblesAptos,
     hayFiltrosActivos,
     actualizarFiltro,
     limpiarFiltros,
@@ -372,7 +381,7 @@ function AppContent({ auth, tema, setTema }) {
         Saltar al buscador
       </a>
       <Header usuario={usuario} esAdmin={esAdmin} perfil={perfil} numFavoritos={favoritos.length} noLeidos={noLeidos} puntosSaldo={puntosSaldo} tema={tema} onCambiarTema={() => setTema((t) => (t === 'oscuro' ? 'claro' : 'oscuro'))} onSalir={salir} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
-      <main>
+      <main key={ruta} className="ruta">
         {usuario && !usuario.emailVerified && ruta !== 'login' && ruta !== 'registro' && ruta !== 'recuperar' && ruta !== 'restablecer' && (
           <div className="aviso-email" role="alert" style={{ background: 'var(--naranja)', color: '#fff', padding: '0.7rem 1rem', textAlign: 'center', fontSize: '0.9rem', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
             <span>Tu correo no está verificado.</span>
@@ -388,6 +397,7 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'cuenta' && <Cuenta usuario={usuario} esAdmin={esAdmin} perfil={perfil} dieta={dieta} guardarDieta={guardarDieta} accesibilidad={accesibilidad} guardarAccesibilidad={guardarAccesibilidad} onSalir={salir} onEnviarVerificacion={enviarVerificacionEmail} onRecargarEmailVerified={recargarEmailVerified} />}
         {ruta === 'contacto' && <Contacto usuario={usuario} onEnviar={enviarContacto} />}
         {ruta === 'reservas' && <Reservas usuario={usuario} esAdmin={esAdmin} />}
+        {ruta === 'demoPaneles' && <DemoPaneles />}
         {ruta === 'admin' && <OpsPanel usuario={usuario} esAdmin={esAdmin} perfil={perfil} tema={tema} onCambiarTema={() => setTema((v) => (v === 'oscuro' ? 'claro' : 'oscuro'))} todos={todos} />}
         {ruta === 'dashboard' && <Dashboard usuario={usuario} esAdmin={esAdmin} perfil={perfil} />}
         {ruta === 'negocio' && <Negocio usuario={usuario} perfil={perfil} onProponer={proponerNegocio} />}
@@ -408,6 +418,15 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'historialPuntos' && <HistorialPuntos usuario={usuario} />}
         {ruta === 'invitar' && <Invitar />}
         {ruta === 'ticket' && <TicketPage />}
+        {ruta === 'descubrir' && (
+          <Descubrir
+            todos={todos}
+            onSelect={abrirDetalle}
+            esFavorito={esFavorito}
+            onToggleFavorito={toggleFavorito}
+            onVerCarta={abrirCarta}
+          />
+        )}
         {ruta === 'mapa' && <Mapa todos={todos} total={total} onVerDetalle={abrirDetalle} />}
         {ruta === 'home' && (
           <>
@@ -458,6 +477,16 @@ function AppContent({ auth, tema, setTema }) {
                         <a href="#/cuenta">{t('lista.cambiarCuenta')}</a> ·{' '}
                         <button type="button" className="btn-texto" onClick={verTodosIgual}>
                           {t('lista.verTodos')}
+                        </button>
+                      </p>
+                    )}
+                    {(posiblesAptos > 0 || incluirEstimados) && (
+                      <p className="aviso aviso-estimado">
+                        {incluirEstimados
+                          ? t('lista.incluyendoEstimados')
+                          : t('lista.posiblesAptos', { n: posiblesAptos })}{' '}
+                        <button type="button" className="btn-texto" onClick={() => setIncluirEstimados((v) => !v)}>
+                          {incluirEstimados ? t('lista.soloVerificados') : t('lista.verPosiblesAptos')}
                         </button>
                       </p>
                     )}

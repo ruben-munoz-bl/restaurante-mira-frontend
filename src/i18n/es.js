@@ -27,6 +27,13 @@ export default {
     "cifras": "La guía en cifras"
   },
   "busqueda": {
+    "servicios": "Servicios",
+    "servicio": {
+      "menuInfantil": "Menú infantil",
+      "tronas": "Tronas",
+      "terraza": "Terraza",
+      "entornoTranquilo": "Tranquilo"
+    },
     "titulo": "Busca tu sitio",
     "placeholder": "Buscar por nombre",
     "mostrarFiltros": "Mostrar filtros",
@@ -75,6 +82,10 @@ export default {
     "disponible": "Disponible"
   },
   "lista": {
+    "posiblesAptos": "Hay {{n}} locales más posiblemente aptos según una estimación automática (no verificada).",
+    "incluyendoEstimados": "Mostrando también locales con accesibilidad estimada, no verificada.",
+    "soloVerificados": "Ver solo verificados",
+    "verPosiblesAptos": "Ver posiblemente aptos",
     "noResultados": "No se encontraron restaurantes",
     "sinResultados": "Sin resultados para \"{{q}}\". Prueba con otro nombre o ajusta los filtros.",
     "pruebaOtra": "Prueba con otra zona, cocina, precio, día u hora.",
@@ -319,6 +330,29 @@ export default {
     "cancelada": "Cancelada"
   },
   "detail": {
+    "verMasResenas": "Ver {{n}} reseñas más",
+    "estimado": "Estimado",
+    "estimadoAyuda": "Dato estimado automáticamente a partir de la categoría, el precio y las opiniones del local. Confírmalo con el restaurante.",
+    "servicios": "Servicios",
+    "ubicacion": "Ubicación y parkings",
+    "platosDestacados": "Platos destacados",
+    "abrirCarta": "Abrir la carta completa",
+    "hoy": "Hoy",
+    "manana": "Mañana",
+    "otraFecha": "Otra fecha",
+    "comida": "Comida",
+    "cena": "Cena",
+    "personas": "Personas",
+    "menos": "Menos",
+    "mas": "Más",
+    "anadirComentario": "Añadir comentario",
+    "resumen": "{{fecha}} · {{hora}} · {{n}} pers.",
+    "basadoEn": "Basado en {{n}} opiniones",
+    "llamar": "Llamar",
+    "fuenteMira": "MIRA",
+    "fuenteYelp": "Yelp",
+    "escribeResena": "Escribe tu reseña",
+    "elegirFecha": "Elige el día",
     "si": "Sí",
     "no": "No",
     "sinInfo": "Sin información",
@@ -569,6 +603,8 @@ export default {
     "contactoInfo": "hola@mira.ejemplo — 910 123 456"
   },
   "parkings": {
+    "comoLlegar": "Cómo llegar",
+    "accesible": "Accesible",
     "titulo": "Parkings cercanos",
     "sinParkings": "Sin parkings a 500 m",
     "gratis": "Gratis",
@@ -854,5 +890,21 @@ export default {
     "maximo": "Has alcanzado el emblema Michelin.",
     "multiplicador": "Multiplicador",
     "multiplicadorValor": "{{multi}}"
+  },
+  "descubrir": {
+    "eyebrowSeccion": "Top MIRA",
+    "titulo": "Los mejor valorados",
+    "cargando": "Preparando el vuelo por los mejores restaurantes…",
+    "error": "No se han podido cargar los restaurantes. Inténtalo de nuevo más tarde.",
+    "vueloAria": "Recorrido con scroll por los restaurantes mejor valorados",
+    "eyebrow": "Top MIRA · Nº 1",
+    "puesto": "Top MIRA · Nº {{n}}",
+    "verFicha": "Ver ficha y reservar",
+    "pista": "Haz scroll para recorrer",
+    "ranking": "Ranking de restaurantes",
+    "destacadosEyebrow": "Selección MIRA",
+    "destacadosTitulo": "Restaurantes destacados",
+    "destacadosSub": "Locales con nota de {{nota}} o más, ordenados por valoración y número de opiniones.",
+    "verTodos": "Ver todos los restaurantes"
   }
 }

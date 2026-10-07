@@ -1,0 +1,252 @@
+/* ===== Capa de diseño y movimiento (se carga la última) =====
+   Curvas suaves y consistentes, entradas escalonadas, aparición al hacer scroll
+   y micro-interacciones. Todo se desactiva con «reducir movimiento». */
+
+:root {
+  --ease-suave: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+html { scroll-behavior: smooth; }
+
+/* ── Cambio de página: la vista nueva entra con un fundido corto ── */
+.ruta {
+  animation: ruta-entra 0.5s var(--ease-expo) both;
+}
+@keyframes ruta-entra {
+  from { opacity: 0; translate: 0 14px; }
+  to { opacity: 1; translate: 0 0; }
+}
+
+/* ── Hero: imagen con movimiento lento (Ken Burns) y texto escalonado ── */
+.hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: min(80svh, 720px);
+  background: var(--verde-oscuro);
+  padding-block: 6rem 7rem;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: -4%;
+  z-index: -2;
+  background: url('/hero-dining.jpg') center / cover no-repeat;
+  animation: hero-camara 24s ease-in-out infinite alternate;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    linear-gradient(0deg, var(--fondo) 0%, color-mix(in srgb, var(--fondo) 60%, transparent) 10%, transparent 30%),
+    radial-gradient(900px 500px at 15% 40%, rgba(0, 20, 14, 0.75), transparent 70%),
+    linear-gradient(100deg, rgba(0, 22, 15, 0.9) 0%, rgba(0, 34, 24, 0.55) 50%, rgba(0, 34, 24, 0.2) 100%);
+}
+@keyframes hero-camara {
+  from { transform: scale(1) translate3d(0, 0, 0); }
+  to { transform: scale(1.1) translate3d(-1.5%, -1%, 0); }
+}
+
+.hero h1 { letter-spacing: -0.02em; }
+.hero-palabra {
+  display: inline-block;
+  animation: hero-palabra 0.9s var(--ease-expo) both;
+  animation-delay: calc(var(--i, 0) * 70ms + 120ms);
+}
+@keyframes hero-palabra {
+  from { opacity: 0; translate: 0 0.6em; filter: blur(6px); }
+  to { opacity: 1; translate: 0 0; filter: blur(0); }
+}
+.hero-sub,
+.hero-contenido > .btn-cta,
+.hero-stats {
+  animation: subir 0.8s var(--ease-expo) both;
+}
+.hero-sub { animation-delay: 0.45s; }
+.hero-contenido > .btn-cta { animation-delay: 0.58s; }
+.hero-stats { animation-delay: 0.7s; }
+@keyframes subir {
+  from { opacity: 0; translate: 0 18px; }
+  to { opacity: 1; translate: 0 0; }
+}
+.hero-stats li {
+  transition: background 0.3s ease, border-color 0.3s ease, translate 0.3s var(--ease-suave);
+}
+.hero-stats li:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(254, 214, 91, 0.45);
+  translate: 0 -2px;
+}
+.hero-stats strong { color: var(--estrella); }
+
+/* Indicador para bajar */
+.hero-bajar {
+  position: absolute;
+  left: 50%;
+  bottom: 2.2rem;
+  translate: -50% 0;
+  width: 28px;
+  height: 44px;
+  border-radius: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+  animation: subir 0.8s var(--ease-expo) 1s both;
+}
+.hero-bajar::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 8px;
+  width: 4px;
+  height: 8px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--estrella);
+  animation: rueda 1.8s ease-in-out infinite;
+}
+@keyframes rueda {
+  0% { translate: 0 0; opacity: 1; }
+  70% { translate: 0 14px; opacity: 0; }
+  100% { opacity: 0; }
+}
+
+/* ── Botones ── */
+.btn-cta {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--primary-container) 82%, #fff), var(--primary-container));
+  box-shadow: 0 6px 18px -6px rgba(22, 56, 44, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.35s var(--ease-suave), box-shadow 0.35s var(--ease-suave), background 0.3s ease;
+}
+/* Destello que cruza el botón al pasar el ratón */
+.btn-cta::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.28) 50%, transparent 70%);
+  translate: -120% 0;
+  transition: translate 0.7s var(--ease-expo);
+}
+.btn-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px -8px rgba(22, 56, 44, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.btn-cta:hover::after { translate: 120% 0; }
+.btn-cta:active { transform: translateY(0) scale(0.97); transition-duration: 0.12s; }
+.btn-cta:focus-visible { outline: 3px solid color-mix(in srgb, var(--estrella) 80%, transparent); outline-offset: 3px; }
+.hero .btn-cta {
+  background: linear-gradient(180deg, #fee68f, var(--estrella));
+  color: #1b1500;
+  box-shadow: 0 10px 30px -8px rgba(254, 214, 91, 0.55);
+}
+
+.btn-secundario,
+.chip,
+.btn-texto {
+  transition: transform 0.3s var(--ease-suave), background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+.btn-secundario:active,
+.chip:active { transform: scale(0.97); }
+
+/* ── Tarjetas de restaurante ── */
+.card {
+  transition: transform 0.5s var(--ease-suave), box-shadow 0.5s var(--ease-suave), border-color 0.3s ease;
+}
+.card:hover { transform: translateY(-6px); }
+.card:active { transform: translateY(-2px) scale(0.99); transition-duration: 0.15s; }
+.card-foto { transition: transform 1s var(--ease-expo); }
+.card:hover .card-foto { transform: scale(1.07); }
+/* Velo de luz sobre la foto al pasar el ratón */
+.card-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 55%, rgba(0, 22, 15, 0.35));
+  opacity: 0.6;
+  transition: opacity 0.5s ease;
+}
+.card:hover .card-media::after { opacity: 1; }
+
+.card-fav { transition: transform 0.35s var(--ease-suave), background 0.25s ease; }
+.card-fav:hover { transform: scale(1.1); }
+.card-fav:active { transform: scale(0.85); }
+.card-fav-activo { animation: latido 0.45s var(--ease-suave); }
+@keyframes latido {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+/* ── Formularios ── */
+.campo input,
+.campo select,
+.campo textarea {
+  transition: border-color 0.25s ease, box-shadow 0.3s var(--ease-suave), background 0.25s ease;
+}
+.campo input:focus,
+.campo select:focus,
+.campo textarea:focus {
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary-container) 14%, transparent);
+}
+
+/* ── Modales ── */
+.modal-fondo { animation: fundido 0.3s ease both; }
+.modal { animation: modal-entra 0.55s var(--ease-expo) both; }
+@keyframes fundido { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-entra {
+  from { opacity: 0; translate: 0 28px; scale: 0.97; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+.modal-cerrar { transition: transform 0.35s var(--ease-suave), background 0.25s ease; }
+.modal-cerrar:hover { transform: rotate(90deg); }
+
+/* ── Aparición al hacer scroll (sin JS, en navegadores con scroll-timeline) ──
+   Se usan `translate`/`scale` sueltos para no pisar los `transform` del hover. */
+@supports (animation-timeline: view()) {
+  .grid > .card,
+  .grid > li,
+  .buscar-titulo,
+  .promo-item,
+  .dsc-destacados-titulo,
+  .site-footer .footer-col {
+    animation: revelar linear both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 55%;
+  }
+}
+@keyframes revelar {
+  from { opacity: 0; translate: 0 32px; scale: 0.98; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+
+/* ── Respeto a «reducir movimiento» ── */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .ruta,
+  .hero::before,
+  .hero-palabra,
+  .hero-sub,
+  .hero-contenido > .btn-cta,
+  .hero-stats,
+  .hero-bajar,
+  .hero-bajar::after,
+  .modal,
+  .modal-fondo,
+  .card-fav-activo,
+  .grid > .card,
+  .grid > li,
+  .buscar-titulo,
+  .promo-item,
+  .dsc-destacados-titulo,
+  .site-footer .footer-col {
+    animation: none !important;
+  }
+  .card:hover,
+  .card:hover .card-foto,
+  .btn-cta:hover { transform: none; }
+}

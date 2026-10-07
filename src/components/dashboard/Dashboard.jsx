@@ -9,6 +9,7 @@ import { CIUDADES_CATALUNA } from "../../models/restaurantModel.js";
 import es from "../../i18n/es.js";
 import ca from "../../i18n/ca.js";
 import en from "../../i18n/en.js";
+import DocumentoFiscal from "../fiscal/DocumentoFiscal.jsx";
 import "./dashboard.css";
 
 const TRADS = { es, ca, en };
@@ -35,6 +36,7 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [documento, setDocumento] = useState(null);
   const [noRestaurant, setNoRestaurant] = useState(false);
   const [pendingNegocio, setPendingNegocio] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -432,7 +434,9 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
             </div>
             <div className="op-topbar-actions">
               <button className="op-btn-primary" onClick={()=> setShowTicketModal(true)}><span className="material-symbols-outlined" style={{fontSize:16}}>cloud_upload</span> Cargar Tickets &amp; Facturación</button>
-              <button className="op-btn-ghost" onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:16}}>download</span> Exportar Liquidación</button>
+              <button className="op-btn-ghost" onClick={()=> setDocumento('factura')}><span className="material-symbols-outlined" style={{fontSize:16}}>receipt_long</span> Factura</button>
+              <button className="op-btn-ghost" onClick={()=> setDocumento('fiscal')}><span className="material-symbols-outlined" style={{fontSize:16}}>file_present</span> Reporte Fiscal</button>
+              <button className="op-btn-ghost" onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:16}}>download</span> CSV</button>
               <button className="op-btn-ghost" onClick={()=> setShowFicha(v=>!v)}><span className="material-symbols-outlined" style={{fontSize:16}}>storefront</span> Ficha</button>
             </div>
           </div>
@@ -778,6 +782,10 @@ export default function Dashboard({ usuario, esAdmin, perfil }) {
             </div>
           </div>
         </div>
+      )}
+
+      {documento && (
+        <DocumentoFiscal tipo={documento} restaurante={data?.restaurante} comisionPct={comisionPct} onClose={()=> setDocumento(null)} />
       )}
 
       {showHistorial && (

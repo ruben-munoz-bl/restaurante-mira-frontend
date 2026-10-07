@@ -18,6 +18,7 @@ export default function Footer() {
         <nav className="footer-col" aria-label={t('nav.descubrir')}>
           <h2>{t('nav.descubrir')}</h2>
           <ul>
+            <li><a href="#/descubrir">{t('descubrir.destacadosTitulo')}</a></li>
             <li><a href="#buscar">{t('hero.buscar')}</a></li>
             <li><a href="#/mapa">{t('nav.mapa')}</a></li>
             <li><a href="#/reservas">{t('nav.reservas')}</a></li>

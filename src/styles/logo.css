@@ -1,0 +1,98 @@
+/* Logo MIRA que se pliega al hacer scroll (inspirado en el de anthropic.com):
+   arriba «M ı R A» · al bajar, monograma «M●». Las letras se recogen de derecha a
+   izquierda y se despliegan de izquierda a derecha. */
+
+.logo-imagen.logo-mira {
+  --lm-tinta: #1f2937;
+  --lm-verde: #2f7d50;
+  --lm-dur: 0.5s;
+  --lm-curva: cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  height: 2.3rem;
+  padding: 0 0.95rem;
+  font-family: var(--fuente);
+  font-weight: 700;
+  font-size: 1.05rem;
+  line-height: 1;
+  color: var(--lm-tinta);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: padding var(--lm-dur) var(--lm-curva), box-shadow 0.3s ease;
+}
+.logo-imagen.logo-mira.compacto { padding: 0 0.8rem; }
+.logo-mira:hover { box-shadow: 0 4px 14px rgba(22, 56, 44, 0.18); }
+.logo-mira:focus-visible { outline: 3px solid var(--lm-verde); outline-offset: 3px; }
+
+.lm-letra,
+.lm-plegable {
+  display: inline-block;
+  margin-inline: 0.2em;
+}
+
+/* R y A: se pliegan (ancho → 0) con un pequeño desfase entre ellas. */
+.lm-plegable {
+  max-width: 1.1em;
+  overflow: hidden;
+  opacity: 1;
+  transform: none;
+  transition:
+    max-width var(--lm-dur) var(--lm-curva),
+    margin var(--lm-dur) var(--lm-curva),
+    opacity 0.3s ease,
+    transform var(--lm-dur) var(--lm-curva);
+  /* Al desplegar: primero la R y luego la A. */
+  transition-delay: calc((1 - var(--orden)) * 70ms);
+}
+.compacto .lm-plegable {
+  max-width: 0;
+  margin-inline: 0;
+  opacity: 0;
+  transform: translateX(-0.35em);
+  /* Al plegar: primero la A y luego la R. */
+  transition-delay: calc(var(--orden) * 70ms);
+}
+
+/* La «i»: el trazo se encoge y el punto verde baja hasta el centro → «M●». */
+.lm-i {
+  position: relative;
+  display: inline-block;
+  width: 0.3em;
+  height: 1em;
+  margin-inline: 0.2em;
+  transition: margin var(--lm-dur) var(--lm-curva);
+}
+.lm-palo {
+  position: absolute;
+  left: 50%;
+  bottom: 0.02em;
+  width: 0.14em;
+  height: 0.68em;
+  translate: -50% 0;
+  border-radius: 1px;
+  background: var(--lm-tinta);
+  transform-origin: bottom;
+  transition: transform var(--lm-dur) var(--lm-curva), opacity 0.25s ease;
+}
+.lm-punto {
+  position: absolute;
+  left: 50%;
+  top: -0.12em;
+  width: 0.3em;
+  height: 0.3em;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: var(--lm-verde);
+  transition: transform var(--lm-dur) var(--lm-curva) 60ms;
+}
+.compacto .lm-i { margin-inline: 0.15em 0; }
+.compacto .lm-palo { transform: scaleY(0); opacity: 0; }
+.compacto .lm-punto { transform: translateY(0.47em) scale(1.25); transition-delay: 0s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-mira,
+  .lm-plegable,
+  .lm-i,
+  .lm-palo,
+  .lm-punto { transition-duration: 0.01ms !important; transition-delay: 0s !important; }
+}

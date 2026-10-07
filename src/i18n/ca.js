@@ -27,6 +27,13 @@ export default {
     "cifras": "La guia en xifres"
   },
   "busqueda": {
+    "servicios": "Serveis",
+    "servicio": {
+      "menuInfantil": "Menú infantil",
+      "tronas": "Trones",
+      "terraza": "Terrassa",
+      "entornoTranquilo": "Tranquil"
+    },
     "titulo": "Cerca el teu lloc",
     "placeholder": "Cercar per nom",
     "mostrarFiltros": "Mostrar filtres",
@@ -75,6 +82,10 @@ export default {
     "disponible": "Disponible"
   },
   "lista": {
+    "posiblesAptos": "Hi ha {{n}} locals més possiblement aptes segons una estimació automàtica (no verificada).",
+    "incluyendoEstimados": "Mostrant també locals amb accessibilitat estimada, no verificada.",
+    "soloVerificados": "Veure només verificats",
+    "verPosiblesAptos": "Veure possiblement aptes",
     "noResultados": "No es van trobar restaurants",
     "sinResultados": "Sense resultats per a \"{{q}}\". Prova amb un altre nom o ajusta els filtres.",
     "pruebaOtra": "Prova amb una altra zona, cuina, preu, dia u hora.",
@@ -319,6 +330,29 @@ export default {
     "cancelada": "Cancel·lada"
   },
   "detail": {
+    "verMasResenas": "Veure {{n}} ressenyes més",
+    "estimado": "Estimat",
+    "estimadoAyuda": "Dada estimada automàticament a partir de la categoria, el preu i les opinions del local. Confirma-ho amb el restaurant.",
+    "servicios": "Serveis",
+    "ubicacion": "Ubicació i pàrquings",
+    "platosDestacados": "Plats destacats",
+    "abrirCarta": "Obrir la carta completa",
+    "hoy": "Avui",
+    "manana": "Demà",
+    "otraFecha": "Una altra data",
+    "comida": "Dinar",
+    "cena": "Sopar",
+    "personas": "Persones",
+    "menos": "Menys",
+    "mas": "Més",
+    "anadirComentario": "Afegir comentari",
+    "resumen": "{{fecha}} · {{hora}} · {{n}} pers.",
+    "basadoEn": "Basat en {{n}} opinions",
+    "llamar": "Trucar",
+    "fuenteMira": "MIRA",
+    "fuenteYelp": "Yelp",
+    "escribeResena": "Escriu la teva ressenya",
+    "elegirFecha": "Tria el dia",
     "si": "Sí",
     "no": "No",
     "sinInfo": "Sense informació",
@@ -569,6 +603,8 @@ export default {
     "contactoInfo": "hola@mira.exemple — 910 123 456"
   },
   "parkings": {
+    "comoLlegar": "Com arribar-hi",
+    "accesible": "Accessible",
     "titulo": "Aparcaments propers",
     "sinParkings": "Sense aparcaments a 500 m",
     "gratis": "Gratuït",
@@ -778,5 +814,21 @@ export default {
     "maximo": "Has aconseguit l'emblema Michelin.",
     "multiplicador": "Multiplicador",
     "multiplicadorValor": "{{multi}}"
+  },
+  "descubrir": {
+    "eyebrowSeccion": "Top MIRA",
+    "titulo": "Els més ben valorats",
+    "cargando": "Preparant el vol pels millors restaurants…",
+    "error": "No s'han pogut carregar els restaurants. Torna-ho a provar més tard.",
+    "vueloAria": "Recorregut amb scroll pels restaurants més ben valorats",
+    "eyebrow": "Top MIRA · Núm. 1",
+    "puesto": "Top MIRA · Núm. {{n}}",
+    "verFicha": "Veure fitxa i reservar",
+    "pista": "Fes scroll per recórrer",
+    "ranking": "Rànquing de restaurants",
+    "destacadosEyebrow": "Selecció MIRA",
+    "destacadosTitulo": "Restaurants destacats",
+    "destacadosSub": "Locals amb nota de {{nota}} o més, ordenats per valoració i nombre d'opinions.",
+    "verTodos": "Veure tots els restaurants"
   }
 }
