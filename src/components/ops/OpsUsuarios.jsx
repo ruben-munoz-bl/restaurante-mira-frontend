@@ -7,6 +7,7 @@ import {
   ajustarRacha,
   deshacerLoginHoy,
 } from './opsData.js';
+import OpsInformeUsuarios from './OpsInformeUsuarios.jsx';
 
 export default function OpsUsuarios() {
   const [lista, setLista] = useState([]);
@@ -19,6 +20,7 @@ export default function OpsUsuarios() {
   const [motivo, setMotivo] = useState('');
   const [rachaOk, setRachaOk] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  const [verInforme, setVerInforme] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -113,12 +115,17 @@ export default function OpsUsuarios() {
   }
 
   return (
+    <>
+    {verInforme && <OpsInformeUsuarios lista={lista} />}
     <div className="ops-card">
       <div className="ops-card-head">
         <div>
           <h2>Usuarios &amp; Comensales ({filtrados.length})</h2>
           <p className="ops-card-sub">Puntos (añadir/restar) y racha diaria de login</p>
         </div>
+        <button type="button" className="ops-btn primary sm" onClick={() => setVerInforme((v) => !v)}>
+          {verInforme ? 'Ocultar informe' : 'Informe y exportar'}
+        </button>
       </div>
       {error && <p className="ops-error" role="alert">{error}</p>}
       {ok && <p className="ops-success" role="status">{ok}</p>}
@@ -214,5 +221,6 @@ export default function OpsUsuarios() {
         </div>
       )}
     </div>
+    </>
   );
 }

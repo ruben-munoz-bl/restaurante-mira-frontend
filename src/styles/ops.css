@@ -332,3 +332,48 @@ code.ops-code { font-family: ui-monospace, monospace; font-size: 11px; backgroun
 @media (prefers-reduced-motion: reduce) {
   .ops-shell *, .ops-shell *::before, .ops-shell *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Informe de usuarios ---------- */
+.informe-usuarios { margin-bottom: 16px; }
+.informe-opciones { flex-wrap: wrap; gap: 12px; font-size: 13px; }
+.informe-filtros { flex-wrap: wrap; gap: 8px; }
+.informe-columnas { margin: 8px 0 12px; font-size: 13px; }
+.informe-columnas label { display: inline-block; margin: 4px 12px 0 0; }
+.informe-graficos { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 12px; margin: 12px 0; }
+.informe-graficos figure { margin: 0; padding: 8px; border: 1px solid var(--ops-outline-variant); border-radius: 12px; background: var(--ops-surface-lowest); overflow: hidden; }
+.informe-graficos figcaption { font-size: 13px; font-weight: 600; margin-bottom: 4px; color: var(--ops-on-variant); }
+.informe-tabla-wrap { overflow-x: auto; }
+.informe-tabla { width: 100%; border-collapse: collapse; font-size: 13px; }
+.informe-tabla th, .informe-tabla td { padding: 6px 8px; border-bottom: 1px solid var(--ops-outline-variant); text-align: left; vertical-align: top; }
+.informe-tabla th { background: var(--ops-surface-low); white-space: nowrap; }
+.informe-traza li { margin: 4px 0; color: var(--ops-outline); }
+.informe-traza li.hecho { color: var(--ops-primary); font-weight: 600; }
+.informe-imprimible { display: none; }
+
+@media print {
+  body.imprimiendo-informe * { visibility: hidden; }
+  body.imprimiendo-informe .informe-imprimible,
+  body.imprimiendo-informe .informe-imprimible * { visibility: visible; }
+  body.imprimiendo-informe .informe-imprimible {
+    display: block; position: absolute; inset: 0 auto auto 0; width: 100%;
+    background: #fff; color: #000; font-size: 11px;
+  }
+  .informe-imprimible h1 { font-size: 18px; margin: 0 0 4px; }
+  .informe-imprimible .informe-graficos { grid-template-columns: 1fr 1fr; break-inside: avoid; }
+  .informe-imprimible .informe-graficos figure { break-inside: avoid; }
+  .informe-imprimible .informe-tabla { font-size: 10px; }
+  .informe-imprimible .informe-tabla tr { break-inside: avoid; }
+  .informe-imprimible footer { margin-top: 12px; font-size: 9px; color: #555; }
+  @page { margin: 12mm; }
+}
+
+/* Trazabilidad simulada */
+.informe-seccion { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--ops-outline-variant); }
+.informe-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 8px 0 12px; }
+.informe-kpis > div { padding: 10px 12px; border-radius: 12px; background: var(--ops-surface-low); display: flex; flex-direction: column; }
+.informe-kpis strong { font-size: 22px; color: var(--ops-primary); }
+.informe-kpis span { font-size: 12px; color: var(--ops-on-variant); }
+.informe-bloques { list-style: none; margin: 0; padding: 0; max-height: 190px; overflow-y: auto; font-size: 12px; }
+.informe-bloques li { margin: 4px 0; }
+.informe-error { color: var(--ops-error); font-weight: 600; }
+.informe-json { max-height: 50vh; overflow: auto; font-size: 11px; background: var(--ops-surface-low); padding: 8px; border-radius: 8px; }
