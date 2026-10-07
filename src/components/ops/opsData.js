@@ -65,6 +65,10 @@ export async function listarUsuarios() {
     rachaLoginDias: u.rachaLoginDias || 0,
     ultimoLoginDate: u.ultimoLoginDate || null,
     yaReclamadoHoy: Boolean(u.yaReclamadoHoy),
+    // Para el informe: solo si ya vienen en la respuesta (no se piden aparte).
+    plataforma: u.plataforma || u.origen || u.platform || null,
+    creado: u.creado || u.createdAt || u.fechaAlta || null,
+    preferencias: u.preferencias || null,
   }));
 }
 
