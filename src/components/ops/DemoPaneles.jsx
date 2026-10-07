@@ -7,6 +7,7 @@ import OpsDashboard from './OpsDashboard.jsx';
 import OpsFinanzas from './OpsFinanzas.jsx';
 import { RevenueLineChart, ReservationsPieChart, RevenueBarChart } from '../dashboard/Charts.jsx';
 import DocumentoFiscal from '../fiscal/DocumentoFiscal.jsx';
+import OpsInformeUsuarios from './OpsInformeUsuarios.jsx';
 import '../../styles/ops.css';
 
 function crearDemo() {
@@ -62,7 +63,7 @@ const ING_MES = {
 export default function DemoPaneles() {
   const [vista, setVista] = useState('admin');
   const [documento, setDocumento] = useState(null);
-  const tabs = [['admin', 'Panel admin'], ['finanzas', 'Finanzas'], ['restaurante', 'Panel restaurante']];
+  const tabs = [['admin', 'Panel admin'], ['finanzas', 'Finanzas'], ['restaurante', 'Panel restaurante'], ['clientes', 'Informe clientes']];
 
   return (
     <div className="ops-shell">
@@ -78,6 +79,7 @@ export default function DemoPaneles() {
 
         {vista === 'admin' && <OpsDashboard demo={DEMO} />}
         {vista === 'finanzas' && <OpsFinanzas demo={DEMO} />}
+        {vista === 'clientes' && <OpsInformeUsuarios soloSimulado />}
         {vista === 'restaurante' && (
           <>
             <div className="ops-hero">

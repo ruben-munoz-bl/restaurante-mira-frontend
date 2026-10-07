@@ -67,9 +67,11 @@ function Graficos({ ag, ancho = 340 }) {
   );
 }
 
-export default function OpsInformeUsuarios({ lista }) {
+/** `soloSimulado`: para la demo sin cuenta admin (siempre datos simulados). */
+export default function OpsInformeUsuarios({ lista = [], soloSimulado = false }) {
   const st = useInformeUsuariosStore();
-  const { filtros, columnas, orden, enmascarar, simulado } = st;
+  const { filtros, columnas, orden, enmascarar } = st;
+  const simulado = soloSimulado || st.simulado;
   const [semilla, setSemilla] = useState(2026);
   const [traza, setTraza] = useState(null); // usuario simulado cuya traza se ve
   const [imprimir, setImprimir] = useState(null); // { fecha, filtros, filas, origen }
@@ -129,7 +131,9 @@ export default function OpsInformeUsuarios({ lista }) {
             <label className="ops-muted">hasta <input className="ops-input" type="date" value={filtros.hasta} onChange={(e) => st.setFiltro('hasta', e.target.value)} /></label>
           </div>
           <div className="ops-toolbar informe-opciones">
-            <label><input type="checkbox" checked={simulado} onChange={(e) => st.setPref('simulado', e.target.checked)} /> Datos simulados (100 usuarios)</label>
+            {!soloSimulado && (
+              <label><input type="checkbox" checked={simulado} onChange={(e) => st.setPref('simulado', e.target.checked)} /> Datos simulados (100 usuarios)</label>
+            )}
             {simulado && (
               <button type="button" className="ops-btn soft sm" onClick={() => setSemilla((s) => s + 1)}>Regenerar simulación</button>
             )}
