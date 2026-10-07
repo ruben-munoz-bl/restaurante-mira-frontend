@@ -22,7 +22,7 @@ function antiguedad(ts) {
   return h < 24 ? `hace ${h} h` : `hace ${Math.round(h / 24)} d`;
 }
 
-export default function OpsDashboard() {
+export default function OpsDashboard({ demo = null }) {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
@@ -31,12 +31,13 @@ export default function OpsDashboard() {
   const [documento, setDocumento] = useState(null);
 
   useEffect(() => {
+    if (demo) { setDatos(demo); setCargando(false); return undefined; }
     let vivo = true;
     getOpsOverview()
       .then((d) => { if (vivo) { setDatos(d); setCargando(false); } })
       .catch((e) => { if (vivo) { setError(mensajeErrorFirestore(e, 'reservas')); setCargando(false); } });
     return () => { vivo = false; };
-  }, []);
+  }, [demo]);
 
   async function resolver(item) {
     setError('');

@@ -4,19 +4,20 @@ import { getOpsOverview, mensajeErrorFirestore, nombreRestauranteDe } from './op
 import { OpsLineChart } from './OpsCharts.jsx';
 import DocumentoFiscal from '../fiscal/DocumentoFiscal.jsx';
 
-export default function OpsFinanzas() {
+export default function OpsFinanzas({ demo = null }) {
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState('');
   const [documento, setDocumento] = useState(null);
 
   useEffect(() => {
+    if (demo) { setDatos(demo); setCargando(false); return undefined; }
     let vivo = true;
     getOpsOverview()
       .then((d) => { if (vivo) { setDatos(d); setCargando(false); } })
       .catch((e) => { if (vivo) { setError(mensajeErrorFirestore(e, 'reservas/tickets')); setCargando(false); } });
     return () => { vivo = false; };
-  }, []);
+  }, [demo]);
 
 
   if (cargando) return <div className="ops-card" role="status"><h2>Cargando finanzas…</h2></div>;
