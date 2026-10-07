@@ -3,6 +3,7 @@
  */
 import { api } from './httpClient.js';
 import { imagenParaRestaurante } from '../models/restaurantModel.js';
+import { conServiciosEstimados } from '../models/serviciosEstimados.js';
 
 /** Restaurantes por tanda en la portada (scroll infinito). */
 export const TAMANO_PAGINA = 27;
@@ -27,6 +28,10 @@ function extraerCoords(d) {
 }
 
 function mapearDoc(id, d) {
+  return conServiciosEstimados(mapearDocBase(id, d));
+}
+
+function mapearDocBase(id, d) {
   const categorias = Array.isArray(d.categorias) ? d.categorias : [];
   const resenas = Array.isArray(d.resenas) ? d.resenas : [];
   return {

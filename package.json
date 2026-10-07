@@ -8,7 +8,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test \"test/*.test.js\""
+    "test": "node --test \"test/*.test.js\"",
+    "mock-api": "node scripts/mock-api.mjs",
+    "dev:mock": "VITE_API_URL=http://localhost:3001 vite"
   },
   "dependencies": {
     "firebase": "^12.18.0",

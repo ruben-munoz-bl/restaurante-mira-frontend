@@ -267,6 +267,9 @@ function AppContent({ auth, tema, setTema }) {
     libro,
     ocultosDieta,
     ignorarDieta,
+    incluirEstimados,
+    setIncluirEstimados,
+    posiblesAptos,
     hayFiltrosActivos,
     actualizarFiltro,
     limpiarFiltros,
@@ -470,6 +473,16 @@ function AppContent({ auth, tema, setTema }) {
                         <a href="#/cuenta">{t('lista.cambiarCuenta')}</a> ·{' '}
                         <button type="button" className="btn-texto" onClick={verTodosIgual}>
                           {t('lista.verTodos')}
+                        </button>
+                      </p>
+                    )}
+                    {(posiblesAptos > 0 || incluirEstimados) && (
+                      <p className="aviso aviso-estimado">
+                        {incluirEstimados
+                          ? t('lista.incluyendoEstimados')
+                          : t('lista.posiblesAptos', { n: posiblesAptos })}{' '}
+                        <button type="button" className="btn-texto" onClick={() => setIncluirEstimados((v) => !v)}>
+                          {incluirEstimados ? t('lista.soloVerificados') : t('lista.verPosiblesAptos')}
                         </button>
                       </p>
                     )}

@@ -58,6 +58,13 @@
   --naranja: #c25a1a;
   --azul: #1a56db;
   --texto-sec: #6b7280;
+
+  /* Avisos (error / confirmación): fondo, texto y borde legibles en cada tema */
+  --error-tinte: #fdecea;
+  --error-tinta: #7a1020;
+  --error-borde: #e7a3ad;
+  --confirm-tinte: #fdf6e3;
+  --confirm-tinta: #5c4300;
 }
 
 /* Dark mode */
@@ -86,6 +93,12 @@
   --naranja: #e0854a;
   --azul: #5b8def;
   --texto-sec: #a0a8a2;
+
+  --error-tinte: rgba(255, 179, 193, 0.12);
+  --error-tinta: #ffd9e0;
+  --error-borde: rgba(255, 179, 193, 0.45);
+  --confirm-tinte: rgba(254, 214, 91, 0.1);
+  --confirm-tinta: #fde9a8;
 
   --badge-bg: rgba(28, 32, 28, 0.92);
   --fav-bg: rgba(28, 32, 28, 0.88);

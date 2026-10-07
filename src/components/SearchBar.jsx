@@ -10,6 +10,13 @@ import en from '../i18n/en.js';
 
 const TRADS = { es, ca, en };
 
+const SERVICIOS_FILTRO = [
+  { campo: 'menuInfantil', icono: '🧒' },
+  { campo: 'tronas', icono: '🪑' },
+  { campo: 'terraza', icono: '☀️' },
+  { campo: 'entornoTranquilo', icono: '🤫' },
+];
+
 export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChange, onClear }) {
   const t = useT(TRADS);
   const [qLocal, setQLocal] = useState(filtros.q);
@@ -133,6 +140,28 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
             ))}
           </select>
         </div>
+        <fieldset className="campo filtro-servicios">
+          <legend>{t('busqueda.servicios')}</legend>
+          <div className="filtro-servicios-chips">
+            {SERVICIOS_FILTRO.map(({ campo, icono }) => {
+              const activo = (filtros.servicios || []).includes(campo);
+              return (
+                <button
+                  key={campo}
+                  type="button"
+                  className={`filtro-chip${activo ? ' activo' : ''}`}
+                  aria-pressed={activo}
+                  onClick={() => {
+                    const actual = filtros.servicios || [];
+                    onChange('servicios', activo ? actual.filter((c) => c !== campo) : [...actual, campo]);
+                  }}
+                >
+                  <span aria-hidden="true">{icono}</span> {t(`busqueda.servicio.${campo}`)}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
       </div>
 
       <div className="campo campo-acciones">

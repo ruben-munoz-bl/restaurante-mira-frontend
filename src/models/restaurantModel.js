@@ -327,11 +327,14 @@ export function accesibilidadActiva(a) {
  * ¿El local es apto verificado? null/sin dato = NO apto cuando el filtro pide.
  * (Mostrarlo sería mentir a quien no puede arriesgarse.)
  */
-export function aptoAccesibilidad(restaurante, accesibilidad) {
+export function aptoAccesibilidad(restaurante, accesibilidad, { incluirEstimados = false } = {}) {
   const a = normalizarAccesibilidad(accesibilidad);
   if (!a.sillaRuedas && !a.tea) return true;
-  if (a.sillaRuedas && restaurante.accesoDiscapacidad !== true) return false;
-  if (a.tea && restaurante.entornoTranquilo !== true) return false;
+  // Un dato estimado solo cuenta si el usuario pide ver también los «posiblemente aptos».
+  const vale = (campo) =>
+    restaurante[campo] === true && (incluirEstimados || !restaurante.serviciosEstimados?.[campo]);
+  if (a.sillaRuedas && !vale('accesoDiscapacidad')) return false;
+  if (a.tea && !vale('entornoTranquilo')) return false;
   return true;
 }
 
@@ -716,3 +719,4 @@ export function completarRestaurante(r, posicion = null) {
     media: r.media ?? mediaResenas(r),
   };
 }
+

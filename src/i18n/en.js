@@ -27,6 +27,13 @@ export default {
     "cifras": "The guide in numbers"
   },
   "busqueda": {
+    "servicios": "Services",
+    "servicio": {
+      "menuInfantil": "Kids menu",
+      "tronas": "High chairs",
+      "terraza": "Terrace",
+      "entornoTranquilo": "Quiet"
+    },
     "titulo": "Find your place",
     "placeholder": "Search by name",
     "mostrarFiltros": "Show filters",
@@ -75,6 +82,10 @@ export default {
     "disponible": "Available"
   },
   "lista": {
+    "posiblesAptos": "There are {{n}} more possibly suitable places based on an automatic estimate (not verified).",
+    "incluyendoEstimados": "Also showing places with estimated, unverified accessibility.",
+    "soloVerificados": "Verified only",
+    "verPosiblesAptos": "Show possibly suitable",
     "noResultados": "No restaurants found",
     "sinResultados": "No results for \"{{q}}\". Try a different name or adjust filters.",
     "pruebaOtra": "Try a different area, cuisine, price, day or time.",
@@ -319,6 +330,29 @@ export default {
     "cancelada": "Cancelled"
   },
   "detail": {
+    "verMasResenas": "Show {{n}} more reviews",
+    "estimado": "Estimated",
+    "estimadoAyuda": "Automatically estimated from the place's category, price and reviews. Please confirm with the restaurant.",
+    "servicios": "Services",
+    "ubicacion": "Location & parking",
+    "platosDestacados": "Featured dishes",
+    "abrirCarta": "Open the full menu",
+    "hoy": "Today",
+    "manana": "Tomorrow",
+    "otraFecha": "Other date",
+    "comida": "Lunch",
+    "cena": "Dinner",
+    "personas": "Guests",
+    "menos": "Fewer",
+    "mas": "More",
+    "anadirComentario": "Add a note",
+    "resumen": "{{fecha}} · {{hora}} · {{n}} guests",
+    "basadoEn": "Based on {{n}} reviews",
+    "llamar": "Call",
+    "fuenteMira": "MIRA",
+    "fuenteYelp": "Yelp",
+    "escribeResena": "Write your review",
+    "elegirFecha": "Pick a day",
     "si": "Yes",
     "no": "No",
     "sinInfo": "No information",
@@ -569,6 +603,8 @@ export default {
     "contactoInfo": "hello@mira.example — 910 123 456"
   },
   "parkings": {
+    "comoLlegar": "Directions",
+    "accesible": "Accessible",
     "titulo": "Nearby parking",
     "sinParkings": "No parking within 500 m",
     "gratis": "Free",
