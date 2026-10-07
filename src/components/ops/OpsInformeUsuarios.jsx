@@ -13,6 +13,7 @@ import {
   csvUsuarios, valorCelda, generarUsuariosSimulados, diaDe,
 } from './informeUsuarios.js';
 import { descargarCSV } from './opsData.js';
+import OpsTrazabilidadSimulada from './OpsTrazabilidadSimulada.jsx';
 
 const COLORES = ['#0e6b47', '#004393', '#6bfe9c', '#005ac0', '#ba1a1a', '#6f7a72'];
 
@@ -167,6 +168,8 @@ export default function OpsInformeUsuarios({ lista }) {
               </tbody>
             </table>
           </div>
+
+      {simulado && <OpsTrazabilidadSimulada usuarios={datos} />}
 
       {traza && (
         <div className="ops-modal-overlay" onClick={() => setTraza(null)}>

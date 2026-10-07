@@ -52,3 +52,24 @@ test('CSV respeta columnas y enmascara emails', () => {
   assert.match(filas[0][1], /^.\*\*\*@ejemplo\.test$/);
   assert.equal(enmascararEmail('ana@x.com'), 'a***@x.com');
 });
+
+test('trazabilidad simulada: mismo formato que logs del backend', async () => {
+  const { generarLogsSimulados, agruparEnBloques, filtrarLogs, resumenLogs } = await import('../src/components/ops/informeUsuarios.js');
+  const regs = generarLogsSimulados(sim);
+  assert.ok(regs.length > sim.length, 'cada usuario genera varias peticiones');
+  assert.deepEqual(generarLogsSimulados(sim), regs, 'determinista');
+  for (let i = 1; i < regs.length; i++) assert.ok(regs[i].ts >= regs[i - 1].ts, 'ordenado por fecha');
+  assert.ok(regs.some((x) => x.anonimo) && regs.some((x) => !x.anonimo));
+  assert.ok(regs.every((x) => x.anonimo === !x.uid));
+  const bloques = agruparEnBloques(regs, 200);
+  assert.equal(bloques.length, Math.ceil(regs.length / 200));
+  assert.equal(bloques.reduce((s, b) => s + b.n, 0), regs.length);
+  for (const b of bloques) {
+    assert.deepEqual(Object.keys(b).sort(), ['desde', 'dia', 'errores', 'hasta', 'modulos', 'n', 'registros', 'uids']);
+    assert.ok(b.uids.every((u) => b.registros.some((x) => x.uid === u)));
+  }
+  const u = filtrarLogs(regs, { uid: 'sim-001' });
+  assert.ok(u.length > 0 && u.every((x) => x.uid === 'sim-001'));
+  const r = resumenLogs(regs);
+  assert.equal(r.porModulo.reduce((s, m) => s + m.valor, 0), regs.length);
+});
