@@ -30,8 +30,11 @@ const EYEBROWS = {
   Postres: 'Dulces & bodega',
 };
 
+// Una sola página: móviles y tablets en vertical (debe coincidir con carta.css).
+export const CONSULTA_UNA_PAGINA = '(max-width: 719px), (max-width: 1100px) and (orientation: portrait)';
+
 function useEsMovil() {
-  const consulta = '(max-width: 719px)';
+  const consulta = CONSULTA_UNA_PAGINA;
   const [movil, setMovil] = useState(() => window.matchMedia?.(consulta).matches ?? false);
   useEffect(() => {
     const mq = window.matchMedia?.(consulta);
@@ -69,7 +72,7 @@ function PaginaSeccion({ pagina, dieta, conDieta }) {
               <div className="carta-plato-linea">
                 <strong className="carta-plato-nombre">{p.nombre}</strong>
                 <span className="carta-puntos" aria-hidden="true" />
-                <span className="carta-precio">{Number(p.precio).toFixed(2)} €</span>
+                <span className="carta-precio">{Number(p.precio).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</span>
               </div>
               {p.descripcion && <p className="carta-plato-desc">{p.descripcion}</p>}
               <p className="carta-plato-tags">
@@ -256,7 +259,7 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
       role="presentation"
     >
       <div
-        className="carta"
+        className={`carta${movil ? ' carta--una' : ''}`}
         role="dialog"
         aria-modal="true"
         aria-label={t('libro.cartaDe', { nombre: restaurant.nombre })}

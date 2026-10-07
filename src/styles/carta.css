@@ -20,8 +20,11 @@
   --carta-acento: #b97a1a;
   --carta-cuero: color-mix(in srgb, var(--carta-acento) 42%, #140d07);
   --oro: #e3c27a;
-  /* Tamaño de página: cabe en alto y en ancho con proporción de carta (0,7). */
-  --pw: min(calc((100svh - 200px) * 0.7), 500px, calc((100vw - 56px) / 2));
+  /* Alto útil de la ventana (svh evita el salto de la barra del navegador móvil). */
+  --vh: 100vh;
+  /* Tamaño de página: cabe en alto y en ancho con proporción de carta (0,7).
+     Se reservan ~150px de alto para la barra de navegación y los márgenes. */
+  --pw: min(calc((var(--vh) - 150px) * 0.7), 500px, calc((100vw - 56px) / 2));
   --ph: calc(var(--pw) / 0.7);
   position: relative;
   display: flex;
@@ -29,6 +32,9 @@
   align-items: center;
   gap: 1.1rem;
   animation: carta-entra 0.55s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@supports (height: 100svh) {
+  .carta { --vh: 100svh; }
 }
 @keyframes carta-entra {
   from { opacity: 0; transform: translateY(24px) scale(0.96); }
@@ -58,6 +64,7 @@
   transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  touch-action: pan-y; /* el gesto horizontal pasa página; el vertical hace scroll */
 }
 .carta-hoja.pasada { transform: rotateY(-180deg); }
 
@@ -123,6 +130,8 @@
   height: 100%;
   overflow-y: auto;
   padding: clamp(1.3rem, 2.8vw, 2.3rem) clamp(1.3rem, 3vw, 2.5rem);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--carta-acento) 40%, transparent) transparent;
 }
@@ -398,22 +407,80 @@
   -webkit-backdrop-filter: blur(14px);
   transition: background 0.2s ease, transform 0.2s ease;
 }
-.carta-cerrar:hover { background: rgba(255, 255, 255, 0.22); transform: rotate(90deg); }
+@media (hover: hover) and (pointer: fine) {
+  .carta-cerrar:hover { background: rgba(255, 255, 255, 0.22); transform: rotate(90deg); }
+}
+.carta-cerrar:active { transform: scale(0.94); }
 .carta-cerrar:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
 
-/* ── Móvil: una página ── */
+/* ── Una página: móviles y tablets en vertical (misma consulta que LibroCarta.jsx) ── */
+.carta--una {
+  --pw: min(calc(100vw - 28px), calc((var(--vh) - 130px) * 0.7), 560px);
+}
+.carta-libro--movil { width: var(--pw); perspective: 1800px; }
+.carta-libro--movil .carta-hoja { left: 0; width: 100%; }
+/* La hoja pasada se aparta y desaparece al terminar el giro. */
+.carta-libro--movil .carta-hoja.pasada {
+  opacity: 0;
+  transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1), opacity 0.2s linear 0.6s;
+}
+
+@media (max-width: 719px) and (orientation: portrait) {
+  /* Hueco arriba para el botón de cerrar: no tapa la esquina de la página. */
+  .carta--una {
+    padding-top: 3.25rem;
+    --pw: min(calc(100vw - 28px), calc((var(--vh) - 185px) * 0.7));
+  }
+}
 @media (max-width: 719px) {
-  .carta {
-    --pw: min(calc(100vw - 28px), calc((100svh - 140px) * 0.7));
-  }
-  .carta-libro--movil { width: var(--pw); perspective: 1800px; }
-  .carta-libro--movil .carta-hoja { left: 0; width: 100%; }
-  /* La hoja pasada se aparta y desaparece al terminar el giro. */
-  .carta-libro--movil .carta-hoja.pasada {
-    opacity: 0;
-    transition: transform 0.85s cubic-bezier(0.645, 0.045, 0.355, 1), opacity 0.2s linear 0.6s;
-  }
   .carta-cuerpo { padding: 1.4rem 1.25rem; }
+  .carta-plato-nombre { font-size: 1rem; }
+  .carta-seccion { font-size: 1.65rem; }
+  .carta-portada { padding: 2rem 1.4rem 1.6rem; }
+}
+
+/* Tablet en vertical: página única grande, tipografía acorde */
+@media (min-width: 600px) and (orientation: portrait) {
+  .carta--una .carta-cuerpo { padding: 2.6rem 2.6rem; }
+  .carta--una .carta-cabecera { font-size: 0.8rem; }
+  .carta--una .carta-seccion { font-size: 2.6rem; }
+  .carta--una .carta-platos { gap: 1.6rem; }
+  .carta--una .carta-plato-nombre { font-size: 1.3rem; }
+  .carta--una .carta-precio { font-size: 1.15rem; }
+  .carta--una .carta-plato-desc { font-size: 1rem; }
+  .carta--una .carta-plato-tags { font-size: 0.82rem; }
+  .carta--una .carta-leyenda { font-size: 0.95rem; }
+}
+
+/* Móviles muy estrechos (≤ 360px) */
+@media (max-width: 360px) {
+  .carta-cuerpo { padding: 1.1rem 0.95rem; }
+  .carta-platos { gap: 0.9rem; }
+  .carta-plato-desc { font-size: 0.8rem; }
+  .carta-nav-indicador { min-width: 5.5rem; }
+}
+
+/* ── Pantallas bajas (móvil en horizontal): libro a la izquierda, controles en columna ── */
+@media (max-height: 560px) and (orientation: landscape) {
+  .carta-fondo { padding: 0.5rem max(0.75rem, env(safe-area-inset-right)) 0.5rem max(0.75rem, env(safe-area-inset-left)); }
+  .carta {
+    flex-direction: row;
+    gap: 0.75rem;
+    --pw: min(calc((var(--vh) - 24px) * 0.7), calc((100vw - 140px) / 2), 500px);
+  }
+  .carta--una { --pw: min(calc((var(--vh) - 24px) * 0.7), calc(100vw - 140px)); }
+  .carta-nav { flex-direction: column; padding: 0.3rem 0.25rem; }
+  .carta-nav-indicador { min-width: 0; max-width: 4.5rem; font-size: 0.72rem; white-space: normal; line-height: 1.2; }
+  .carta-cerrar { top: 0.6rem; right: max(0.6rem, env(safe-area-inset-right)); width: 2.4rem; height: 2.4rem; }
+  .carta-cuerpo { padding: 1rem 1.1rem; }
+  .carta-seccion { font-size: 1.4rem; margin-top: 0.6rem; }
+  .carta-ornamento { margin: 0.3rem auto 0.8rem; }
+  .carta-platos { gap: 0.8rem; }
+  .carta-plato-nombre { font-size: 0.95rem; }
+  .carta-plato-desc { font-size: 0.78rem; }
+  .carta-portada { padding: 1.2rem 1rem; }
+  .carta-portada-titulo { font-size: clamp(1.2rem, calc(var(--pw) * 0.1), 2rem); }
+  .carta-portada-sello { font-size: 0.6rem; padding: 0.3rem 0.7rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
