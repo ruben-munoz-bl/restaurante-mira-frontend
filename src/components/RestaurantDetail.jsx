@@ -298,6 +298,16 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
               el.src = imagenParaRestaurante(restaurant.cocina, restaurant.id);
             }}
           />
+          {restaurant.imagenFuente === 'ia' && <span className="foto-etiqueta foto-etiqueta--det">Imagen ilustrativa · IA</span>}
+          {restaurant.imagenCredito && (
+            <span className="foto-credito foto-credito--det">
+              Foto:{' '}
+              {restaurant.imagenCredito.url
+                ? <a href={restaurant.imagenCredito.url} target="_blank" rel="noreferrer">{restaurant.imagenCredito.autor}</a>
+                : restaurant.imagenCredito.autor}
+              {' '}· Google
+            </span>
+          )}
           <div className="det-portada-velo" aria-hidden="true" />
           <div className="det-portada-texto">
             <p className="det-eyebrow">

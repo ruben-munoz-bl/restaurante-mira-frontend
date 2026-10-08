@@ -1,7 +1,7 @@
 /**
  * Model — lectura de restaurantes vía API (intermediario mira-api).
  */
-import { api } from './httpClient.js';
+import { api, BASE_URL } from './httpClient.js';
 import { imagenParaRestaurante } from '../models/restaurantModel.js';
 import { conServiciosEstimados } from '../models/serviciosEstimados.js';
 
@@ -31,6 +31,17 @@ function mapearDoc(id, d) {
   return conServiciosEstimados(mapearDocBase(id, d));
 }
 
+/**
+ * Foto del restaurante. Las de Google Places no se pueden guardar (condiciones
+ * de Google): la API las sirve al vuelo en /v1/restaurants/:id/foto.
+ */
+function imagenDe(id, d, categorias) {
+  if (d.imagen_fuente === 'google_places' && d.imagen_google?.placeId) {
+    return `${BASE_URL}/v1/restaurants/${encodeURIComponent(id)}/foto`;
+  }
+  return d.imagen_url || imagenParaRestaurante(categorias[0] ?? 'Mediterránea', id);
+}
+
 function mapearDocBase(id, d) {
   const categorias = Array.isArray(d.categorias) ? d.categorias : [];
   const resenas = Array.isArray(d.resenas) ? d.resenas : [];
@@ -44,7 +55,12 @@ function mapearDocBase(id, d) {
     coords: extraerCoords(d),
     valoracion: typeof d.rating_yelp === 'number' ? d.rating_yelp : 0,
     totalResenasYelp: d.total_resenas_yelp ?? 0,
-    imagen: d.imagen_url || imagenParaRestaurante(categorias[0] ?? 'Mediterránea', id),
+    imagen: imagenDe(id, d, categorias),
+    imagenFuente: d.imagen_fuente || null,
+    // Crédito obligatorio de Google Places (autor de la foto); null en el resto.
+    imagenCredito: d.imagen_fuente === 'google_places' && d.imagen_google?.autor
+      ? { autor: d.imagen_google.autor, url: d.imagen_google.autorUri || null }
+      : null,
     descripcion:
       d.descripcion ||
       [categorias.join(' · '), d.direccion_completa || d.ciudad].filter(Boolean).join(' — ') ||
