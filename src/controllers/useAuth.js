@@ -11,6 +11,7 @@ import { esAdmin as comprobarAdmin } from '../services/incidenciaApi.js';
 import { obtenerPerfil, guardarPerfil, PERFIL_VACIO } from '../services/perfilApi.js';
 import { DIETA_VACIA, normalizarDieta, ACCESIBILIDAD_VACIA, normalizarAccesibilidad } from '../models/restaurantModel.js';
 import { contarNoLeidos } from '../services/mensajesApi.js';
+import { track } from '../services/auditoria.js';
 
 const LS_DIETA = 'mira:dieta';
 const LS_FAVS = 'mira:favoritos';
@@ -189,6 +190,7 @@ export function useAuth() {
     const tiene = favoritos.includes(id);
     const next = tiene ? favoritos.filter((x) => x !== id) : [...favoritos, id];
     setFavoritos(next);
+    track(tiene ? 'favorito_eliminado' : 'favorito_añadido', { entidadTipo: 'restaurante', entidadId: String(id) });
     if (usuario?.uid) {
       try {
         await guardarPerfil(usuario.uid, { favoritos: next });

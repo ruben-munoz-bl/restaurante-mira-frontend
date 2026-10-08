@@ -44,7 +44,7 @@ export default function OpsReservas({ busquedaInicial = '' }) {
     setError('');
     setActuando(id);
     try {
-      await updateReservationStatus(id, nuevo);
+      await updateReservationStatus(id, nuevo, lista.find((r) => r.id === id)?.estado ?? null);
       setLista((prev) => prev.map((r) => (r.id === id ? { ...r, estado: nuevo } : r)));
     } catch (e) {
       setError(e.message);

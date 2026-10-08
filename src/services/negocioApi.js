@@ -2,6 +2,7 @@
  * Model — locales propuestos por cuentas empresa vía API.
  */
 import { api } from './httpClient.js';
+import { conAuditoria } from './auditoria.js';
 
 const PRECIOS = ['€', '€€', '€€€'];
 
@@ -18,7 +19,7 @@ function validarPropuesta(d) {
 
 export async function proponerNegocio({ datos }) {
   validarPropuesta(datos);
-  const d = await api.post('/v1/negocios', {
+  const d = await conAuditoria('negocio_creado', { entidadTipo: 'negocio', entidadNombre: datos.nombre?.trim(), datos: { ciudad: datos.ciudad, precio: datos.precio } }, api.post('/v1/negocios', {
     nombre: datos.nombre.trim(),
     ciudad: datos.ciudad.trim(),
     zona: datos.zona,
@@ -34,7 +35,7 @@ export async function proponerNegocio({ datos }) {
     tronas: datos.tronas ?? null,
     terraza: datos.terraza ?? null,
     alergenos: (datos.alergenos || '').trim(),
-  });
+  }));
   return d.id;
 }
 
@@ -51,10 +52,12 @@ export async function listarNegociosPendientes() {
 }
 
 export async function aprobarNegocio(negocioId) {
-  const d = await api.put(`/v1/negocios/${encodeURIComponent(negocioId)}/aprobar`);
+  const d = await conAuditoria('negocio_aprobado', { entidadTipo: 'negocio', entidadId: String(negocioId), cambios: [{ campo: 'estado', antes: 'pendiente', despues: 'aprobado' }] },
+    api.put(`/v1/negocios/${encodeURIComponent(negocioId)}/aprobar`), { panel: true });
   return d.restaurantId;
 }
 
 export async function rechazarNegocio(negocioId) {
-  await api.put(`/v1/negocios/${encodeURIComponent(negocioId)}/rechazar`);
+  await conAuditoria('negocio_rechazado', { entidadTipo: 'negocio', entidadId: String(negocioId), cambios: [{ campo: 'estado', antes: 'pendiente', despues: 'rechazado' }] },
+    api.put(`/v1/negocios/${encodeURIComponent(negocioId)}/rechazar`), { panel: true });
 }

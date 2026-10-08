@@ -5,7 +5,7 @@ import { RevenueLineChart, ReservationsPieChart, RevenueBarChart } from "./Chart
 import ReservationActions from "./ReservationActions.jsx";
 import TicketUpload from "./TicketUpload.jsx";
 import { useT } from "../../i18n/index.jsx";
-import { CIUDADES_CATALUNA } from "../../models/restaurantModel.js";
+import { CIUDADES_CATALUNA, ZONAS_CATALUNA } from "../../models/restaurantModel.js";
 import es from "../../i18n/es.js";
 import ca from "../../i18n/ca.js";
 import en from "../../i18n/en.js";
@@ -103,6 +103,7 @@ const restDropdownRef = useRef(null);
     try {
       if (sessionStorage.getItem('mira_abrir_crear')) {
         sessionStorage.removeItem('mira_abrir_crear');
+        setError("");
         setShowCreateForm(true);
       }
     } catch { /* ignore */ }
@@ -145,8 +146,8 @@ const restDropdownRef = useRef(null);
         // El backend responde 404 "Este usuario no tiene ningún restaurante
         // asignado…" (no "Restaurante no encontrado"): se decide por código,
         // no por texto, para que el formulario de alta sea alcanzable.
-        const sinRestaurante = e?.status === 404 || e?.data?.error === 'NOT_FOUND';
-        if (sinRestaurante) {
+        const msg = e.message || '';
+        if (e?.status === 404 || e?.data?.error === 'NOT_FOUND' || /no encontrado|ningún restaurante/i.test(msg)) {
           listarMisNegocios(usuario.uid).then(negocios=>{
             if (!vivo) return;
             const pendiente = negocios.find(n=> n.estado==="pendiente");
@@ -283,7 +284,7 @@ const restDropdownRef = useRef(null);
           <span className="material-symbols-outlined" style={{fontSize:40, color:'var(--op-primary-container)'}}>storefront</span>
           <h2 style={{fontWeight:800, fontSize:'1.2rem'}}>{t("dashboard.sinRestauranteTitulo")}</h2>
           <p style={{color:'var(--op-on-variant)', fontSize:'0.85rem', maxWidth:480}}>{t("dashboard.sinRestauranteTexto")}</p>
-          <button className="op-btn-primary" onClick={()=> setShowCreateForm(true)}><span className="material-symbols-outlined" style={{fontSize:16}}>add_business</span> {t("dashboard.crearMiRestaurante")}</button>
+          <button className="op-btn-primary" onClick={()=> { setError(""); setShowCreateForm(true); }}><span className="material-symbols-outlined" style={{fontSize:16}}>add_business</span> {t("dashboard.crearMiRestaurante")}</button>
         </div>
       </div></section>
     );
@@ -310,12 +311,17 @@ const restDropdownRef = useRef(null);
                     {CIUDADES_CATALUNA.map(c=> <option key={c} value={c}>{c}</option>)}
                   </select>
                 </label>
-                <label className="op-field"><span>{t("dashboard.zona")} *</span><input className="op-input" value={newRest.zona} onChange={e=> setNewRest(p=>({...p, zona:e.target.value}))} required /></label>
+                <label className="op-field"><span>{t("dashboard.zona")} *</span>
+                  <select className="op-select" value={newRest.zona} onChange={e=> setNewRest(p=>({...p, zona:e.target.value}))} required>
+                    <option value="">{t("dashboard.eligeZona")}</option>
+                    {ZONAS_CATALUNA.map(z=> <option key={z} value={z}>{z.replace(', Spain','')}</option>)}
+                  </select>
+                </label>
                 <label className="op-field"><span>{t("dashboard.direccion")} *</span><input className="op-input" value={newRest.direccion} onChange={e=> setNewRest(p=>({...p, direccion:e.target.value}))} required /></label>
                 <label className="op-field"><span>{t("dashboard.telefono")}</span><input className="op-input" value={newRest.telefono} onChange={e=> setNewRest(p=>({...p, telefono:e.target.value}))} /></label>
                 <label className="op-field"><span>{t("dashboard.email")}</span><input className="op-input" type="email" value={newRest.email} onChange={e=> setNewRest(p=>({...p, email:e.target.value}))} /></label>
                 <label className="op-field"><span>{t("dashboard.tipoCocina")} *</span><input className="op-input" value={newRest.categorias} onChange={e=> setNewRest(p=>({...p, categorias:e.target.value}))} placeholder={t("dashboard.cocinaPlaceholder")} required /></label>
-                <label className="op-field"><span>{t("dashboard.rangoPrecio")} *</span><select className="op-select" value={newRest.precio} onChange={e=> setNewRest(p=>({...p, precio:e.target.value}))}><option value={'\u20AC'}>{'\u20AC'}</option><option value={'\u20AC\u20AC'}>{'\u20AC\u20AC'}</option><option value={'\u20AC\u20AC\u20AC'}>{'\u20AC\u20AC\u20AC'}</option></select></label>
+                <label className="op-field"><span>{t("dashboard.rangoPrecio")} *</span><select className="op-select" value={newRest.precio} onChange={e=> setNewRest(p=>({...p, precio:e.target.value}))}><option value={'€'}>{'€'}</option><option value={'€€'}>{'€€'}</option><option value={'€€€'}>{'€€€'}</option></select></label>
               </div>
               <label className="op-field"><span>{t("dashboard.descripcion")}</span><textarea className="op-input" style={{height:'auto', padding:'0.6rem'}} rows={3} value={newRest.descripcion} onChange={e=> setNewRest(p=>({...p, descripcion:e.target.value}))} /></label>
               <div style={{display:'flex', gap:'0.5rem'}}>

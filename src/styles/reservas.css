@@ -1,0 +1,233 @@
+/* ===== Mis reservas (#/reservas): estética de ticket ===== */
+
+.rsv {
+  --rsv-ease: cubic-bezier(0.23, 1, 0.32, 1);
+  --rsv-papel: var(--papel, #fffdf8);
+  --rsv-tinta: var(--tinta, #1b1e18);
+  /* Fijo (no del tema): sobre él va texto blanco, y en oscuro --verde-oscuro es un verde claro. */
+  --rsv-verde: #0e3b2c;
+  --rsv-oro: var(--dorado, #c9a227);
+  max-width: var(--ancho-max, 1180px);
+  margin: 0 auto;
+  padding: 1.5rem var(--gutter, 1.5rem) 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.rsv-eyebrow { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.18em; text-transform: uppercase; color: var(--rsv-oro); }
+.rsv-cabecera h1 { margin: 0.2rem 0 0; font-family: var(--fuente-display); font-size: clamp(2rem, 5vw, 3rem); line-height: 1; letter-spacing: -0.015em; color: var(--rsv-tinta); }
+.rsv-sub { margin: 0.5rem 0 0; color: var(--texto-sec); }
+.rsv-h2 { margin: 0; font-family: var(--fuente-display); font-size: 1.35rem; color: var(--rsv-tinta); }
+
+/* Carga */
+.rsv-carga { display: grid; gap: 0.8rem; }
+.rsv-esq { height: 86px; border-radius: 18px; background: linear-gradient(90deg, var(--fondo-suave), var(--borde), var(--fondo-suave)); background-size: 200% 100%; animation: rsv-brillo 1.3s ease-in-out infinite; }
+.rsv-esq--grande { height: 240px; }
+@keyframes rsv-brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* ── Ticket destacado ── */
+.tkd {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(220px, 0.9fr) 1.6fr auto;
+  background: var(--rsv-papel);
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -32px rgba(14, 40, 28, 0.55), 0 0 0 1px var(--borde);
+  animation: rsv-entra 520ms var(--rsv-ease) both;
+}
+@keyframes rsv-entra { from { opacity: 0; transform: translateY(14px); } }
+.tkd-foto { position: relative; min-height: 220px; background: var(--fondo-suave); }
+.tkd-foto img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.tkd-foto::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 50%, rgba(10, 20, 14, 0.55)); }
+.tkd-cuenta {
+  position: absolute; z-index: 1; left: 16px; bottom: 16px;
+  padding: 0.45rem 0.85rem; border-radius: 999px;
+  background: var(--rsv-oro); color: #1b1e18; font-weight: 800; font-size: 0.85rem; letter-spacing: 0.01em;
+  box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.5);
+}
+.tkd-info { padding: 1.5rem 1.6rem; display: flex; flex-direction: column; gap: 0.8rem; min-width: 0; }
+.tkd-eyebrow { margin: 0; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--primary-container, #0e6b47); }
+.tkd-info h2 { margin: 0; font-family: var(--fuente-display); font-size: clamp(1.6rem, 3vw, 2.2rem); line-height: 1.05; color: var(--rsv-tinta); }
+.tkd-datos { margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 0.6rem; }
+.tkd-datos div { padding: 0.65rem 0.8rem; border-radius: 12px; background: var(--fondo-suave); }
+.tkd-datos dt { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--texto-sec); }
+.tkd-datos dt::first-letter { text-transform: uppercase; }
+.tkd-datos dd { margin: 0.2rem 0 0; font-weight: 800; font-size: 1.05rem; color: var(--rsv-tinta); font-variant-numeric: tabular-nums; }
+.tkd-acciones { margin-top: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+.tkd-cancelar, .tk-cancelar { border: 0; background: none; color: var(--rojo, #b3261e); font: 600 0.85rem var(--fuente); cursor: pointer; padding: 0.4rem 0.2rem; text-decoration: underline; text-underline-offset: 3px; }
+
+/* Talón con perforación: los semicírculos "muerden" el ticket */
+.tkd-talon {
+  position: relative;
+  width: 150px;
+  padding: 1.5rem 1rem;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.45rem;
+  background: var(--rsv-verde); color: #fff;
+  border-left: 2px dashed rgba(255, 255, 255, 0.35);
+}
+.tkd-talon::before, .tkd-talon::after {
+  content: ''; position: absolute; left: -13px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--fondo, #f7f5ef);
+}
+.tkd-talon::before { top: -12px; }
+.tkd-talon::after { bottom: -12px; }
+.tkd-codigo { font: 800 1.25rem/1 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.08em; }
+.tk-codigo-label { font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; opacity: 0.7; }
+.tkd-barras {
+  width: 100%; height: 44px; margin-top: 0.4rem; opacity: 0.9;
+  background: repeating-linear-gradient(90deg, #fff 0 2px, transparent 2px 4px, #fff 4px 5px, transparent 5px 8px, #fff 8px 11px, transparent 11px 13px);
+}
+
+/* Vacío */
+.rsv-vacio { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; padding: 1.3rem 1.5rem; border-radius: 20px; background: var(--fondo-suave); border: 1px dashed var(--borde); }
+.rsv-vacio > span { font-size: 2rem; }
+.rsv-vacio > div { flex: 1 1 220px; }
+.rsv-vacio p { margin: 0.2rem 0 0; color: var(--texto-sec); }
+
+/* ── Calendario + agenda ── */
+.rsv-rejilla { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.25rem; }
+.rsv-panel { padding: 1.25rem 1.35rem; border-radius: 20px; background: var(--rsv-papel); box-shadow: 0 0 0 1px var(--borde); }
+.rsv-cal-cab { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; }
+.rsv-cal-cab h2 { margin: 0; font-family: var(--fuente-display); font-size: 1.45rem; text-transform: capitalize; color: var(--rsv-tinta); }
+.rsv-cal-cab h2 span { color: var(--texto-sec); font-weight: 400; }
+.rsv-cal-nav { display: flex; gap: 0.35rem; }
+.rsv-cal-nav button {
+  width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--borde); background: none; color: var(--rsv-tinta);
+  font-size: 1.3rem; line-height: 1; cursor: pointer; transition: background-color 150ms ease, transform 150ms var(--rsv-ease);
+}
+.rsv-cal-nav button:active { transform: scale(0.94); }
+@media (hover: hover) and (pointer: fine) { .rsv-cal-nav button:hover { background: var(--fondo-suave); } }
+
+.rsv-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.3rem; }
+.rsv-cal-nombre { text-align: center; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--texto-sec); padding-bottom: 0.3rem; }
+.rsv-cal-dia {
+  position: relative; aspect-ratio: 1; border: 0; border-radius: 12px; cursor: pointer;
+  display: grid; place-items: center; background: none; color: var(--rsv-tinta);
+  font: 600 0.92rem var(--fuente); font-variant-numeric: tabular-nums;
+  transition: background-color 150ms ease, color 150ms ease, transform 150ms var(--rsv-ease);
+}
+.rsv-cal-dia.is-vacio { cursor: default; }
+.rsv-cal-dia.is-pasado { color: var(--texto-sec); }
+.rsv-cal-dia.is-hoy { box-shadow: inset 0 0 0 1.5px var(--rsv-oro); }
+.rsv-cal-dia.is-con { background: color-mix(in srgb, var(--primary-container, #0e6b47) 12%, transparent); font-weight: 800; }
+.rsv-cal-dia.is-sel { background: var(--rsv-verde); color: #fff; }
+.rsv-cal-dia:not(.is-vacio):active { transform: scale(0.94); }
+@media (hover: hover) and (pointer: fine) { .rsv-cal-dia:not(.is-vacio):not(.is-sel):hover { background: var(--fondo-suave); } }
+.rsv-cal-marca {
+  position: absolute; bottom: 5px; left: 50%; transform: translateX(-50%);
+  min-width: 6px; height: 6px; padding: 0 3px; border-radius: 999px; background: var(--primary-container, #0e6b47);
+  font-size: 0; line-height: 6px;
+}
+.rsv-cal-marca:not(:empty) { height: 14px; min-width: 14px; font-size: 0.6rem; line-height: 14px; color: #fff; font-weight: 800; bottom: 2px; }
+.rsv-cal-dia.is-sel .rsv-cal-marca { background: var(--rsv-oro); color: #1b1e18; }
+.rsv-cal-temp { position: absolute; top: 3px; right: 5px; font-size: 0.6rem; color: var(--texto-sec); font-weight: 700; }
+.rsv-cal-dia.is-sel .rsv-cal-temp { color: rgba(255, 255, 255, 0.8); }
+
+.rsv-agenda-fecha { margin: 0.2rem 0 1rem; color: var(--texto-sec); text-transform: capitalize; }
+.rsv-agenda-vacia { margin: 0; padding: 1.2rem; border-radius: 14px; background: var(--fondo-suave); color: var(--texto-sec); text-align: center; }
+.rsv-agenda { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.rsv-agenda li { display: grid; grid-template-columns: 64px 1fr; gap: 0.8rem; align-items: start; padding: 0.75rem 0.85rem; border-radius: 14px; background: var(--fondo-suave); animation: rsv-entra 360ms var(--rsv-ease) both; }
+.rsv-agenda-hora { font: 800 1.05rem ui-monospace, Menlo, monospace; color: var(--primary-container, #0e6b47); }
+.rsv-agenda strong { display: block; color: var(--rsv-tinta); }
+.rsv-agenda span:not(.rsv-agenda-hora) { display: block; font-size: 0.82rem; color: var(--texto-sec); }
+
+/* ── Pestañas ── */
+.rsv-tabs { display: inline-flex; gap: 0.25rem; padding: 0.3rem; border-radius: 999px; background: var(--fondo-suave); margin-bottom: 1rem; max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.rsv-tabs::-webkit-scrollbar { display: none; }
+.rsv-tabs button {
+  border: 0; background: none; cursor: pointer; white-space: nowrap;
+  padding: 0.55rem 1rem; border-radius: 999px; color: var(--texto-sec); font: 600 0.88rem var(--fuente);
+  transition: background-color 180ms ease, color 180ms ease, transform 150ms var(--rsv-ease);
+}
+.rsv-tabs button span { margin-left: 0.3rem; font-size: 0.75rem; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.rsv-tabs button.is-activa { background: var(--rsv-papel); color: var(--rsv-tinta); box-shadow: 0 2px 8px -3px rgba(0, 0, 0, 0.25); }
+.rsv-tabs button:active { transform: scale(0.97); }
+
+/* ── Tickets de la lista ── */
+.tk-lista { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 460px), 1fr)); gap: 0.9rem; }
+.tk {
+  position: relative;
+  display: grid; grid-template-columns: 78px 1fr auto;
+  min-height: 108px;
+  border-radius: 18px; overflow: hidden;
+  background: var(--rsv-papel);
+  box-shadow: 0 14px 30px -24px rgba(14, 40, 28, 0.6), 0 0 0 1px var(--borde);
+  animation: rsv-entra 420ms var(--rsv-ease) both;
+  transition: transform 220ms var(--rsv-ease), box-shadow 220ms ease;
+}
+.tk-lista .tk:nth-child(2) { animation-delay: 40ms; }
+.tk-lista .tk:nth-child(3) { animation-delay: 80ms; }
+.tk-lista .tk:nth-child(n+4) { animation-delay: 120ms; }
+@media (hover: hover) and (pointer: fine) { .tk:hover { transform: translateY(-2px); box-shadow: 0 22px 36px -24px rgba(14, 40, 28, 0.65), 0 0 0 1px var(--borde); } }
+
+.tk-fecha { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.1rem; background: var(--rsv-verde); color: #fff; text-transform: uppercase; }
+.tk-mes { font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; opacity: 0.85; }
+.tk-dia { font-family: var(--fuente-display); font-size: 2rem; line-height: 1; font-weight: 700; }
+.tk-semana { font-size: 0.66rem; letter-spacing: 0.1em; opacity: 0.7; }
+.tk-cuerpo { padding: 0.9rem 1rem; display: flex; flex-direction: column; gap: 0.3rem; min-width: 0; }
+.tk-nombre { font-family: var(--fuente-display); font-size: 1.15rem; color: var(--rsv-tinta); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tk-meta { margin: 0; display: flex; flex-wrap: wrap; gap: 0.3rem 0.8rem; font-size: 0.84rem; color: var(--texto-sec); font-variant-numeric: tabular-nums; }
+.tk-meta span + span::before { content: '·'; margin-right: 0.8rem; opacity: 0.5; }
+.tk-nota { margin: 0; font-size: 0.82rem; font-style: italic; color: var(--texto-sec); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tk-aviso { margin: 0; font-size: 0.8rem; font-weight: 700; color: var(--error-tinta, #8f1d14); }
+.tk-talon {
+  position: relative; width: 116px; padding: 0.8rem 0.6rem;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;
+  border-left: 2px dashed var(--borde);
+}
+.tk-talon::before, .tk-talon::after { content: ''; position: absolute; left: -11px; width: 20px; height: 20px; border-radius: 50%; background: var(--fondo, #f7f5ef); }
+.tk-talon::before { top: -10px; }
+.tk-talon::after { bottom: -10px; }
+.tk-talon .tk-codigo-label { color: var(--texto-sec); }
+.tk-codigo { font: 800 0.95rem ui-monospace, Menlo, monospace; letter-spacing: 0.06em; color: var(--rsv-tinta); }
+
+/* Sello de estado (como un tampón sobre el ticket) */
+.tk-sello {
+  position: absolute; top: 10px; right: 128px;
+  padding: 0.15rem 0.5rem; border-radius: 6px;
+  border: 1.5px solid currentColor;
+  font-size: 0.66rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--primary-container, #0e6b47);
+  transform: rotate(-4deg);
+  opacity: 0.85;
+}
+.tk--pendiente .tk-sello { color: var(--rsv-oro); }
+.tk--cancelada .tk-sello, .tk--no_show .tk-sello { color: var(--rojo, #b3261e); font-size: 0.82rem; top: 50%; right: 50%; transform: translate(50%, -50%) rotate(-10deg); opacity: 0.75; border-width: 2px; padding: 0.25rem 0.7rem; background: color-mix(in srgb, var(--rsv-papel) 70%, transparent); }
+.tk--pasada .tk-fecha, .tk--cancelada .tk-fecha { background: var(--gris, #6f7a72); }
+.tk--pasada .tk-cuerpo, .tk--cancelada .tk-cuerpo, .tk--cancelada .tk-talon { opacity: 0.72; }
+.tk--compacto { min-height: 92px; }
+
+[data-theme='dark'] .rsv { --rsv-papel: var(--papel, #1b201b); }
+[data-theme='dark'] .tkd-talon::before, [data-theme='dark'] .tkd-talon::after,
+[data-theme='dark'] .tk-talon::before, [data-theme='dark'] .tk-talon::after { background: var(--fondo, #0f1310); }
+
+@media (max-width: 860px) {
+  .rsv-rejilla { grid-template-columns: 1fr; }
+  .tkd { grid-template-columns: 1fr; }
+  .tkd-foto { min-height: 170px; }
+  .tkd-talon { width: auto; flex-direction: row; justify-content: space-between; border-left: 0; border-top: 2px dashed rgba(255, 255, 255, 0.35); padding: 1rem 1.4rem; }
+  .tkd-talon::before, .tkd-talon::after { left: auto; top: -13px; }
+  .tkd-talon::before { left: -12px; }
+  .tkd-talon::after { right: -12px; bottom: auto; }
+  .tkd-barras { width: 110px; height: 32px; margin: 0; }
+}
+@media (max-width: 520px) {
+  .rsv { padding: 1rem var(--gutter-movil, 16px) 2rem; gap: 1.1rem; }
+  .tk { grid-template-columns: 64px 1fr; }
+  .tk-talon { grid-column: 1 / -1; width: auto; flex-direction: row; justify-content: flex-start; gap: 0.6rem; border-left: 0; border-top: 2px dashed var(--borde); padding: 0.55rem 1rem; }
+  .tk-talon::before, .tk-talon::after { top: -11px; }
+  .tk-talon::before { left: -10px; }
+  .tk-talon::after { left: auto; right: -10px; bottom: auto; }
+  .tk-talon .tk-cancelar { margin-left: auto; }
+  .tk-sello { top: auto; bottom: 9px; right: 12px; }
+  .tk--cancelada .tk-sello, .tk--no_show .tk-sello { top: 38%; bottom: auto; right: 50%; }
+  .tk-cuerpo { padding-right: 1rem; }
+  .tkd-info { padding: 1.2rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tkd, .tk, .rsv-agenda li { animation: none; }
+  .rsv-esq { animation: none; }
+}

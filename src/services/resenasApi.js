@@ -2,15 +2,16 @@
  * Reseñas vía API (intermediario mira-api).
  */
 import { api } from './httpClient.js';
+import { conAuditoria } from './auditoria.js';
 
 export async function crearResena({ restauranteId, puntuacion, comentario }) {
   if (!puntuacion || puntuacion < 1 || puntuacion > 5) throw new Error('Puntuación 1-5.');
   if (!comentario?.trim()) throw new Error('Escribe un comentario.');
-  const d = await api.post('/v1/reviews', {
+  const d = await conAuditoria('resena_enviada', { entidadTipo: 'restaurante', entidadId: String(restauranteId), datos: { puntuacion: Number(puntuacion), longitud: comentario.trim().length } }, api.post('/v1/reviews', {
     restauranteId: String(restauranteId),
     puntuacion: Number(puntuacion),
     comentario: comentario.trim(),
-  });
+  }));
   return d.id || d.reviewId;
 }
 

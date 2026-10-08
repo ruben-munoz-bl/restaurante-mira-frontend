@@ -327,6 +327,21 @@ export default {
     "noMapa": "Could not load the map."
   },
   "reservas": {
+    "proxima": "Your next table",
+    "hoy": "It's today",
+    "manana": "Tomorrow",
+    "enDias": "In {{n}} days",
+    "comoLlegar": "Directions",
+    "anadirCalendario": "Add to calendar",
+    "sinProximas": "No upcoming bookings",
+    "sinProximasSub": "Find your next favourite place and book it in seconds.",
+    "explorar": "Explore restaurants",
+    "agendaDia": "Day agenda",
+    "hora": "Hour",
+    "codigo": "Code",
+    "mesa": "Table for {{n}}",
+    "estados": {"pendiente": "Pending", "confirmada": "Confirmed", "completada": "Completed", "cancelada": "Cancelled", "no_show": "No-show"},
+    "resumen": "{{p}} upcoming · {{h}} enjoyed",
     "misReservas": "My reservations",
     "ariaDia": "{{dia}}: {{n}} reservations",
     "cargando": "Loading…",
@@ -976,6 +991,7 @@ export default {
     "restauranteCreado": "Restaurant created successfully",
     "propuestaPendienteAdmin": "Your proposal is pending approval by an admin.",
     "eligeCiudad": "Choose a city",
+    "eligeZona": "Choose an area",
     "zona": "Area",
     "descripcion": "Description",
     "cocinaPlaceholder": "Italian, Mexican...",
@@ -1444,5 +1460,45 @@ export default {
     "destacadosTitulo": "Featured restaurants",
     "destacadosSub": "Places rated {{nota}} or higher, ranked by rating and number of reviews.",
     "verTodos": "See all restaurants"
+  },
+  "auditoria": {
+    "titulo": "Audit",
+    "sub": "Event history stored in the database. Every admin sees the same.",
+    "periodo": {
+      "dia": "Day",
+      "semana": "Week",
+      "mes": "Month",
+      "todo": "All",
+      "personalizado": "Range"
+    },
+    "subtabs": {
+      "resumen": "Overview",
+      "actividad": "Activity",
+      "usuarios": "Users",
+      "administracion": "Administration",
+      "eventos": "Events",
+      "exportar": "Export",
+      "simulacion": "Simulation"
+    },
+    "origen": {
+      "label": "Source",
+      "todo": "All",
+      "real": "Real only",
+      "sim": "Simulated only"
+    },
+    "leyenda": "{{real}} real · {{sim}} simulated",
+    "cargando": "Loading audit…",
+    "vacio": "No logs in this period. Change the period or run the simulation.",
+    "irSimulacion": "Go to Simulation",
+    "error": "Could not load the audit.",
+    "reintentar": "Retry",
+    "recalculando": "Data is being recalculated (new schema version).",
+    "copiarEnlace": "Copy link to this view",
+    "enlaceCopiado": "Link copied",
+    "ajustesTitulo": "Audit log",
+    "registroActivo": "Global logging on",
+    "registroActivoSub": "When off, the API stops saving new events (existing ones are kept).",
+    "excluirPropio": "Exclude bots and own traffic",
+    "excluirPropioSub": "Ignores admin browsing; their panel actions are still audited."
   }
 }

@@ -327,6 +327,21 @@ export default {
     "noMapa": "No se pudo cargar el mapa."
   },
   "reservas": {
+    "proxima": "Tu próxima mesa",
+    "hoy": "Es hoy",
+    "manana": "Mañana",
+    "enDias": "En {{n}} días",
+    "comoLlegar": "Cómo llegar",
+    "anadirCalendario": "Añadir al calendario",
+    "sinProximas": "No tienes reservas próximas",
+    "sinProximasSub": "Encuentra tu próximo sitio favorito y resérvalo en segundos.",
+    "explorar": "Explorar restaurantes",
+    "agendaDia": "Agenda del día",
+    "hora": "Hora",
+    "codigo": "Código",
+    "mesa": "Mesa para {{n}}",
+    "estados": {"pendiente": "Pendiente", "confirmada": "Confirmada", "completada": "Completada", "cancelada": "Cancelada", "no_show": "No asistida"},
+    "resumen": "{{p}} próximas · {{h}} disfrutadas",
     "misReservas": "Mis reservas",
     "ariaDia": "{{dia}}: {{n}} reservas",
     "cargando": "Cargando…",
@@ -976,6 +991,7 @@ export default {
     "restauranteCreado": "Restaurante creado correctamente",
     "propuestaPendienteAdmin": "Tu propuesta está pendiente de aprobación por un administrador.",
     "eligeCiudad": "Elige ciudad",
+    "eligeZona": "Elige zona",
     "zona": "Zona",
     "descripcion": "Descripción",
     "cocinaPlaceholder": "Italiana, Mexicana...",
@@ -1444,5 +1460,45 @@ export default {
     "destacadosTitulo": "Restaurantes destacados",
     "destacadosSub": "Locales con nota de {{nota}} o más, ordenados por valoración y número de opiniones.",
     "verTodos": "Ver todos los restaurantes"
+  },
+  "auditoria": {
+    "titulo": "Auditoría",
+    "sub": "Historial de eventos guardado en la base de datos. Todos los admins ven lo mismo.",
+    "periodo": {
+      "dia": "Día",
+      "semana": "Semana",
+      "mes": "Mes",
+      "todo": "Todo",
+      "personalizado": "Rango"
+    },
+    "subtabs": {
+      "resumen": "Resumen",
+      "actividad": "Actividad",
+      "usuarios": "Usuarios",
+      "administracion": "Administración",
+      "eventos": "Eventos",
+      "exportar": "Exportar",
+      "simulacion": "Simulación"
+    },
+    "origen": {
+      "label": "Origen",
+      "todo": "Todo",
+      "real": "Solo real",
+      "sim": "Solo simulado"
+    },
+    "leyenda": "{{real}} reales · {{sim}} simulados",
+    "cargando": "Cargando auditoría…",
+    "vacio": "No hay logs en este periodo. Cambia el periodo o ejecuta la simulación.",
+    "irSimulacion": "Ir a Simulación",
+    "error": "No se pudo cargar la auditoría.",
+    "reintentar": "Reintentar",
+    "recalculando": "Los datos se están recalculando (nueva versión del esquema).",
+    "copiarEnlace": "Copiar enlace de esta vista",
+    "enlaceCopiado": "Enlace copiado",
+    "ajustesTitulo": "Registro de auditoría",
+    "registroActivo": "Registro global activo",
+    "registroActivoSub": "Si se apaga, la API deja de guardar eventos nuevos (los existentes no se tocan).",
+    "excluirPropio": "Excluir bots y tráfico propio",
+    "excluirPropioSub": "Ignora la navegación de los admins; sus acciones en el panel se siguen auditando."
   }
 }

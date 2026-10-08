@@ -18,6 +18,7 @@ import {
 } from '../services/aiPayload.js';
 import { desdeError } from '../services/aiErrors.js';
 import usePointsStore from './usePointsStore.js';
+import { track } from '../services/auditoria.js';
 
 /** Tools de MIRA que mutan el saldo en servidor. */
 const TOOLS_QUE_PUNTUAN = ['dailyLogin', 'spinWheel', 'redeemPoints'];
@@ -45,7 +46,7 @@ export const useMiraStore = create((set, get) => ({
   /** AbortController de la petición en vuelo (botón "Parar"). */
   abortController: null,
 
-  abrir: () => set({ abierto: true }),
+  abrir: () => { track('mira_abierta'); set({ abierto: true }); },
   cerrar: () => set({ abierto: false }),
   alternar: () => set((s) => ({ abierto: !s.abierto })),
 
@@ -117,6 +118,8 @@ export const useMiraStore = create((set, get) => ({
   enviar: async (texto, opts = {}) => {
     const limpio = String(texto ?? '').trim().slice(0, MAX_MENSAJE);
     if (!limpio || get().enviando) return null;
+    // Solo longitud y si es confirmación: el texto del usuario no se guarda en la auditoría.
+    track('mira_mensaje', { meta: { cantidad: limpio.length }, datos: { confirmacion: Boolean(opts.confirmId) } });
 
     const mio = { id: nuevoId(), role: 'user', content: limpio, idempotencyKey: nuevaIdempotencyKey() };
     if (!opts.sinBubla) set((s) => ({ mensajes: [...s.mensajes, mio] }));

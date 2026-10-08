@@ -1,10 +1,11 @@
 /** View pura: página de creación de cuenta con dieta/accesibilidad/idioma en el formulario. */
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ALERGENOS } from '../models/restaurantModel.js';
 import { useT, useI18n } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
+import { track } from '../services/auditoria.js';
 
 const TRADS = { es, ca, en };
 
@@ -17,6 +18,7 @@ export default function Registro({ onRegistro, yaTieneSesion }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [esEmpresa, setEsEmpresa] = useState(false);
+  useEffect(() => { if (!yaTieneSesion) track('registro_iniciado'); }, [yaTieneSesion]);
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [paso, setPaso] = useState(1); // 1 = datos, 2 = dieta/accesibilidad

@@ -11,6 +11,9 @@ import OpsRestaurantes from './OpsRestaurantes.jsx';
 import OpsFinanzas from './OpsFinanzas.jsx';
 import OpsUsuarios from './OpsUsuarios.jsx';
 import OpsAjustes from './OpsAjustes.jsx';
+import OpsAuditoria from './OpsAuditoria.jsx';
+import { track, trackPanel } from '../../services/auditoria.js';
+import { leerEstadoUrl } from '../../services/auditoriaCore.js';
 import { crearOverviewSimulado } from './opsDemo.js';
 import '../../styles/ops.css';
 import { useT } from '../../i18n/index.jsx';
@@ -32,12 +35,17 @@ const SECCIONES = [
   { id: 'finanzas', clave: 'ops.seccFinanzas', icono: 'payments' },
   { id: 'incidencias', clave: 'ops.seccIncidencias', icono: 'report_problem', badgeCrit: true },
   { id: 'usuarios', clave: 'ops.seccUsuarios', icono: 'group' },
+  { id: 'auditoria', clave: 'auditoria.titulo', icono: 'query_stats' },
   { id: 'ajustes', clave: 'ops.seccAjustes', icono: 'settings' },
 ];
 
 export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema, todos }) {
   const t = useT(TRADS);
-  const [seccion, setSeccion] = useState('dashboard');
+  // La sección vive en la URL (#/admin?seccion=auditoria&...) para poder compartir el enlace.
+  const [seccion, setSeccion] = useState(() => {
+    const s = leerEstadoUrl(window.location.hash).seccion;
+    return SECCIONES.some((x) => x.id === s) ? s : 'dashboard';
+  });
   const [menuMovil, setMenuMovil] = useState(false);
   const [busqueda, setBusqueda] = useState('');
   const [criticas, setCriticas] = useState(0);
@@ -67,6 +75,18 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
     return () => { vivo = false; };
   }, [esAdmin, simulado, demo]);
 
+  useEffect(() => {
+    if (!usuario?.uid) return;
+    try {
+      const clave = `mira:admin-login:${usuario.uid}`;
+      if (esAdmin && !sessionStorage.getItem(clave)) {
+        sessionStorage.setItem(clave, '1');
+        trackPanel('admin_login', { entidadTipo: 'panel', entidadId: 'ops' });
+      }
+    } catch { /* sin sessionStorage: se omite el registro de entrada */ }
+    if (esAdmin === false) track('admin_acceso_denegado', { resultado: 'error', codigoError: 'NO_ADMIN', entidadTipo: 'panel', entidadId: 'ops' });
+  }, [usuario?.uid, esAdmin]);
+
   if (!usuario?.uid) {
     window.location.hash = '#/login';
     return null;
@@ -91,6 +111,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
   function ir(id) {
     setSeccion(id);
     setMenuMovil(false);
+    window.history.replaceState(null, '', id === 'dashboard' ? '#/admin' : `#/admin?seccion=${id}`);
   }
 
   return (
@@ -217,6 +238,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
             {seccion === 'finanzas' && <OpsFinanzas key={simulado ? 'sim' : 'real'} demo={simulado ? demo : null} />}
             {seccion === 'incidencias' && <OpsIncidencias />}
             {seccion === 'usuarios' && <OpsUsuarios />}
+            {seccion === 'auditoria' && <OpsAuditoria />}
             {seccion === 'ajustes' && <OpsAjustes usuario={usuario} tema={tema} onCambiarTema={onCambiarTema} />}
           </main>
         </div>

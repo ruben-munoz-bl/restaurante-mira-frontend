@@ -119,7 +119,7 @@ export default function Negocio({ usuario, perfil, onProponer }) {
         <div className="campo">
           <label htmlFor="ng-ciudad">{t('negocio.ciudad')}</label>
           <select id="ng-ciudad" value={form.ciudad} onChange={(e) => set('ciudad', e.target.value)} required>
-            <option value="">{t('negocio.eligeZona') || 'Elige ciudad'}</option>
+            <option value="">Elige ciudad</option>
             {CIUDADES_CATALUNA.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}

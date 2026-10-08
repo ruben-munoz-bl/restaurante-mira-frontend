@@ -327,6 +327,21 @@ export default {
     "noMapa": "No s'ha pogut carregar el mapa."
   },
   "reservas": {
+    "proxima": "La teva propera taula",
+    "hoy": "És avui",
+    "manana": "Demà",
+    "enDias": "D'aquí a {{n}} dies",
+    "comoLlegar": "Com arribar-hi",
+    "anadirCalendario": "Afegir al calendari",
+    "sinProximas": "No tens reserves properes",
+    "sinProximasSub": "Troba el teu proper lloc preferit i reserva'l en segons.",
+    "explorar": "Explorar restaurants",
+    "agendaDia": "Agenda del dia",
+    "hora": "Hora",
+    "codigo": "Codi",
+    "mesa": "Taula per a {{n}}",
+    "estados": {"pendiente": "Pendent", "confirmada": "Confirmada", "completada": "Completada", "cancelada": "Cancel·lada", "no_show": "No assistida"},
+    "resumen": "{{p}} properes · {{h}} gaudides",
     "misReservas": "Les meves reserves",
     "ariaDia": "{{dia}}: {{n}} reserves",
     "cargando": "Carregant…",
@@ -976,6 +991,7 @@ export default {
     "restauranteCreado": "Restaurant creat correctament",
     "propuestaPendienteAdmin": "La teva proposta està pendent d'aprovació per part d'un administrador.",
     "eligeCiudad": "Tria la ciutat",
+    "eligeZona": "Tria la zona",
     "zona": "Zona",
     "descripcion": "Descripció",
     "cocinaPlaceholder": "Italiana, Mexicana...",
@@ -1444,5 +1460,45 @@ export default {
     "destacadosTitulo": "Restaurants destacats",
     "destacadosSub": "Locals amb nota de {{nota}} o més, ordenats per valoració i nombre d'opinions.",
     "verTodos": "Veure tots els restaurants"
+  },
+  "auditoria": {
+    "titulo": "Auditoria",
+    "sub": "Historial d'esdeveniments desat a la base de dades. Tots els admins veuen el mateix.",
+    "periodo": {
+      "dia": "Dia",
+      "semana": "Setmana",
+      "mes": "Mes",
+      "todo": "Tot",
+      "personalizado": "Rang"
+    },
+    "subtabs": {
+      "resumen": "Resum",
+      "actividad": "Activitat",
+      "usuarios": "Usuaris",
+      "administracion": "Administració",
+      "eventos": "Esdeveniments",
+      "exportar": "Exportar",
+      "simulacion": "Simulació"
+    },
+    "origen": {
+      "label": "Origen",
+      "todo": "Tot",
+      "real": "Només real",
+      "sim": "Només simulat"
+    },
+    "leyenda": "{{real}} reals · {{sim}} simulats",
+    "cargando": "Carregant l'auditoria…",
+    "vacio": "No hi ha logs en aquest període. Canvia el període o executa la simulació.",
+    "irSimulacion": "Anar a Simulació",
+    "error": "No s'ha pogut carregar l'auditoria.",
+    "reintentar": "Reintentar",
+    "recalculando": "Les dades s'estan recalculant (nova versió de l'esquema).",
+    "copiarEnlace": "Copiar l'enllaç d'aquesta vista",
+    "enlaceCopiado": "Enllaç copiat",
+    "ajustesTitulo": "Registre d'auditoria",
+    "registroActivo": "Registre global actiu",
+    "registroActivoSub": "Si s'apaga, l'API deixa de desar esdeveniments nous (els existents no es toquen).",
+    "excluirPropio": "Excloure bots i trànsit propi",
+    "excluirPropioSub": "Ignora la navegació dels admins; les seves accions al panell se segueixen auditant."
   }
 }
