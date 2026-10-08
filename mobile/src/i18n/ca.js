@@ -221,6 +221,20 @@ export default {
     "enviando": "Enviant…"
   },
   "registro": {
+    "pasoDatos": "Les teves dades",
+    "pasoPrefs": "Preferències",
+    "tipoCuenta": "Tipus de compte",
+    "tipoCliente": "Client",
+    "tipoClienteDesc": "Reservo i descobreixo restaurants",
+    "tipoEmpresa": "Restaurant",
+    "tipoEmpresaDesc": "Vull afegir el meu negoci",
+    "mostrar": "Mostrar contrasenya",
+    "ocultar": "Amagar contrasenya",
+    "fuerzaDebil": "Feble",
+    "fuerzaMedia": "Acceptable",
+    "fuerzaFuerte": "Forta",
+    "passAyuda": "Mínim 8 caràcters. Barreja lletres, números i símbols.",
+    "invitado": "T'han convidat a MIRA Points",
     "crearCuenta": "Crear compte",
     "gratis": "Gratuït, en menys d'un minut.",
     "nombre": "Nom",
@@ -246,7 +260,7 @@ export default {
     "iniciaSesion": "Inicia sessió",
     "errorNombre": "Escriu el teu nom (mínim 2 lletres).",
     "errorCorreo": "Escriu un correu vàlid.",
-    "errorPass": "La contrasenya ha de tenir almenys 6 caràcters."
+    "errorPass": "La contrasenya ha de tenir almenys 8 caràcters."
   },
   "modelos": {
     "locale": "ca-ES",
@@ -499,7 +513,7 @@ export default {
     "guardando": "Desant…",
     "cambiarPass": "Canviar contrasenya",
     "errorVacio": "Escriu una nova contrasenya.",
-    "errorCorto": "La contrasenya ha de tenir almenys 6 caràcters.",
+    "errorCorto": "La contrasenya ha de tenir almenys 8 caràcters.",
     "errorNoCoinciden": "Les contrasenyes no coincideixen.",
     "exito": "✓ Contrasenya canviada correctament.",
     "yaPuedes": "Ja pots iniciar sessió amb la teva nova contrasenya.",

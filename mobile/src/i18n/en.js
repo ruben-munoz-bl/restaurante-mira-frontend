@@ -151,7 +151,7 @@ export default {
     "nombre": "Name",
     "soloLetras": "Enter your name (minimum 2 letters).",
     "correoInvalido": "Enter a valid email.",
-    "contrasenaCorta": "Password must be at least 6 characters.",
+    "contrasenaCorta": "Password must be at least 8 characters.",
     "siguiente": "Next",
     "volver": "Back",
     "yaTienesCuenta": "Already have an account?",
@@ -221,6 +221,20 @@ export default {
     "enviando": "Sending…"
   },
   "registro": {
+    "pasoDatos": "Your details",
+    "pasoPrefs": "Preferences",
+    "tipoCuenta": "Account type",
+    "tipoCliente": "Diner",
+    "tipoClienteDesc": "I book and discover restaurants",
+    "tipoEmpresa": "Restaurant",
+    "tipoEmpresaDesc": "I want to list my business",
+    "mostrar": "Show password",
+    "ocultar": "Hide password",
+    "fuerzaDebil": "Weak",
+    "fuerzaMedia": "Fair",
+    "fuerzaFuerte": "Strong",
+    "passAyuda": "At least 8 characters. Mix letters, numbers and symbols.",
+    "invitado": "You were invited to MIRA Points",
     "crearCuenta": "Sign up",
     "gratis": "Free, takes less than a minute.",
     "nombre": "Name",
@@ -246,7 +260,7 @@ export default {
     "iniciaSesion": "Log in",
     "errorNombre": "Enter your name (minimum 2 letters).",
     "errorCorreo": "Enter a valid email.",
-    "errorPass": "Password must be at least 6 characters."
+    "errorPass": "Password must be at least 8 characters."
   },
   "modelos": {
     "locale": "en-US",
@@ -499,7 +513,7 @@ export default {
     "guardando": "Saving…",
     "cambiarPass": "Change password",
     "errorVacio": "Enter a new password.",
-    "errorCorto": "Password must be at least 6 characters.",
+    "errorCorto": "Password must be at least 8 characters.",
     "errorNoCoinciden": "Passwords don't match.",
     "exito": "✓ Password changed successfully.",
     "yaPuedes": "You can now sign in with your new password.",

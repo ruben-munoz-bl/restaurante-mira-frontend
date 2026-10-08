@@ -3763,10 +3763,19 @@ button.btn-texto {
 
 /* Cuenta Points Section */
 .cuenta-points {
-  background: linear-gradient(135deg, var(--primary-container), rgba(115, 92, 0, 0.1));
-  border-radius: var(--radio-med);
-  padding: 1.2rem;
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(254, 214, 91, 0.28), transparent 55%),
+    linear-gradient(135deg, var(--verde-suave), #fffdf5);
+  border: 1px solid rgba(115, 92, 0, 0.18);
+  border-radius: var(--radio-xl);
+  box-shadow: var(--sombra-card);
+  padding: 1.4rem 1.5rem;
   margin: 0.5rem 0;
+}
+
+[data-theme='dark'] .cuenta-points {
+  background: linear-gradient(135deg, var(--primary-container), rgba(115, 92, 0, 0.1));
+  border-color: var(--glass-border);
 }
 
 .cuenta-points__saldo {

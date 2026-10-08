@@ -151,7 +151,7 @@ export default {
     "nombre": "Nombre",
     "soloLetras": "Escribe tu nombre (mínimo 2 letras).",
     "correoInvalido": "Escribe un correo válido.",
-    "contrasenaCorta": "La contraseña debe tener al menos 6 caracteres.",
+    "contrasenaCorta": "La contraseña debe tener al menos 8 caracteres.",
     "siguiente": "Siguiente",
     "volver": "Volver",
     "yaTienesCuenta": "¿Ya tienes cuenta?",
@@ -221,6 +221,20 @@ export default {
     "enviando": "Enviando…"
   },
   "registro": {
+    "pasoDatos": "Tus datos",
+    "pasoPrefs": "Preferencias",
+    "tipoCuenta": "Tipo de cuenta",
+    "tipoCliente": "Cliente",
+    "tipoClienteDesc": "Reservo y descubro restaurantes",
+    "tipoEmpresa": "Restaurante",
+    "tipoEmpresaDesc": "Quiero añadir mi negocio",
+    "mostrar": "Mostrar contraseña",
+    "ocultar": "Ocultar contraseña",
+    "fuerzaDebil": "Débil",
+    "fuerzaMedia": "Aceptable",
+    "fuerzaFuerte": "Fuerte",
+    "passAyuda": "Mínimo 8 caracteres. Mezcla letras, números y símbolos.",
+    "invitado": "Te invitaron a MIRA Points",
     "crearCuenta": "Crear cuenta",
     "gratis": "Gratis, en menos de un minuto.",
     "nombre": "Nombre",
@@ -246,7 +260,7 @@ export default {
     "iniciaSesion": "Inicia sesión",
     "errorNombre": "Escribe tu nombre (mínimo 2 letras).",
     "errorCorreo": "Escribe un correo válido.",
-    "errorPass": "La contraseña debe tener al menos 6 caracteres."
+    "errorPass": "La contraseña debe tener al menos 8 caracteres."
   },
   "modelos": {
     "locale": "es-ES",
@@ -499,7 +513,7 @@ export default {
     "guardando": "Guardando…",
     "cambiarPass": "Cambiar contraseña",
     "errorVacio": "Escribe una nueva contraseña.",
-    "errorCorto": "La contraseña debe tener al menos 6 caracteres.",
+    "errorCorto": "La contraseña debe tener al menos 8 caracteres.",
     "errorNoCoinciden": "Las contraseñas no coinciden.",
     "exito": "✓ Contraseña cambiada correctamente.",
     "yaPuedes": "Ya puedes iniciar sesión con tu nueva contraseña.",

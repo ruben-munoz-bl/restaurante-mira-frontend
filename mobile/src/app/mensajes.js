@@ -15,6 +15,7 @@ import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
 import { useTheme } from '../theme/ThemeContext';
 import { FUENTES, RADIO } from '../theme/tokens';
+import { abrirUrlSegura } from '../utils/urlSegura.js';
 
 const TRADS = { es, ca, en };
 
@@ -137,7 +138,7 @@ export default function Mensajes() {
                           {m.parkingLink ? (
                             <Text
                               style={[estilos.parkingLink, { color: colores.primaryContainer }]}
-                              onPress={() => Linking.openURL(m.parkingLink)}
+                              onPress={() => abrirUrlSegura(Linking, m.parkingLink)}
                               accessibilityRole="link"
                             >
                               {t('mensajes.comoLlegarParking')}

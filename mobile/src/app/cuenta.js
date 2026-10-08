@@ -27,6 +27,7 @@ import {
 } from '../models/restaurantModel.js';
 import EmblemaAvatar from '../components/EmblemaAvatar.jsx';
 import CheckCasilla from '../components/ui/CheckCasilla';
+import Chip, { ChipGrid } from '../components/ui/Chip';
 import { AuthPagina, AuthTarjeta, AuthError } from '../components/ui/Auth';
 import { useI18n, useT } from '../i18n/index.jsx';
 import usePointsStore from '../stores/usePointsStore.js';
@@ -70,7 +71,7 @@ export default function Cuenta() {
   const { lang, setLang, available } = useI18n();
   const router = useRouter();
   const auth = useAuthContext();
-  const { colores, tema } = useTheme();
+  const { colores, tema, esOscuro } = useTheme();
   const { saldoActual, rachaLogin, rachaReservas, fetchBalance } = usePointsStore();
 
   const usuario = auth.usuario;
@@ -385,10 +386,13 @@ export default function Cuenta() {
           {/* --- MIRA POINTS --- */}
           <Sub>{t('points.title')}</Sub>
           <LinearGradient
-            colors={[colores.primaryContainer, 'rgba(115, 92, 0, 0.1)']}
+            colors={esOscuro ? [colores.primaryContainer, 'rgba(115, 92, 0, 0.1)'] : [colores.verdeSuave, '#fff8dc']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
-            style={styles.points}
+            style={[
+              styles.points,
+              esOscuro ? { borderColor: colores.glassBorder } : { borderColor: 'rgba(115, 92, 0, 0.18)', ...styles.pointsSombra },
+            ]}
           >
             <View style={styles.saldo}>
               <Text style={[styles.saldoAmount, { color: colores.primary }]}>{saldoActual}</Text>
@@ -431,29 +435,22 @@ export default function Cuenta() {
 
           {/* --- Dieta --- */}
           <Sub>{t('cuenta.miDieta')}</Sub>
-          <View style={styles.form}>
-            {[['vegano', t('cuenta.vegano')], ['vegetariano', t('cuenta.vegetariano')]].map(
-              ([campo, etiqueta]) => (
-                <CheckCasilla key={campo} value={Boolean(borrador[campo])} onToggle={() => toggleDieta(campo)}>
+          <View style={[styles.form, styles.card, { backgroundColor: colores.verdeSuave, borderColor: colores.glassBorder }]}>
+            <ChipGrid>
+              {[['vegano', `🌱 ${t('cuenta.vegano')}`], ['vegetariano', `🥕 ${t('cuenta.vegetariano')}`]].map(([campo, etiqueta]) => (
+                <Chip key={campo} value={Boolean(borrador[campo])} onToggle={() => toggleDieta(campo)}>
                   {etiqueta}
-                </CheckCasilla>
-              ),
-            )}
-            <View style={[styles.alergias, { borderColor: colores.glassBorder }]}>
-              <Text style={[styles.leyenda, { color: colores.tinta }]}>{t('cuenta.misAlergias')}</Text>
-              <View style={styles.alergiasGrid}>
-                {ALERGENOS.map(({ key, label }) => (
-                  <CheckCasilla
-                    key={key}
-                    value={borrador.alergias.includes(key)}
-                    onToggle={() => toggleAlergia(key)}
-                    style={styles.alergia}
-                  >
-                    {label}
-                  </CheckCasilla>
-                ))}
-              </View>
-            </View>
+                </Chip>
+              ))}
+            </ChipGrid>
+            <Text style={[styles.leyenda, { color: colores.gris }]}>{t('cuenta.misAlergias')}</Text>
+            <ChipGrid>
+              {ALERGENOS.map(({ key, label }) => (
+                <Chip key={key} value={borrador.alergias.includes(key)} onToggle={() => toggleAlergia(key)}>
+                  {label}
+                </Chip>
+              ))}
+            </ChipGrid>
             <Pressable
               onPress={guardarPrefs}
               disabled={guardandoPrefs}
@@ -472,14 +469,16 @@ export default function Cuenta() {
 
           {/* --- Accesibilidad --- */}
           <Sub>{t('cuenta.miAccesibilidad')}</Sub>
-          <View style={styles.form}>
+          <View style={[styles.form, styles.card, { backgroundColor: colores.verdeSuave, borderColor: colores.glassBorder }]}>
             <Text style={[styles.vacio, { color: colores.gris }]}>{t('cuenta.soloAccesibilidad')}</Text>
-            <CheckCasilla value={Boolean(borradorAcc.sillaRuedas)} onToggle={() => toggleAcc('sillaRuedas')}>
-              {t('cuenta.sillaRuedas')}
-            </CheckCasilla>
-            <CheckCasilla value={Boolean(borradorAcc.tea)} onToggle={() => toggleAcc('tea')}>
-              {t('cuenta.espectroAutista')}
-            </CheckCasilla>
+            <ChipGrid>
+              <Chip value={Boolean(borradorAcc.sillaRuedas)} onToggle={() => toggleAcc('sillaRuedas')}>
+                ♿ {t('cuenta.sillaRuedas')}
+              </Chip>
+              <Chip value={Boolean(borradorAcc.tea)} onToggle={() => toggleAcc('tea')}>
+                🧩 {t('cuenta.espectroAutista')}
+              </Chip>
+            </ChipGrid>
             <Pressable
               onPress={guardarAcc}
               disabled={guardandoAcc}
@@ -874,7 +873,9 @@ const styles = StyleSheet.create({
     marginBottom: 9.6,
   },
   points: {
-    borderRadius: RADIO.md,
+    borderRadius: RADIO.xl,
+    borderWidth: 1,
+    overflow: 'hidden',
     padding: 19.2,
     marginVertical: 8,
     gap: 8,
@@ -899,6 +900,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontFamily: FUENTES.texto,
   },
+  pointsSombra: {
+    shadowColor: '#16382C',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+  card: {
+    borderWidth: 1,
+    borderRadius: RADIO.md,
+    padding: 15,
+  },
   pointsActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -906,8 +919,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   redemption: {
-    padding: 9.6,
-    borderRadius: RADIO.peq,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    alignSelf: 'flex-start',
     marginTop: 12.8,
   },
   redemptionTxt: {

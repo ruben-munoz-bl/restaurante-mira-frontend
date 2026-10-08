@@ -43,6 +43,7 @@ import { useAuthContext } from '../context/AuthContext';
 import { FUENTES, RADIO } from '../theme/tokens';
 import { btnCta, btnSecundario, TITULO_DISPLAY } from '../theme/ui';
 import SelectCampo, { CampoEtiqueta } from './ui/SelectCampo';
+import { abrirUrlSegura } from '../utils/urlSegura.js';
 
 const TRADS = { es, ca, en };
 const MOSTRAR_INICIAL = 10;
@@ -484,7 +485,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
             )}
             {restaurant.yelpUrl && (
               <Pressable
-                onPress={() => Linking.openURL(restaurant.yelpUrl)}
+                onPress={() => abrirUrlSegura(Linking, restaurant.yelpUrl)}
                 style={({ pressed }) => [{ opacity: pressed ? 0.75 : 1 }]}
               >
                 <Text style={[btnSecundario(colores), styles.btnSinMargen]}>{t('detail.verEnYelp')}</Text>
