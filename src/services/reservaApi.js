@@ -49,7 +49,8 @@ export async function getDisponibilidad(restaurante, fecha, hora) {
       fecha,
       hora,
     });
-    const d = await api.get(`/v1/reservations/availability?${q}`);
+    // Token opcional: con sesión, la API sabe si hay una plaza de la lista de espera retenida para ti.
+    const d = await api.get(`/v1/reservations/availability?${q}`, { auth: "opcional" });
     return d;
   } catch {
     return { limite, ocupadas: 0, libres: limite };

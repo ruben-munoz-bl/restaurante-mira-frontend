@@ -4,6 +4,7 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { crearReserva, getDisponibilidad, SLOTS } from '../services/reservaApi.js';
+import { esperaApi } from '../services/mejorasApi.js';
 import { crearResena, listarResenasDeRestaurante, darLikeResena, quitarLikeResena } from '../services/resenasApi.js';
 import { semillaLikes, parseFechaLocal, hoyLocalISO, ordenarResenas, cartaDelLocal, flagsPlato, imagenParaRestaurante } from '../models/restaurantModel.js';
 import { fotoDePlato } from '../services/fotosPlatos.js';
@@ -115,7 +116,19 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   const [verTodas, setVerTodas] = useState(false);
   const [ordenResenas, setOrdenResenas] = useState('populares');
   const [fuenteResenas, setFuenteResenas] = useState('todas');
-  const [reserva, setReserva] = useState({ fecha: '', hora: '', comensales: '2', comentarios: '' });
+  // Si se llega desde un enlace de reserva (aviso de la lista de espera), viene ya rellena.
+  const [reserva, setReserva] = useState(() => {
+    const vacia = { fecha: '', hora: '', comensales: '2', comentarios: '' };
+    try {
+      const pre = JSON.parse(sessionStorage.getItem('mira_reserva_pre') || 'null');
+      if (pre && String(pre.id) === String(restaurant.id)) {
+        sessionStorage.removeItem('mira_reserva_pre');
+        return { ...vacia, fecha: pre.fecha || '', hora: pre.hora || '', comensales: String(pre.comensales || '2') };
+      }
+    } catch { /* sin sessionStorage */ }
+    return vacia;
+  });
+  const [espera, setEspera] = useState({ estado: 'nada', mensaje: '' }); // nada | enviando | apuntado | error
   const [verComentarios, setVerComentarios] = useState(false);
   const [disponibilidad, setDisponibilidad] = useState(null);
   const [meteoReserva, setMeteoReserva] = useState(null);
@@ -227,6 +240,20 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
       .finally(() => { if (vivo) setCargandoParkings(false); });
     return () => { vivo = false; };
   }, [restaurant.coords]);
+
+  // La lista de espera es por franja: al cambiar de franja se olvida el estado anterior.
+  useEffect(() => { setEspera({ estado: 'nada', mensaje: '' }); }, [reserva.fecha, reserva.hora]);
+
+  async function apuntarseEspera() {
+    if (!usuario?.uid) { window.location.hash = '#/login'; return; }
+    setEspera({ estado: 'enviando', mensaje: '' });
+    try {
+      const r = await esperaApi.unirse({ restauranteId: String(restaurant.id), fecha: reserva.fecha, hora: reserva.hora, comensales: Number(reserva.comensales) || 2 });
+      setEspera({ estado: 'apuntado', mensaje: r.yaEstabas ? 'Ya estabas en la lista de espera de esta franja.' : 'Te avisaremos en tus mensajes si se libera una mesa, y te la guardaremos 30 minutos.' });
+    } catch (err) {
+      setEspera({ estado: 'error', mensaje: err.message });
+    }
+  }
 
   async function handleReserva(e) {
     e.preventDefault();
@@ -492,6 +519,26 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
               {avisoTerraza && (
                 <p className="reserva-aviso-meteo" role="status">{avisoTerraza}{meteoReserva && ` (${meteoReserva.resumen})`}</p>
               )}
+              {disponibilidad?.retenidaParaTi && (
+                <p className="det-espera det-espera--tuya" role="status">
+                  🎉 Te guardamos esta mesa{disponibilidad.retenidaHasta ? ` hasta las ${new Date(disponibilidad.retenidaHasta).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}` : ''}. Resérvala ya.
+                </p>
+              )}
+              {sinPlazas && reserva.fecha && reserva.hora && (
+                <div className="det-espera" role="status">
+                  {espera.estado === 'apuntado' ? (
+                    <p>✓ {espera.mensaje}</p>
+                  ) : (
+                    <>
+                      <p>Esta franja está completa. ¿Quieres que te avisemos si alguien cancela?</p>
+                      <button type="button" className="btn-secundario btn-peq" onClick={apuntarseEspera} disabled={espera.estado === 'enviando'}>
+                        {espera.estado === 'enviando' ? 'Apuntando…' : 'Avisarme si se libera una mesa'}
+                      </button>
+                      {espera.estado === 'error' && <p className="reserva-error">{espera.mensaje}</p>}
+                    </>
+                  )}
+                </div>
+              )}
               {errorReserva && <p className="reserva-error" role="alert">{errorReserva}</p>}
 
               <div className="det-reserva-pie">
@@ -503,6 +550,9 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                 </button>
               </div>
               {!usuario && <p className="det-nota-login">{t('otros.debes')} <a href="#/login">{t('otros.iniciarSesion')}</a> {t('detail.reservar')}.</p>}
+              <a className="det-grupo" href={`#/jam/nueva?r=${encodeURIComponent(restaurant.id)}`}>
+                <span aria-hidden="true">👥</span> ¿Vais en grupo? <strong>Votadlo en una MIRA JAM</strong> y reservamos la opción ganadora
+              </a>
             </form>
             {confirmacion && (
               <div className="det-confirmacion" role="status">

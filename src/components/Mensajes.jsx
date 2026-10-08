@@ -88,6 +88,9 @@ export default function Mensajes({ usuario, onLeidos }) {
                 {esAbierto && (
                   <>
                     <p className="mensaje-cuerpo" style={{ whiteSpace: 'pre-line' }}>{m.cuerpo}</p>
+                    {m.enlace && /^#\//.test(m.enlace) && (
+                      <p><a className="btn-cta btn-peq" href={m.enlace}>{m.enlaceTexto || 'Abrir'}</a></p>
+                    )}
                     {(m.parkingLink || m.parkingNombre) && (
                       <p className="mensaje-parking" style={{ fontSize: '0.88rem' }}>
                         🅿️ {t('mensajes.parking')}: {m.parkingNombre || t('mensajes.recomendado')}

@@ -138,3 +138,24 @@ button.ops-legend-row.activo { background: rgba(14, 107, 71, 0.08); }
 .ops-sim-switch.on { border-color: var(--ops-primary-container, #0e6b47); }
 .ops-sim-switch.on .ops-sim-track { background: var(--ops-primary-container, #0e6b47); }
 .ops-sim-switch.on .ops-sim-track i { transform: translateX(12px); }
+
+/* Carga en directo (OpsCargaDirecto) */
+.carga { display: flex; flex-direction: column; gap: 20px; }
+.carga-controles { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.carga-kpis { grid-template-columns: repeat(6, 1fr); margin-top: 8px; }
+.carga-kpi .ops-kpi-value { font-size: 24px; }
+.carga-kpi.is-alerta .ops-kpi-value { color: var(--ops-error, #ba1a1a); }
+.carga-sub { display: block; margin-top: 4px; font-size: 11px; color: var(--ops-on-variant); }
+.carga-h3 { margin: 0 0 10px; font-size: 14px; font-weight: 700; }
+.carga-h3 small { font-weight: 500; color: var(--ops-on-variant); margin-left: 6px; }
+.carga-medidor { margin-bottom: 14px; }
+.carga-medidor-cab { display: flex; justify-content: space-between; font-size: 12.5px; margin-bottom: 5px; }
+.carga-medidor-cab strong { font-variant-numeric: tabular-nums; }
+.carga-medidor-cab strong.is-alto { color: var(--ops-error, #ba1a1a); }
+.carga-medidor-pista { display: block; height: 8px; border-radius: 999px; background: var(--ops-surface-high, #dee8ff); overflow: hidden; }
+.carga-medidor-pista i { display: block; height: 100%; border-radius: inherit; background: var(--ops-secondary, #006d37); transform-origin: left; transition: transform 500ms cubic-bezier(0.23, 1, 0.32, 1); }
+.carga-medidor-pista i.is-alto { background: var(--ops-error, #ba1a1a); }
+.carga-nota { margin-top: 10px; }
+@media (max-width: 1200px) { .carga-kpis { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .carga-kpis { grid-template-columns: repeat(2, 1fr); } }
+@media (prefers-reduced-motion: reduce) { .carga-medidor-pista i { transition: none; } }

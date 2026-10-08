@@ -12,6 +12,7 @@ import OpsFinanzas from './OpsFinanzas.jsx';
 import OpsUsuarios from './OpsUsuarios.jsx';
 import OpsAjustes from './OpsAjustes.jsx';
 import OpsAuditoria from './OpsAuditoria.jsx';
+import OpsCargaDirecto from './OpsCargaDirecto.jsx';
 import { track, trackPanel } from '../../services/auditoria.js';
 import { leerEstadoUrl } from '../../services/auditoriaCore.js';
 import { crearOverviewSimulado } from './opsDemo.js';
@@ -30,6 +31,7 @@ const SECCIONES = [
   { id: 'incidencias', nombre: 'Incidencias & Soporte', icono: 'report_problem', badgeCrit: true },
   { id: 'usuarios', nombre: 'Usuarios & Comensales', icono: 'group' },
   { id: 'auditoria', nombre: 'Auditoría', icono: 'query_stats' },
+  { id: 'carga', nombre: 'Carga en directo', icono: 'monitor_heart', live: true },
   { id: 'ajustes', nombre: 'Ajustes del Sistema', icono: 'settings' },
 ];
 
@@ -229,6 +231,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
             {seccion === 'incidencias' && <OpsIncidencias />}
             {seccion === 'usuarios' && <OpsUsuarios />}
             {seccion === 'auditoria' && <OpsAuditoria />}
+            {seccion === 'carga' && <OpsCargaDirecto />}
             {seccion === 'ajustes' && <OpsAjustes usuario={usuario} tema={tema} onCambiarTema={onCambiarTema} />}
           </main>
         </div>

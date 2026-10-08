@@ -86,6 +86,22 @@
 .rsv-vacio > div { flex: 1 1 220px; }
 .rsv-vacio p { margin: 0.2rem 0 0; color: var(--texto-sec); }
 
+/* ── Reserva en grupo y lista de espera ── */
+.rsv-extras { display: grid; gap: 1rem; }
+.rsv-jam {
+  display: flex; align-items: center; gap: 0.9rem; padding: 1rem 1.2rem; border-radius: 18px; text-decoration: none;
+  background: radial-gradient(400px 200px at 0% 0%, rgba(30, 215, 96, 0.25), transparent 70%), #0d1512; color: #f3f7f4;
+  transition: transform 180ms var(--rsv-ease);
+}
+.rsv-jam > span:first-child { font-size: 1.6rem; }
+.rsv-jam strong { display: block; color: #1ed760; font-size: 1.02rem; }
+.rsv-jam:active { transform: scale(0.98); }
+.rsv-espera ul { list-style: none; margin: 0.7rem 0 0; padding: 0; display: grid; gap: 0.5rem; }
+.rsv-espera li { display: flex; align-items: center; gap: 0.8rem; flex-wrap: wrap; padding: 0.75rem 0.9rem; border-radius: 14px; background: var(--rsv-papel); box-shadow: 0 0 0 1px var(--borde); }
+.rsv-espera li > div { flex: 1 1 200px; display: flex; flex-direction: column; }
+.rsv-espera li span { font-size: 0.84rem; color: var(--texto-sec); }
+.rsv-espera-estado { padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--fondo-suave); font-weight: 700; }
+
 /* ── Calendario + agenda ── */
 .rsv-rejilla { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.25rem; }
 .rsv-panel { padding: 1.25rem 1.35rem; border-radius: 20px; background: var(--rsv-papel); box-shadow: 0 0 0 1px var(--borde); }
