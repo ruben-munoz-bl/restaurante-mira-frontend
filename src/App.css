@@ -5078,3 +5078,21 @@ button.btn-texto {
   .streak-badge__fire-img-wrap { width: 44px; height: 44px; }
   .streak-badge__fire-img { width: 28px; height: 28px; }
 }
+
+/* Origen de la foto: crédito de Google Places (obligatorio) y aviso de imagen generada con IA */
+.foto-etiqueta {
+  position: absolute; z-index: 2; left: 8px; bottom: 8px;
+  padding: 0.18rem 0.5rem; border-radius: 999px;
+  background: rgba(10, 18, 14, 0.62); color: #fff; backdrop-filter: blur(6px);
+  font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em;
+}
+.foto-credito {
+  position: absolute; z-index: 2; left: 8px; bottom: 8px; max-width: calc(100% - 16px);
+  padding: 0.12rem 0.45rem; border-radius: 6px;
+  background: rgba(10, 18, 14, 0.55); color: rgba(255, 255, 255, 0.92);
+  font-size: 0.64rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.foto-credito a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
+.foto-etiqueta--det { left: auto; bottom: 14px; right: 14px; }
+.foto-credito--det { bottom: 14px; left: auto; right: 14px; }
+.foto-etiqueta--det + .foto-credito--det { bottom: 44px; }

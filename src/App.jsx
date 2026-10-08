@@ -28,6 +28,7 @@ import Admin from './components/Admin.jsx';
 import OpsPanel from './components/ops/OpsPanel.jsx';
 import DemoPaneles from './components/ops/DemoPaneles.jsx';
 import Negocio from './components/Negocio.jsx';
+import Jam from './components/Jam.jsx';
 import Favoritos from './components/Favoritos.jsx';
 import Mensajes from './components/Mensajes.jsx';
 import Mapa from './components/Mapa.jsx';
@@ -89,6 +90,7 @@ function rutaActual() {
   if (h === '#/invitar') return 'invitar';
   if (h.startsWith('#/ticket/')) return 'ticket';
   if (h === '#/dashboard') return 'dashboard';
+  if (h === '#/jam' || h.startsWith('#/jam/')) return 'jam';
   return 'home';
 }
 
@@ -341,6 +343,29 @@ function AppContent({ auth, tema, setTema }) {
     return () => window.removeEventListener('hashchange', alCambiarHash);
   }, []);
 
+  // Enlace directo a reservar (#/r/<id>?fecha=&hora=&comensales=), p. ej. el aviso de mesa libre
+  // de la lista de espera: abre la ficha con la reserva ya rellenada y vuelve a la portada.
+  useEffect(() => {
+    async function abrirEnlaceReserva() {
+      const h = window.location.hash;
+      const m = /^#\/r\/([^?]+)(?:\?(.*))?$/.exec(h);
+      if (!m) return;
+      const params = new URLSearchParams(m[2] || '');
+      try {
+        sessionStorage.setItem('mira_reserva_pre', JSON.stringify({
+          id: decodeURIComponent(m[1]), fecha: params.get('fecha') || '', hora: params.get('hora') || '', comensales: params.get('comensales') || '2',
+        }));
+      } catch { /* sin sessionStorage: se abre la ficha sin rellenar */ }
+      window.history.replaceState(null, '', '#/');
+      setRuta('home');
+      const r = await obtenerRestaurante(decodeURIComponent(m[1]));
+      if (r) abrirDetalle(r);
+    }
+    abrirEnlaceReserva();
+    window.addEventListener('hashchange', abrirEnlaceReserva);
+    return () => window.removeEventListener('hashchange', abrirEnlaceReserva);
+  }, [obtenerRestaurante, abrirDetalle]);
+
   async function salir() {
     await cerrarSesion();
     window.location.hash = '#/';
@@ -404,6 +429,7 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'demoPaneles' && <DemoPaneles />}
         {ruta === 'admin' && <OpsPanel usuario={usuario} esAdmin={esAdmin} perfil={perfil} tema={tema} onCambiarTema={() => setTema((v) => (v === 'oscuro' ? 'claro' : 'oscuro'))} todos={todos} />}
         {ruta === 'dashboard' && <Dashboard usuario={usuario} esAdmin={esAdmin} perfil={perfil} />}
+        {ruta === 'jam' && <Jam usuario={usuario} perfil={perfil} />}
         {ruta === 'negocio' && <Negocio usuario={usuario} perfil={perfil} onProponer={proponerNegocio} />}
         {ruta === 'favoritos' && (
           <Favoritos

@@ -18,6 +18,11 @@ export async function obtenerPerfil() {
       soloVegano: d.soloVegano === true,
       alergias: Array.isArray(d.alergias) ? d.alergias : [],
       lang: langs.includes(d.lang) ? d.lang : detectarIdioma(),
+      // useAuth los necesita: sin ellos los favoritos remotos se perdían al fusionarlos con los locales.
+      favoritos: Array.isArray(d.favoritos) ? d.favoritos : [],
+      preferencias: d.preferencias || null,
+      accesibilidad: d.accesibilidad || null,
+      restaurantId: d.restaurantId || null,
     };
   } catch {
     return { ...PERFIL_VACIO };

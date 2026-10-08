@@ -58,6 +58,8 @@ export default function RestaurantCard({ restaurant, filtros, esFavorito, onTogg
           }}
         />
         {destacado && <span className="card-top">{t('card.recomendado')}</span>}
+        {restaurant.imagenFuente === 'ia' && <span className="foto-etiqueta" title="Imagen ilustrativa generada con IA">IA</span>}
+        {restaurant.imagenCredito && <span className="foto-credito">Foto: {restaurant.imagenCredito.autor} · Google</span>}
         <span className="card-precio-badge">{precio}</span>
         {promoActiva && <PromoBadge promoActiva={promoActiva} />}
         {onToggleFavorito && (

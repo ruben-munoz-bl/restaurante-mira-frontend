@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { listarMisReservas, cancelarReserva } from '../services/reservaApi.js';
 import { fetchRestaurantePorId } from '../services/restaurantApi.js';
+import { esperaApi } from '../services/mejorasApi.js';
 import { diasMes, pronosticoDia, alertaTerraza, resumenTexto } from '../services/meteoApi.js';
 import { imagenParaRestaurante } from '../models/restaurantModel.js';
 import { useT } from '../i18n/index.jsx';
@@ -173,6 +174,7 @@ export default function Reservas({ usuario, esAdmin }) {
   });
   const [diaSel, setDiaSel] = useState(hoyISO());
   const [meteo, setMeteo] = useState({}); // fechaISO -> pronóstico | null
+  const [enEspera, setEnEspera] = useState([]);
 
   useEffect(() => {
     if (!usuario?.uid) {
@@ -181,6 +183,7 @@ export default function Reservas({ usuario, esAdmin }) {
     }
     let vivo = true;
     setCargando(true);
+    esperaApi.mias().then((l) => vivo && setEnEspera(l)).catch(() => {});
     listarMisReservas(usuario.uid)
       .then((l) => {
         if (vivo) {
@@ -318,6 +321,36 @@ export default function Reservas({ usuario, esAdmin }) {
             <a className="btn-cta btn-peq" href="#/">{t('reservas.explorar')}</a>
           </div>
         )
+      )}
+
+      {!cargando && (
+        <div className="rsv-extras">
+          <a className="rsv-jam" href="#/jam">
+            <span aria-hidden="true">👥</span>
+            <span><strong>Reserva en grupo</strong> Votad dónde y cuándo; MIRA reserva la opción ganadora.</span>
+          </a>
+          {enEspera.length > 0 && (
+            <section className="rsv-espera" aria-labelledby="espera-titulo">
+              <h2 id="espera-titulo" className="rsv-h2">En lista de espera</h2>
+              <ul>
+                {enEspera.map((e) => (
+                  <li key={e.id}>
+                    <div>
+                      <strong>{e.nombreRestaurante}</strong>
+                      <span>{new Date(`${e.fecha}T12:00:00`).toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short' })} · {e.hora} · {t('reservas.mesa', { n: e.comensales })}</span>
+                    </div>
+                    {e.estado === 'avisado' ? (
+                      <a className="btn-cta btn-peq" href={`#/r/${encodeURIComponent(e.restauranteId)}?fecha=${e.fecha}&hora=${encodeURIComponent(e.hora)}&comensales=${e.comensales}`}>¡Mesa libre! Reservar</a>
+                    ) : (
+                      <span className="rsv-espera-estado">Esperando</span>
+                    )}
+                    <button type="button" className="tk-cancelar" onClick={async () => { await esperaApi.salir(e.id).catch(() => {}); setEnEspera((l) => l.filter((x) => x.id !== e.id)); }}>Quitar</button>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </div>
       )}
 
       {!cargando && (

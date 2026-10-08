@@ -1098,3 +1098,44 @@ todo = histórico (por meses).
 
 `POST /v1/interactions` mantiene su formato `{ restauranteId, tipo }` y ahora escribe un evento `interaccion` en `auditoria`.
 Un 403 en una ruta solo-admin queda registrado como `admin_acceso_denegado`.
+
+## 20. Lista de espera, reserva en grupo (MIRA JAM) y carga en directo
+
+### Lista de espera (`/v1/espera`, con sesión)
+
+| Método | Ruta | Cuerpo / respuesta |
+|---|---|---|
+| POST | `/` | `{ restauranteId, fecha, hora, comensales }` → `201` (o `200` si ya estabas). `409 HAY_SITIO` si la franja tiene mesa libre |
+| GET | `/mias` | `{ items: [{ id, nombreRestaurante, fecha, hora, comensales, estado: esperando\|avisado }] }` |
+| DELETE | `/:id` | Salir de la lista (si tenías la plaza retenida, pasa al siguiente) |
+
+Al cancelarse una reserva (cliente o panel) se avisa al primero de la cola con un mensaje
+(«¡Mesa libre!», botón a `#/r/<id>?fecha&hora&comensales`) y se le **retiene la plaza 30 min**
+en el documento `aforo` (`retenidas`). `GET /v1/reservations/availability` descuenta las plazas
+retenidas para otros y devuelve `retenidaParaTi` / `retenidaHasta`. Un cron cada 10 min caduca las
+retenciones vencidas y avisa al siguiente.
+
+### Reserva en grupo — MIRA JAM (`/v1/jams`)
+
+| Método | Ruta | Permiso | Descripción |
+|---|---|---|---|
+| POST | `/` | sesión | `{ titulo?, nombre?, restaurantes: [{id}] (1-4), franjas: [{fecha, hora}] (1-4), cierraEnMin (5-10080) }` → sala |
+| GET | `/mias` | sesión | Salas del usuario |
+| GET | `/:codigo` | pública | Vista de la sala (sin uids). Si venció el plazo, se cierra y reserva antes de responder |
+| GET | `/:codigo/stream` | pública | Sala en directo (Server-Sent Events, evento `sala`), desde memoria |
+| POST | `/:codigo/unirse` | sesión | `{ nombre? }` (máx. 20 personas) |
+| PUT | `/:codigo/voto` | sesión | `{ restaurantes: [id], franjas: [índice] }` |
+| POST | `/:codigo/salir` · `/cerrar` · `/cancelar` | sesión | Cerrar y cancelar, solo el anfitrión |
+
+Al cerrar (a mano o al vencer el plazo), MIRA reserva a nombre del anfitrión el restaurante más
+votado en la franja a la que pueden ir más personas (comensales = los que pueden, máx. 10). Si está
+completo, prueba la siguiente combinación. Avisa a todos por mensaje. Coste: 1 documento por sala;
+mirar la sala o seguirla en directo no lee Firestore.
+
+En la web: `#/jam` (mis salas), `#/jam/nueva?r=<id>` (crear) y `#/jam/<CODIGO>` (sala).
+
+### Carga en directo (`GET /v1/metricas/directo?segundos=60|300`, admin)
+
+Peticiones/s, latencia p50/p95/p99, errores 4xx/5xx, peticiones en curso, clientes activos, rutas
+más pedidas y salud del proceso (CPU, memoria, retardo del event loop). Solo en memoria de la API:
+0 lecturas de Firestore; se reinicia con cada despliegue. Panel: Admin → «Carga en directo».

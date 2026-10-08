@@ -137,6 +137,19 @@ export function useAuth() {
     setSeqPerfil((i) => i + 1);
   }
 
+  /**
+   * Firebase avisa de la sesión nueva antes de que se guarde el perfil, así que
+   * la primera lectura ve un usuario sin perfil ("cliente"). Tras crear la cuenta
+   * se aplica ya el tipo elegido y se vuelve a leer el perfil: si no, una cuenta
+   * de empresa recién creada no podía crear su restaurante hasta recargar.
+   */
+  async function crearCuentaConPerfil(datos) {
+    const r = await crearCuenta(datos);
+    setPerfil((p) => ({ ...p, tipo: datos.tipo === 'empresa' ? 'empresa' : 'cliente', nombre: datos.nombre?.trim() || p.nombre }));
+    recargarPerfil();
+    return r;
+  }
+
   /** Nº de mensajes sin leer (1 query pequeña). */
   async function recargarMensajes() {
     if (!usuario?.uid) {
@@ -236,7 +249,7 @@ export function useAuth() {
     recargarMensajes,
     favoritos,
     toggleFavorito,
-    crearCuenta,
+    crearCuenta: crearCuentaConPerfil,
     iniciarSesion,
     iniciarSesionGoogle: iniciarSesionGoogleFn,
     cerrarSesion,
