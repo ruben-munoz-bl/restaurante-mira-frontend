@@ -209,14 +209,12 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
         {/* --- DASHBOARD PANEL --- */}
         {(esAdmin || perfil?.tipo === 'empresa') && (
           <div className="cuenta-dashboard-banner">
-            <h2 className="cuenta-sub">{esAdmin ? 'Panel de Administración' : 'Panel de Restaurante'}</h2>
+            <h2 className="cuenta-sub">{esAdmin ? t('dashboard.panelAdmin') : t('cuenta.panelRestaurante')}</h2>
             <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.8rem' }}>
-              {esAdmin
-                ? 'Gestiona usuarios, restaurantes, reservas, comisiones y analytics de la plataforma.'
-                : 'Gestiona tu restaurante: información, reservas, facturación y tickets.'}
+              {esAdmin ? t('cuenta.gestionaAdmin') : t('cuenta.gestionaRestaurante')}
             </p>
             <a href={esAdmin ? '#/admin' : '#/dashboard'} className="btn-cta">
-              {esAdmin ? 'Abrir Panel Admin' : 'Abrir Mi Panel'}
+              {esAdmin ? t('cuenta.abrirPanelAdmin') : t('cuenta.abrirMiPanel')}
             </a>
           </div>
         )}

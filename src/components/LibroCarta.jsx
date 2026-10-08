@@ -25,9 +25,9 @@ const TRADS = { es, ca, en };
 const GIRO_MS = 850;
 
 const EYEBROWS = {
-  Entrantes: 'Para comenzar',
-  Principales: 'De temporada',
-  Postres: 'Dulces & bodega',
+  Entrantes: 'libro.eyebrowEntrantes',
+  Principales: 'libro.eyebrowPrincipales',
+  Postres: 'libro.eyebrowPostres',
 };
 
 // Una sola página: móviles y tablets en vertical (debe coincidir con carta.css).
@@ -58,10 +58,11 @@ function Cabecera({ eyebrow, numero }) {
 }
 
 function PaginaSeccion({ pagina, dieta, conDieta }) {
+  const t = useT(TRADS);
   const { seccion, num } = pagina;
   return (
     <>
-      <Cabecera eyebrow={EYEBROWS[seccion.titulo] || seccion.titulo} numero={num} />
+      <Cabecera eyebrow={EYEBROWS[seccion.titulo] ? t(EYEBROWS[seccion.titulo]) : seccion.titulo} numero={num} />
       <h3 className="carta-seccion">{seccion.titulo}</h3>
       <div className="carta-ornamento" aria-hidden="true"><span>✦</span></div>
       <ul className="carta-platos">

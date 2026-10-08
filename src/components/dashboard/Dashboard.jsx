@@ -66,8 +66,7 @@ function DashboardRestaurante({ usuario, perfil }) {
   const [listaRests, setListaRests] = useState([]);
   const [showRestDropdown, setShowRestDropdown] = useState(false);
   const [loadingRestList, setLoadingRestList] = useState(false);
-  const fileRef = useRef(null);
-  const restDropdownRef = useRef(null);
+const restDropdownRef = useRef(null);
 
   async function refreshRestList(currentId) {
     setLoadingRestList(true);
@@ -87,6 +86,18 @@ function DashboardRestaurante({ usuario, perfil }) {
     if (next) refreshRestList(data?.restaurante?.id);
   }
 
+  /**
+   * Abre el listado de tickets siempre con datos frescos: el snapshot de `data`
+   * puede incluir reservas que ya tienen ticket y el backend responde 409
+   * ("máx. 1 por reserva") al intentar registrarlas otra vez.
+   */
+  function abrirModalTickets() {
+    setShowTicketModal(true);
+    dashboardApi.getMyRestaurant()
+      .then(d => setData(prev => ({ ...prev, ...d, restaurante: d.restaurante || prev?.restaurante })))
+      .catch(() => {});
+  }
+
   useEffect(() => {
     if (!usuario?.uid) return;
     try {
@@ -96,6 +107,13 @@ function DashboardRestaurante({ usuario, perfil }) {
       }
     } catch { /* ignore */ }
   }, [usuario]);
+
+  // esAdmin llega asíncrono (useAuth): la redirección va en un effect y el
+  // return correspondiente, después de TODOS los hooks. Un early-return antes
+  // de los useState partía el orden de hooks y rompía React al volverse admin.
+  useEffect(() => {
+    if (esAdmin) window.location.hash = '#/admin';
+  }, [esAdmin]);
 
   useEffect(() => {
     if (!showRestDropdown) return;
@@ -124,8 +142,11 @@ function DashboardRestaurante({ usuario, perfil }) {
       .then(d => { if (vivo){ setData(d); setFormData(d.restaurante); setLoading(false); cargarExtra(d.restaurante.id); }})
       .catch(e => {
         if (!vivo) return;
-        const msg = e.message || "Error al cargar";
-        if (msg.includes("Restaurante no encontrado")) {
+        // El backend responde 404 "Este usuario no tiene ningún restaurante
+        // asignado…" (no "Restaurante no encontrado"): se decide por código,
+        // no por texto, para que el formulario de alta sea alcanzable.
+        const sinRestaurante = e?.status === 404 || e?.data?.error === 'NOT_FOUND';
+        if (sinRestaurante) {
           listarMisNegocios(usuario.uid).then(negocios=>{
             if (!vivo) return;
             const pendiente = negocios.find(n=> n.estado==="pendiente");
@@ -133,7 +154,7 @@ function DashboardRestaurante({ usuario, perfil }) {
             setLoading(false);
             cargarExtra(null);
           }).catch(()=>{ if(vivo){ setNoRestaurant(true); setLoading(false); cargarExtra(null); }});
-        } else { setError(msg); setLoading(false); }
+        } else { setError(e.message || t("dashboard.errorCargar")); setLoading(false); }
       });
     return ()=>{ vivo=false; };
   }, [usuario]);
@@ -229,8 +250,11 @@ function DashboardRestaurante({ usuario, perfil }) {
   }
 
   // —— loading / empty states (keep MIRA web consistency but with op tokens) ——
+  if (esAdmin) return null; // ya redirigiendo a #/admin (ver effect de arriba)
   if (loading) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><p>{t("otros.cargando")}</p></div></section>;
-  if (error && !data && !noRestaurant && !pendingNegocio) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><h1>{t("dashboard.miRestaurante")}</h1><p className="auth-error">{error}</p></div></section>;
+  // El formulario de alta y los estados "sin restaurante / propuesta pendiente"
+  // mandan sobre un error de carga: si no, la pantalla de error tapaba el alta.
+  if (error && !data && !noRestaurant && !pendingNegocio && !showCreateForm) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><h1>{t("dashboard.miRestaurante")}</h1><p className="auth-error">{error}</p></div></section>;
   if (!data && !noRestaurant && !pendingNegocio && !showCreateForm) return null;
 
   if (pendingNegocio && !showCreateForm && !data){
@@ -238,15 +262,15 @@ function DashboardRestaurante({ usuario, perfil }) {
       <section className="auth-pagina pagina-ancha"><div className="auth-tarjeta tarjeta-ancha" style={{maxWidth:760, margin:'0 auto', width:'100%'}}>
         <div className="op-hub" style={{padding: '1rem'}}>
           <div style={{background:'#fef3c7', border:'1px solid #fde68a', color:'#92400e', padding:'1rem', borderRadius:'0.75rem'}}>
-            <p style={{fontWeight:800, display:'flex', alignItems:'center', gap:'0.4rem'}}><span className="material-symbols-outlined" style={{fontSize:18}}>schedule</span> Tu propuesta está pendiente de aprobación</p>
-            <p style={{fontSize:'0.82rem', marginTop:'0.35rem'}}><strong>{pendingNegocio.nombre}</strong> ({pendingNegocio.ciudad}) está siendo revisada por un administrador. Te notificaremos cuando sea aprobada.</p>
+            <p style={{fontWeight:800, display:'flex', alignItems:'center', gap:'0.4rem'}}><span className="material-symbols-outlined" style={{fontSize:18}}>schedule</span> {t("dashboard.propuestaPendienteTitulo")}</p>
+            <p style={{fontSize:'0.82rem', marginTop:'0.35rem'}}>{t("dashboard.propuestaPendienteRevision", { nombre: pendingNegocio.nombre, ciudad: pendingNegocio.ciudad })}</p>
           </div>
           <div style={{fontSize:'0.82rem', color:'var(--op-on-variant)', display:'grid', gap:'0.25rem', marginTop:'0.75rem'}}>
-            <p><strong>Nombre:</strong> {pendingNegocio.nombre}</p>
-            <p><strong>Ciudad:</strong> {pendingNegocio.ciudad}</p>
-            <p><strong>Dirección:</strong> {pendingNegocio.direccion}</p>
-            <p><strong>Cocina:</strong> {(pendingNegocio.categorias||[]).join(", ")}</p>
-            <p><strong>Precio:</strong> {pendingNegocio.precio}</p>
+            <p><strong>{t("dashboard.nombre")}:</strong> {pendingNegocio.nombre}</p>
+            <p><strong>{t("dashboard.ciudad")}:</strong> {pendingNegocio.ciudad}</p>
+            <p><strong>{t("dashboard.direccion")}:</strong> {pendingNegocio.direccion}</p>
+            <p><strong>{t("dashboard.cocina")}:</strong> {(pendingNegocio.categorias||[]).join(", ")}</p>
+            <p><strong>{t("dashboard.precio")}:</strong> {pendingNegocio.precio}</p>
           </div>
         </div>
       </div></section>
@@ -257,9 +281,9 @@ function DashboardRestaurante({ usuario, perfil }) {
       <section className="auth-pagina pagina-ancha"><div className="auth-tarjeta tarjeta-ancha" style={{maxWidth:760, margin:'0 auto', width:'100%'}}>
         <div className="op-hub" style={{alignItems:'center', textAlign:'center'}}>
           <span className="material-symbols-outlined" style={{fontSize:40, color:'var(--op-primary-container)'}}>storefront</span>
-          <h2 style={{fontWeight:800, fontSize:'1.2rem'}}>Aún no tienes un restaurante registrado</h2>
-          <p style={{color:'var(--op-on-variant)', fontSize:'0.85rem', maxWidth:480}}>Crea uno para empezar a gestionar reservas, facturación y rendimiento operativo con el Operator Hub.</p>
-          <button className="op-btn-primary" onClick={()=> setShowCreateForm(true)}><span className="material-symbols-outlined" style={{fontSize:16}}>add_business</span> Crear mi restaurante</button>
+          <h2 style={{fontWeight:800, fontSize:'1.2rem'}}>{t("dashboard.sinRestauranteTitulo")}</h2>
+          <p style={{color:'var(--op-on-variant)', fontSize:'0.85rem', maxWidth:480}}>{t("dashboard.sinRestauranteTexto")}</p>
+          <button className="op-btn-primary" onClick={()=> setShowCreateForm(true)}><span className="material-symbols-outlined" style={{fontSize:16}}>add_business</span> {t("dashboard.crearMiRestaurante")}</button>
         </div>
       </div></section>
     );
@@ -268,35 +292,35 @@ function DashboardRestaurante({ usuario, perfil }) {
     return (
       <section className="auth-pagina pagina-ancha"><div className="auth-tarjeta tarjeta-ancha" style={{maxWidth:760, margin:'0 auto', width:'100%'}}>
         <div className="op-hub">
-          <h2 style={{fontWeight:800, fontSize:'1.1rem'}}>{data ? 'Añadir otro restaurante' : 'Crear restaurante'}</h2>
-          {data && <p style={{fontSize:'0.82rem', color:'var(--op-on-variant)', marginTop:'-0.35rem'}}>Se enviará como nueva propuesta. Tu restaurante actual no cambia hasta que el admin la apruebe.</p>}
+          <h2 style={{fontWeight:800, fontSize:'1.1rem'}}>{data ? t("dashboard.anadirOtroRestaurante") : t("dashboard.crearRestaurante")}</h2>
+          {data && <p style={{fontSize:'0.82rem', color:'var(--op-on-variant)', marginTop:'-0.35rem'}}>{t("dashboard.propuestaEnviadaTexto")}</p>}
           {createSuccess ? (
             <div style={{background:'#d1fae5', color:'#065f46', padding:'1rem', borderRadius:'0.75rem', textAlign:'center'}}>
-              <p style={{fontWeight:800}}>Restaurante creado correctamente</p>
-              <p style={{fontSize:'0.82rem', marginTop:'0.25rem'}}>Tu propuesta está pendiente de aprobación por un administrador.</p>
+              <p style={{fontWeight:800}}>{t("dashboard.restauranteCreado")}</p>
+              <p style={{fontSize:'0.82rem', marginTop:'0.25rem'}}>{t("dashboard.propuestaPendienteAdmin")}</p>
             </div>
           ):(
             <form onSubmit={handleCreateRestaurant} style={{display:'grid', gap:'0.75rem'}}>
               {error && <p className="auth-error" role="alert">{error}</p>}
               <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:'0.75rem'}}>
-                <label className="op-field"><span>Nombre *</span><input className="op-input" value={newRest.nombre} onChange={e=> setNewRest(p=>({...p, nombre:e.target.value}))} required /></label>
-                <label className="op-field"><span>Ciudad *</span>
+                <label className="op-field"><span>{t("dashboard.nombre")} *</span><input className="op-input" value={newRest.nombre} onChange={e=> setNewRest(p=>({...p, nombre:e.target.value}))} required /></label>
+                <label className="op-field"><span>{t("dashboard.ciudad")} *</span>
                   <select className="op-select" value={newRest.ciudad} onChange={e=> setNewRest(p=>({...p, ciudad:e.target.value}))} required>
-                    <option value="">Elige ciudad</option>
+                    <option value="">{t("dashboard.eligeCiudad")}</option>
                     {CIUDADES_CATALUNA.map(c=> <option key={c} value={c}>{c}</option>)}
                   </select>
                 </label>
-                <label className="op-field"><span>Zona *</span><input className="op-input" value={newRest.zona} onChange={e=> setNewRest(p=>({...p, zona:e.target.value}))} required /></label>
-                <label className="op-field"><span>Dirección *</span><input className="op-input" value={newRest.direccion} onChange={e=> setNewRest(p=>({...p, direccion:e.target.value}))} required /></label>
-                <label className="op-field"><span>Teléfono</span><input className="op-input" value={newRest.telefono} onChange={e=> setNewRest(p=>({...p, telefono:e.target.value}))} /></label>
-                <label className="op-field"><span>Email</span><input className="op-input" type="email" value={newRest.email} onChange={e=> setNewRest(p=>({...p, email:e.target.value}))} /></label>
-                <label className="op-field"><span>Tipo de cocina *</span><input className="op-input" value={newRest.categorias} onChange={e=> setNewRest(p=>({...p, categorias:e.target.value}))} placeholder="Italiana, Mexicana..." required /></label>
-                <label className="op-field"><span>Rango de precio *</span><select className="op-select" value={newRest.precio} onChange={e=> setNewRest(p=>({...p, precio:e.target.value}))}><option value={'\u20AC'}>{'\u20AC'}</option><option value={'\u20AC\u20AC'}>{'\u20AC\u20AC'}</option><option value={'\u20AC\u20AC\u20AC'}>{'\u20AC\u20AC\u20AC'}</option></select></label>
+                <label className="op-field"><span>{t("dashboard.zona")} *</span><input className="op-input" value={newRest.zona} onChange={e=> setNewRest(p=>({...p, zona:e.target.value}))} required /></label>
+                <label className="op-field"><span>{t("dashboard.direccion")} *</span><input className="op-input" value={newRest.direccion} onChange={e=> setNewRest(p=>({...p, direccion:e.target.value}))} required /></label>
+                <label className="op-field"><span>{t("dashboard.telefono")}</span><input className="op-input" value={newRest.telefono} onChange={e=> setNewRest(p=>({...p, telefono:e.target.value}))} /></label>
+                <label className="op-field"><span>{t("dashboard.email")}</span><input className="op-input" type="email" value={newRest.email} onChange={e=> setNewRest(p=>({...p, email:e.target.value}))} /></label>
+                <label className="op-field"><span>{t("dashboard.tipoCocina")} *</span><input className="op-input" value={newRest.categorias} onChange={e=> setNewRest(p=>({...p, categorias:e.target.value}))} placeholder={t("dashboard.cocinaPlaceholder")} required /></label>
+                <label className="op-field"><span>{t("dashboard.rangoPrecio")} *</span><select className="op-select" value={newRest.precio} onChange={e=> setNewRest(p=>({...p, precio:e.target.value}))}><option value={'\u20AC'}>{'\u20AC'}</option><option value={'\u20AC\u20AC'}>{'\u20AC\u20AC'}</option><option value={'\u20AC\u20AC\u20AC'}>{'\u20AC\u20AC\u20AC'}</option></select></label>
               </div>
-              <label className="op-field"><span>Descripción</span><textarea className="op-input" style={{height:'auto', padding:'0.6rem'}} rows={3} value={newRest.descripcion} onChange={e=> setNewRest(p=>({...p, descripcion:e.target.value}))} /></label>
+              <label className="op-field"><span>{t("dashboard.descripcion")}</span><textarea className="op-input" style={{height:'auto', padding:'0.6rem'}} rows={3} value={newRest.descripcion} onChange={e=> setNewRest(p=>({...p, descripcion:e.target.value}))} /></label>
               <div style={{display:'flex', gap:'0.5rem'}}>
-                <button type="submit" className="op-btn-primary" disabled={creating}>{creating ? t("otros.cargando") : "Crear restaurante"}</button>
-                <button type="button" className="op-btn-ghost" onClick={()=>{ setShowCreateForm(false); setError("");}}>Cancelar</button>
+                <button type="submit" className="op-btn-primary" disabled={creating}>{creating ? t("otros.cargando") : t("dashboard.crearRestaurante")}</button>
+                <button type="button" className="op-btn-ghost" onClick={()=>{ setShowCreateForm(false); setError("");}}>{t("dashboard.cancelar")}</button>
               </div>
             </form>
           )}
@@ -308,7 +332,7 @@ function DashboardRestaurante({ usuario, perfil }) {
 
   const { restaurante, stats, proximasReservas, reservasHoy: reservasHoyList = [], ingresosPorMes, ticketsRecientes, finanzas, reservasParaTicket = [] } = data;
   const hoyISO = new Date().toISOString().split('T')[0];
-  const hoyLabel = new Date().toLocaleDateString('es-ES', { day:'2-digit', month:'short'});
+  const hoyLabel = new Date().toLocaleDateString(t('modelos.locale'), { day:'2-digit', month:'short'});
   // Finanzas persistidas (no texto plano) tiene prioridad sobre cálculo efímero
   const totalFacturacion = finanzas ? Number(finanzas.ingresosBrutos||0) : Object.values(ingresosPorMes||{}).reduce((s,d)=> s+(d.facturacion||0),0);
   const totalComisiones = finanzas ? Number(finanzas.comisiones||0) : Object.values(ingresosPorMes||{}).reduce((s,d)=> s+(d.comisiones||0),0);
@@ -340,12 +364,12 @@ function DashboardRestaurante({ usuario, perfil }) {
   const capDia = aforo || Number(restaurante.maxReservasPorHora) * 10 || 50;
   const forecastDays = Object.entries(byDate).sort(([a],[b])=>a.localeCompare(b)).slice(0,5).map(([fecha, arr])=>{
     const d = new Date(fecha+'T00:00:00');
-    const dow = d.toLocaleDateString('es-ES',{ weekday:'short'}).replace('.','');
+    const dow = d.toLocaleDateString(t('modelos.locale'),{ weekday:'short'}).replace('.','');
     const day = d.getDate();
     const pax = arr.reduce((s,r)=> s+(Number(r.comensales)||0),0);
     const res = arr.length;
     const pct = Math.min(100, Math.round(pax/capDia*100));
-    let tag = pct>=98? 'SOLD OUT' : pct>80? 'ALTA DEMANDA' : 'DISPONIBLE';
+    let tag = pct>=98? t("dashboard.tagSoldOut") : pct>80? t("dashboard.tagAltaDemanda") : t("dashboard.tagDisponible");
     let tagClass = pct>=98? 'soldout' : pct>80? 'alta' : '';
     return { dow, day, fecha, res, pax, pct, tag, tagClass };
   });
@@ -354,15 +378,15 @@ function DashboardRestaurante({ usuario, perfil }) {
 
   const estadoToBadge = (estado) =>{
     const s = String(estado||'').toLowerCase();
-    if(['completada','pagado','pagada'].includes(s)) return { cls:'pagado', label:'Pagado' };
-    if(s==='en_mesa' || s==='en mesa') return { cls:'en_mesa', label:'En mesa' };
-    if(s==='confirmada') return { cls:'confirmada', label:'Confirmada' };
-    if(['no_show','no-show','no show'].includes(s)) return { cls:'no_show', label:'No-show protegido' };
-    if(s==='cancelada') return { cls:'cancelada', label:'Cancelada' };
-    return { cls:'pendiente', label:'Pendiente' };
+    if(['completada','pagado','pagada'].includes(s)) return { cls:'pagado', label: t("dashboard.pagado") };
+    if(s==='en_mesa' || s==='en mesa') return { cls:'en_mesa', label: t("dashboard.enMesa") };
+    if(s==='confirmada') return { cls:'confirmada', label: t("dashboard.confirmada") };
+    if(['no_show','no-show','no show'].includes(s)) return { cls:'no_show', label: t("dashboard.noShowProtegido") };
+    if(s==='cancelada') return { cls:'cancelada', label: t("dashboard.cancelada") };
+    return { cls:'pendiente', label: t("dashboard.pendiente") };
   };
 
-  const nombreCorto = restaurante.nombre || 'Mi Restaurante';
+  const nombreCorto = restaurante.nombre || t("dashboard.miRestaurante");
   const dir = restaurante.direccion_completa || restaurante.direccion || restaurante.direccionCompleta || '-';
   const restId = restaurante.id ? `#RES-${String(restaurante.id).slice(-4).toUpperCase()}` : '#RES-????';
 
@@ -376,14 +400,14 @@ function DashboardRestaurante({ usuario, perfil }) {
               <div style={{display:'flex', alignItems:'center', gap:'0.5rem', flexWrap:'wrap'}}>
                 <span className="op-live-badge"><span className="op-live-dot"></span> Operator Hub Live</span>
                 <span style={{fontSize:'0.68rem', color:'var(--op-outline)'}}>/</span>
-                <span style={{fontSize:'0.68rem', fontWeight:600, color:'var(--op-on-variant)'}}>Gestión de Restaurantes &amp; Rendimiento Operativo</span>
+                <span style={{fontSize:'0.68rem', fontWeight:600, color:'var(--op-on-variant)'}}>{t("dashboard.gestionRendimiento")}</span>
               </div>
               <div className="op-topbar-meta">
                 <div className="op-rest-selector-wrap" ref={restDropdownRef}>
                   <div
                     className="op-rest-selector"
                     onClick={toggleRestDropdown}
-                    title="Cambiar restaurante"
+                    title={t("dashboard.cambiarRestaurante")}
                     role="button"
                   >
                     <div className="op-rest-avatar">{initials(nombreCorto)}</div>
@@ -397,11 +421,11 @@ function DashboardRestaurante({ usuario, perfil }) {
                     <div className="op-rest-dropdown" role="listbox">
                       <div className="op-rest-dropdown-title">
                         {loadingRestList && listaRests.length === 0
-                          ? 'Cargando…'
-                          : `Tus restaurantes (${listaRests.length})`}
+                          ? t("otros.cargando")
+                          : t("dashboard.tusRestaurantes", { n: listaRests.length })}
                       </div>
                       {listaRests.length === 0 && !loadingRestList && (
-                        <div className="op-rest-dropdown-empty">Sin restaurantes</div>
+                        <div className="op-rest-dropdown-empty">{t("dashboard.sinRestaurantes")}</div>
                       )}
                       {listaRests.map(r => (
                         <button
@@ -416,33 +440,33 @@ function DashboardRestaurante({ usuario, perfil }) {
                             {r.id === data.restaurante.id ? 'check_circle' : 'radio_button_unchecked'}
                           </span>
                           <span className="op-rest-dropdown-info">
-                            <span className="op-rest-dropdown-nombre">{r.nombre || 'Restaurante'}</span>
+                            <span className="op-rest-dropdown-nombre">{r.nombre || t("dashboard.restauranteGenerico")}</span>
                             <span className="op-rest-dropdown-meta">{r.ciudad || '—'} · ID {`#RES-${String(r.id).slice(-4).toUpperCase()}`}</span>
                           </span>
                         </button>
                       ))}
                       {loadingRestList && listaRests.length > 0 && (
-                        <div className="op-rest-dropdown-empty">Actualizando…</div>
+                        <div className="op-rest-dropdown-empty">{t("dashboard.actualizando")}</div>
                       )}
                     </div>
                   )}
                 </div>
                 <div className="op-date-chip"><span className="material-symbols-outlined" style={{fontSize:16}}>date_range</span>
                   <select value={selectedMonth} onChange={e=> setSelectedMonth(e.target.value)}>
-                    <option value="este-mes">Este mes - {new Date().toLocaleDateString('es-ES',{month:'long', year:'numeric'})}</option>
-                    <option value="90d">Últimos 90 días</option>
-                    <option value="anio">Año en curso</option>
+                    <option value="este-mes">{t("dashboard.esteMes")} - {new Date().toLocaleDateString(t('modelos.locale'),{month:'long', year:'numeric'})}</option>
+                    <option value="90d">{t("dashboard.ultimos90d")}</option>
+                    <option value="anio">{t("dashboard.anioEnCurso")}</option>
                   </select>
                 </div>
-                <span className="op-premium-badge"><span className="material-symbols-outlined" style={{fontSize:12}}>workspace_premium</span> {restaurante.activo !== false ? 'Partner Activo' : 'Partner Inactivo'}</span>
+                <span className="op-premium-badge"><span className="material-symbols-outlined" style={{fontSize:12}}>workspace_premium</span> {restaurante.activo !== false ? t("dashboard.partnerActivo") : t("dashboard.partnerInactivo")}</span>
               </div>
             </div>
             <div className="op-topbar-actions">
-              <button className="op-btn-primary" onClick={()=> setShowTicketModal(true)}><span className="material-symbols-outlined" style={{fontSize:16}}>cloud_upload</span> Cargar Tickets &amp; Facturación</button>
-              <button className="op-btn-ghost" onClick={()=> setDocumento('factura')}><span className="material-symbols-outlined" style={{fontSize:16}}>receipt_long</span> Factura</button>
-              <button className="op-btn-ghost" onClick={()=> setDocumento('fiscal')}><span className="material-symbols-outlined" style={{fontSize:16}}>file_present</span> Reporte Fiscal</button>
-              <button className="op-btn-ghost" onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:16}}>download</span> CSV</button>
-              <button className="op-btn-ghost" onClick={()=> setShowFicha(v=>!v)}><span className="material-symbols-outlined" style={{fontSize:16}}>storefront</span> Ficha</button>
+              <button className="op-btn-primary" onClick={abrirModalTickets}><span className="material-symbols-outlined" style={{fontSize:16}}>cloud_upload</span> {t("dashboard.cargarTicketsFacturacion")}</button>
+              <button className="op-btn-ghost" onClick={()=> setDocumento('factura')}><span className="material-symbols-outlined" style={{fontSize:16}}>receipt_long</span> {t("dashboard.botonFactura")}</button>
+              <button className="op-btn-ghost" onClick={()=> setDocumento('fiscal')}><span className="material-symbols-outlined" style={{fontSize:16}}>file_present</span> {t("dashboard.botonReporteFiscal")}</button>
+              <button className="op-btn-ghost" onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:16}}>download</span> {t("dashboard.exportarLiquidacion")}</button>
+              <button className="op-btn-ghost" onClick={()=> setShowFicha(v=>!v)}><span className="material-symbols-outlined" style={{fontSize:16}}>storefront</span> {t("dashboard.ficha")}</button>
             </div>
           </div>
 
@@ -450,25 +474,25 @@ function DashboardRestaurante({ usuario, perfil }) {
           {showFicha && (
             <div className="op-panel" style={{border: editing? '1px solid var(--op-primary-container)': undefined}}>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-                <h3 style={{fontWeight:800, fontSize:'0.95rem'}}>Ficha del restaurante</h3>
+                <h3 style={{fontWeight:800, fontSize:'0.95rem'}}>{t("dashboard.fichaRestaurante")}</h3>
                 <button className="op-btn-ghost" onClick={()=> setShowFicha(false)}><span className="material-symbols-outlined">close</span></button>
               </div>
               <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(220px,1fr))', gap:'0.75rem', marginTop:'0.5rem'}}>
                 {[
-                  ['nombre','Nombre','text'],
-                  ['direccion','Dirección','text'],
-                  ['telefono','Teléfono','tel'],
-                  ['email','Email','email'],
-                  ['ciudad','Ciudad','select'],
-                  ['precio','Rango precio','text'],
-                  ['cocina','Cocina','text'],
-                  ['comisionPct','Comisión %','number']
+                  ['nombre','dashboard.nombre','text'],
+                  ['direccion','dashboard.direccion','text'],
+                  ['telefono','dashboard.telefono','tel'],
+                  ['email','dashboard.email','email'],
+                  ['ciudad','dashboard.ciudad','select'],
+                  ['precio','dashboard.rangoPrecio','text'],
+                  ['cocina','dashboard.cocina','text'],
+                  ['comisionPct','dashboard.comisionPct','number']
                 ].map(([field,label,type])=>(
-                  <label key={field} className="op-field"><span>{label}</span>
+                  <label key={field} className="op-field"><span>{t(label)}</span>
                     {editing ? (
                       type === 'select' ? (
                         <select className="op-select" value={formData[field]||''} onChange={e=>handleEditChange(field,e.target.value)}>
-                          <option value="">Elige ciudad</option>
+                          <option value="">{t("dashboard.eligeCiudad")}</option>
                           {CIUDADES_CATALUNA.map(c=> <option key={c} value={c}>{c}</option>)}
                         </select>
                       ) : (
@@ -477,12 +501,12 @@ function DashboardRestaurante({ usuario, perfil }) {
                     ) : <span style={{fontSize:'0.85rem', padding:'0.35rem 0'}}>{restaurante[field]||'-'}</span>}
                   </label>
                 ))}
-                <label className="op-field"><span>Activo</span>
-                  {editing ? <select className="op-select" value={formData.activo? 'si':'no'} onChange={e=>handleEditChange('activo', e.target.value==='si')}><option value="si">Sí</option><option value="no">No</option></select> : <span className={`op-status ${restaurante.activo? 'confirmada':'cancelada'}`}><span className="op-status-dot"></span>{restaurante.activo? 'Activo':'Inactivo'}</span>}
+                <label className="op-field"><span>{t("dashboard.activo")}</span>
+                  {editing ? <select className="op-select" value={formData.activo? 'si':'no'} onChange={e=>handleEditChange('activo', e.target.value==='si')}><option value="si">{t("dashboard.si")}</option><option value="no">{t("dashboard.no")}</option></select> : <span className={`op-status ${restaurante.activo? 'confirmada':'cancelada'}`}><span className="op-status-dot"></span>{restaurante.activo? t("dashboard.activo"):t("dashboard.inactivo")}</span>}
                 </label>
               </div>
               <div style={{display:'flex', gap:'0.5rem', marginTop:'0.5rem'}}>
-                {editing ? <><button className="op-btn-primary" onClick={handleSave} disabled={saving}>{saving? t("otros.cargando"):'Guardar'}</button><button className="op-btn-ghost" onClick={()=>{ setEditing(false); setFormData(restaurante);}}>Cancelar</button></> : <button className="op-btn-ghost" onClick={()=> setEditing(true)}>Editar</button>}
+                {editing ? <><button className="op-btn-primary" onClick={handleSave} disabled={saving}>{saving? t("otros.cargando"):t("dashboard.guardar")}</button><button className="op-btn-ghost" onClick={()=>{ setEditing(false); setFormData(restaurante);}}>{t("dashboard.cancelar")}</button></> : <button className="op-btn-ghost" onClick={()=> setEditing(true)}>{t("dashboard.editar")}</button>}
               </div>
             </div>
           )}
@@ -491,47 +515,47 @@ function DashboardRestaurante({ usuario, perfil }) {
           <div className="op-kpi-grid">
             <div className="op-kpi-card">
               <div className="op-kpi-head">
-                <div><div className="op-kpi-label">Ingresos brutos restaurante</div><div className="op-kpi-sub">Total generado en sala</div></div>
+                <div><div className="op-kpi-label">{t("dashboard.ingresosBrutos")}</div><div className="op-kpi-sub">{t("dashboard.totalGeneradoSala")}</div></div>
                 <div className="op-kpi-icon"><span className="material-symbols-outlined">account_balance_wallet</span></div>
               </div>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:'0.6rem'}}>
                 <span className="op-kpi-value">{euro(totalFacturacion || stats.totalFacturacion || 0)}</span>
-                <span className="op-kpi-trend neutral">{totalTickets} tickets</span>
+                <span className="op-kpi-trend neutral">{totalTickets} {t("dashboard.tickets")}</span>
               </div>
-              <div className="op-kpi-foot"><span className="op-kpi-foot-label">Base imponible sin IVA:</span><span className="op-kpi-foot-val">{euro(baseImponible)}</span></div>
+              <div className="op-kpi-foot"><span className="op-kpi-foot-label">{t("dashboard.baseImponible")}</span><span className="op-kpi-foot-val">{euro(baseImponible)}</span></div>
             </div>
             <div className="op-kpi-card">
               <div className="op-kpi-head">
-                <div><div className="op-kpi-label">Comisión MIRA</div><div className="op-kpi-sub">Deducible en liquidación neta · {comisionPct}%</div></div>
+                <div><div className="op-kpi-label">{t("dashboard.comisionMiraTitulo")}</div><div className="op-kpi-sub">{t("dashboard.deducibleLiquidacion", { pct: comisionPct })}</div></div>
                 <div className="op-kpi-icon"><span className="material-symbols-outlined">receipt_long</span></div>
               </div>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:'0.6rem'}}>
                 <span className="op-kpi-value">{euro(totalComisiones || stats.totalComisiones || 0)}</span>
-                <span className="op-kpi-trend neutral">Tasa efec. {tasaEfec}%</span>
+                <span className="op-kpi-trend neutral">{t("dashboard.tasaEfec", { pct: tasaEfec })}</span>
               </div>
-              <div className="op-kpi-foot"><span className="op-kpi-foot-label">Coste por pax confirmado:</span><span className="op-kpi-foot-val" style={{color:'var(--op-secondary)'}}>{euro(costePorPax)} / comensal</span></div>
+              <div className="op-kpi-foot"><span className="op-kpi-foot-label">{t("dashboard.costePaxConfirmado")}</span><span className="op-kpi-foot-val" style={{color:'var(--op-secondary)'}}>{euro(costePorPax)} {t("dashboard.porComensal")}</span></div>
             </div>
             <div className="op-kpi-card">
               <div className="op-kpi-head">
-                <div><div className="op-kpi-label">Total tickets gestionados</div><div className="op-kpi-sub">Cuentas cerradas conciliadas</div></div>
+                <div><div className="op-kpi-label">{t("dashboard.totalTicketsGestionados")}</div><div className="op-kpi-sub">{t("dashboard.cuentasCerradas")}</div></div>
                 <div className="op-kpi-icon"><span className="material-symbols-outlined">point_of_sale</span></div>
               </div>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:'0.6rem'}}>
-                <span className="op-kpi-value">{totalTickets} <span style={{fontSize:'0.75rem', fontWeight:400, color:'var(--op-outline)'}}>uds</span></span>
+                <span className="op-kpi-value">{totalTickets} <span style={{fontSize:'0.75rem', fontWeight:400, color:'var(--op-outline)'}}>{t("dashboard.uds")}</span></span>
                 <span className="op-kpi-trend up"><span className="material-symbols-outlined" style={{fontSize:12}}>check_circle</span> {pctConciliados}% OK</span>
               </div>
-              <div className="op-kpi-foot"><span className="op-kpi-foot-label">Ticket medio por comanda:</span><span className="op-kpi-foot-val">{euro(ticketMedio)}</span></div>
+              <div className="op-kpi-foot"><span className="op-kpi-foot-label">{t("dashboard.ticketMedioComanda")}</span><span className="op-kpi-foot-val">{euro(ticketMedio)}</span></div>
             </div>
             <div className="op-kpi-card">
               <div className="op-kpi-head">
-                <div><div className="op-kpi-label">Comensales atendidos</div><div className="op-kpi-sub">Pax sentados &amp; facturados</div></div>
+                <div><div className="op-kpi-label">{t("dashboard.comensalesAtendidos")}</div><div className="op-kpi-sub">{t("dashboard.paxSentadosFacturados")}</div></div>
                 <div className="op-kpi-icon"><span className="material-symbols-outlined">groups</span></div>
               </div>
               <div style={{display:'flex', alignItems:'baseline', justifyContent:'space-between', marginTop:'0.6rem'}}>
                 <span className="op-kpi-value">{totalComensales || 0} <span style={{fontSize:'0.75rem', fontWeight:400, color:'var(--op-outline)'}}>pax</span></span>
                 <span className="op-kpi-trend" style={{background:'#a1f4c6', color:'#002112'}}>{totalTickets ? paxPorTicket.toFixed(2) : '—'} pax/res</span>
               </div>
-              <div className="op-kpi-foot"><span className="op-kpi-foot-label">Tickets pendientes:</span><span className="op-kpi-foot-val" style={{fontSize:'0.66rem'}}>{ticketsPendientesSubir}</span></div>
+              <div className="op-kpi-foot"><span className="op-kpi-foot-label">{t("dashboard.ticketsPendientes")}</span><span className="op-kpi-foot-val" style={{fontSize:'0.66rem'}}>{ticketsPendientesSubir}</span></div>
             </div>
           </div>
 
@@ -539,28 +563,39 @@ function DashboardRestaurante({ usuario, perfil }) {
           <div className="op-reco">
             <div className="op-reco-head">
               <div>
-                <div className="op-reco-title">Carga y Conciliación de Tickets de Venta <span className="op-reco-badge">Sync Agora / Revo TPV</span></div>
-                <p style={{fontSize:'0.72rem', color:'var(--op-on-variant)', marginTop:'0.15rem'}}>Sube los reportes Z, tickets de caja o facturas simplificadas para validar liquidaciones con MIRA Pay y pasarela bancaria.</p>
+                <div className="op-reco-title">{t("dashboard.conciliacionTickets")}</div>
+                <p style={{fontSize:'0.72rem', color:'var(--op-on-variant)', marginTop:'0.15rem'}}>{t("dashboard.conciliacionAyuda")}</p>
               </div>
               <div style={{display:'flex', alignItems:'center', gap:'0.4rem', background:'var(--op-surface-low)', padding:'0.35rem 0.6rem', borderRadius:'0.5rem', fontFamily:'ui-monospace,monospace', fontSize:'0.68rem'}}>
-                <span style={{width:'0.45rem', height:'0.45rem', borderRadius:'50%', background:'var(--op-secondary)', display:'inline-block', animation:'opPulse 1s infinite'}}></span> Tickets conciliados: <strong>{totalTickets}</strong>
+                <span style={{width:'0.45rem', height:'0.45rem', borderRadius:'50%', background:'var(--op-secondary)', display:'inline-block', animation:'opPulse 1s infinite'}}></span> {t("dashboard.ticketsRegistradosLabel")} <strong>{totalTickets}</strong>
               </div>
             </div>
             <div className="op-reco-grid">
-              <div className={`op-drop ${dragOver? 'dragover':''}`} onDragOver={e=>{e.preventDefault(); setDragOver(true);}} onDragLeave={()=> setDragOver(false)} onDrop={e=>{e.preventDefault(); setDragOver(false); if(e.dataTransfer.files.length) { alert('Archivos recibidos ('+e.dataTransfer.files.length+') - OCR iniciado'); setShowTicketModal(true);}}} onClick={()=> fileRef.current?.click()}>
+              {/* Zona de entrada honesta: no hay subida de ficheros ni OCR en el
+                  backend, así que solo abre el listado de reservas sin ticket. */}
+              <div
+                className={`op-drop ${dragOver? 'dragover':''}`}
+                role="button"
+                tabIndex={0}
+                aria-label={t("dashboard.ariaRegistrarTickets")}
+                onDragOver={e=>{e.preventDefault(); setDragOver(true);}}
+                onDragLeave={()=> setDragOver(false)}
+                onDrop={e=>{e.preventDefault(); setDragOver(false); abrirModalTickets();}}
+                onClick={abrirModalTickets}
+                onKeyDown={e=>{ if(e.key==='Enter' || e.key===' '){ e.preventDefault(); abrirModalTickets(); } }}
+              >
                 <div className="op-drop-icon"><span className="material-symbols-outlined" style={{fontSize:28}}>upload_file</span></div>
-                <h4 style={{fontWeight:700, fontSize:'0.85rem', marginTop:'0.6rem'}}>Arrastra o sube tickets Z, cierres de caja o facturas TPV</h4>
-                <p style={{fontSize:'0.72rem', color:'var(--op-on-variant)', marginTop:'0.2rem'}}>Soporta formatos <strong style={{fontFamily:'ui-monospace', color:'var(--op-on-surface)'}}>.PDF, .CSV, .XML, .JPG, .PNG</strong> (máx. 45MB por lote)</p>
+                <h4 style={{fontWeight:700, fontSize:'0.85rem', marginTop:'0.6rem'}}>{t("dashboard.registrarTicketsTitulo")}</h4>
+                <p style={{fontSize:'0.72rem', color:'var(--op-on-variant)', marginTop:'0.2rem'}}>{t("dashboard.registrarTicketsIntro")} <strong style={{fontFamily:'ui-monospace', color:'var(--op-on-surface)'}}>{t("dashboard.registrarTicketsFuerte")}</strong>{t("dashboard.registrarTicketsOutro")}</p>
                 <div style={{display:'flex', gap:'0.5rem', marginTop:'0.6rem', alignItems:'center'}}>
-                  <input ref={fileRef} type="file" multiple accept=".pdf,.csv,.xml,.jpg,.png" className="hidden" style={{display:'none'}} onChange={e=>{ if(e.target.files.length){ alert('Subida iniciada: '+e.target.files.length+' ticket(s)'); setShowTicketModal(true);}}} />
-                  <button className="op-btn-ghost" style={{background:'var(--op-surface-lowest)', boxShadow:'0 1px 2px rgba(0,0,0,0.04)'}} onClick={e=>{e.stopPropagation(); fileRef.current?.click();}} type="button"><span className="material-symbols-outlined" style={{fontSize:14, color:'var(--op-primary)'}}>folder_open</span> Examinar archivos</button>
-                  <span style={{fontSize:'0.68rem', color:'var(--op-outline)'}}>o pega desde el portapapeles</span>
+                  <button className="op-btn-ghost" style={{background:'var(--op-surface-lowest)', boxShadow:'0 1px 2px rgba(0,0,0,0.04)'}} onClick={e=>{e.stopPropagation(); abrirModalTickets();}} type="button"><span className="material-symbols-outlined" style={{fontSize:14, color:'var(--op-primary)'}}>folder_open</span> {t("dashboard.verReservasSinTicket")}</button>
+                  <span style={{fontSize:'0.68rem', color:'var(--op-outline)'}}>{t("dashboard.soltarFicheroAqui")}</span>
                 </div>
               </div>
               <div className="op-ledger">
-                <div className="op-ledger-head"><span>Últimos lotes conciliados</span><button onClick={()=> setShowHistorial(true)} style={{color:'var(--op-primary)', background:'none', border:'none', fontSize:'0.68rem', fontWeight:600, cursor:'pointer'}}>Ver Historial ({ticketsRecientes.length})</button></div>
+                <div className="op-ledger-head"><span>{t("dashboard.ultimosTicketsRegistrados")}</span><button onClick={()=> setShowHistorial(true)} style={{color:'var(--op-primary)', background:'none', border:'none', fontSize:'0.68rem', fontWeight:600, cursor:'pointer'}}>{t("dashboard.verHistorial")} ({ticketsRecientes.length})</button></div>
                 {(ticketsRecientes.slice(0,3).length? ticketsRecientes.slice(0,3) : []).length === 0 && (
-                  <p style={{fontSize:'0.68rem', color:'var(--op-on-variant)', padding:'0.5rem'}}>Sin tickets conciliados todavía.</p>
+                  <p style={{fontSize:'0.68rem', color:'var(--op-on-variant)', padding:'0.5rem'}}>{t("dashboard.sinTicketsTodavia")}</p>
                 )}
                 {(ticketsRecientes.slice(0,3).length? ticketsRecientes.slice(0,3) : []).map(item=> (
                   <div key={item.id} className="op-ledger-item">
@@ -573,7 +608,7 @@ function DashboardRestaurante({ usuario, perfil }) {
                     </div>
                     <div style={{textAlign:'right', flex:'0 0 auto', marginLeft:'0.5rem'}}>
                       <div style={{fontFamily:'ui-monospace', fontWeight:700, fontSize:'0.72rem'}}>{euro(item.totalPagado ?? item.total ?? 0)}</div>
-                      <span style={{display:'inline-flex', alignItems:'center', gap:'0.2rem', fontSize:'0.58rem', fontWeight:700, padding:'0.1rem 0.3rem', borderRadius:'0.3rem', background: String(item.estado).includes('Revisi')? '#ffdad6':'var(--op-secondary-container)', color: String(item.estado).includes('Revisi')? '#93000a':'var(--op-on-secondary-container)'}}><span style={{width:'0.25rem', height:'0.25rem', borderRadius:'50%', background:'currentColor'}}></span>{item.estado || 'Conciliado'}</span>
+                      <span style={{display:'inline-flex', alignItems:'center', gap:'0.2rem', fontSize:'0.58rem', fontWeight:700, padding:'0.1rem 0.3rem', borderRadius:'0.3rem', background: String(item.estado).includes('Revisi')? '#ffdad6':'var(--op-secondary-container)', color: String(item.estado).includes('Revisi')? '#93000a':'var(--op-on-secondary-container)'}}><span style={{width:'0.25rem', height:'0.25rem', borderRadius:'50%', background:'currentColor'}}></span>{item.estado || t("dashboard.registrado")}</span>
                     </div>
                   </div>
                 ))}
@@ -586,34 +621,34 @@ function DashboardRestaurante({ usuario, perfil }) {
             <div className="op-panel">
               <div className="op-panel-head">
                 <div>
-                  <div className="op-panel-title">{filtroTodas ? 'Reservas futuras' : `Reservas del ${new Date(fechaFiltro+'T00:00:00').toLocaleDateString('es-ES',{day:'2-digit', month:'short'})}`} <span className="op-panel-date">{filtroTodas ? `todas · ${stats.totalReservas}` : fechaFiltro===hoyISO ? hoyLabel : fechaFiltro}</span></div>
-                  <p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{filtroTodas ? 'Todas las reservas futuras (puedes cancelar cualquiera)' : 'Filtra por fecha arriba para ver y gestionar cualquier día'}</p>
+                  <div className="op-panel-title">{filtroTodas ? t("dashboard.reservasFuturas") : t("dashboard.reservasDel", { fecha: new Date(fechaFiltro+'T00:00:00').toLocaleDateString(t('modelos.locale'),{day:'2-digit', month:'short'}) })} <span className="op-panel-date">{filtroTodas ? `${t("dashboard.todasLabel")} · ${stats.totalReservas}` : fechaFiltro===hoyISO ? hoyLabel : fechaFiltro}</span></div>
+                  <p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{filtroTodas ? t("dashboard.todasReservasFuturas") : t("dashboard.filtraPorFecha")}</p>
                 </div>
                 <div style={{background:'var(--op-surface-low)', padding:'0.35rem 0.6rem', borderRadius:'0.5rem', fontSize:'0.68rem', fontWeight:700, color:'var(--op-primary)', display:'flex', alignItems:'center', gap:'0.25rem'}}>
-                  <span className="material-symbols-outlined" style={{fontSize:14}}>cloud_download</span> {hoyComensales} hoy · {(() => { const f=(data?.proximasReservas||[]).concat(data?.reservasHoy||[]).filter(r=> r.fecha===fechaFiltro && !isCanceladaLocal(r.estado)).reduce((s,r)=> s+(Number(r.comensales)||0),0); return f; })()} en {fechaFiltro===hoyISO?'hoy':fechaFiltro.slice(5)}
+                  <span className="material-symbols-outlined" style={{fontSize:14}}>cloud_download</span> {t("dashboard.paxHoy", { n: hoyComensales })} · {(() => { const f=(data?.proximasReservas||[]).concat(data?.reservasHoy||[]).filter(r=> r.fecha===fechaFiltro && !isCanceladaLocal(r.estado)).reduce((s,r)=> s+(Number(r.comensales)||0),0); return f; })()} {fechaFiltro===hoyISO ? t("dashboard.hoy") : t("dashboard.enFecha", { fecha: fechaFiltro.slice(5) })}
                 </div>
               </div>
               <div className="op-occupancy">
-                <div className="op-occupancy-head"><span>{aforo ? `Ocupación estimada de sala: ${ocupacion}%` : 'Pax de hoy (sin aforo configurado)'}</span><span style={{fontFamily:'ui-monospace', color:'var(--op-primary)'}}>{hoyComensales}{aforo ? ` / ${aforo} Asientos` : ' pax'}</span></div>
-                <div className="op-bar"><div className="op-bar-almuerzo" style={{width: `${pctAlm}%`}} title="Almuerzo"></div><div className="op-bar-cena" style={{width: `${pctCena}%`}} title="Cena"></div><div className="op-bar-libre" style={{width:`${pctLibre}%`}}></div></div>
-                <div className="op-legend"><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'var(--op-primary)'}}></span>Almuerzo ({almuerzo} pax)</span><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'#4ae183'}}></span>Cena ({cena} pax)</span><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'var(--op-outline-variant)'}}></span>Disponible ({aforo ? Math.max(0,aforo-hoyComensales) : '—'} pax)</span></div>
+                <div className="op-occupancy-head"><span>{aforo ? t("dashboard.ocupacionEstimada", { pct: ocupacion }) : t("dashboard.paxHoySinAforo")}</span><span style={{fontFamily:'ui-monospace', color:'var(--op-primary)'}}>{hoyComensales}{aforo ? ` / ${aforo} ${t("dashboard.asientos")}` : ' pax'}</span></div>
+                <div className="op-bar"><div className="op-bar-almuerzo" style={{width: `${pctAlm}%`}} title={t("dashboard.almuerzo")}></div><div className="op-bar-cena" style={{width: `${pctCena}%`}} title={t("dashboard.cena")}></div><div className="op-bar-libre" style={{width:`${pctLibre}%`}}></div></div>
+                <div className="op-legend"><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'var(--op-primary)'}}></span>{t("dashboard.almuerzoPax", { n: almuerzo })}</span><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'#4ae183'}}></span>{t("dashboard.cenaPax", { n: cena })}</span><span style={{display:'flex', alignItems:'center', gap:'0.25rem'}}><span className="op-legend-dot" style={{background:'var(--op-outline-variant)'}}></span>{t("dashboard.disponiblePax", { n: aforo ? Math.max(0,aforo-hoyComensales) : '—' })}</span></div>
               </div>
               {/* Navegación por fecha — permite ver cualquier día y cancelar */}
               <div className="op-date-nav">
-                <button className="op-date-nav-btn" onClick={()=>{ const d=new Date(fechaFiltro); d.setDate(d.getDate()-1); setFechaFiltro(d.toISOString().split('T')[0]); setFiltroTodas(false); setSelectedForecast(null); }} title="Día anterior"><span className="material-symbols-outlined" style={{fontSize:16}}>chevron_left</span></button>
+                <button className="op-date-nav-btn" onClick={()=>{ const d=new Date(fechaFiltro); d.setDate(d.getDate()-1); setFechaFiltro(d.toISOString().split('T')[0]); setFiltroTodas(false); setSelectedForecast(null); }} title={t("dashboard.diaAnterior")}><span className="material-symbols-outlined" style={{fontSize:16}}>chevron_left</span></button>
                 <input type="date" className="op-date-input" value={fechaFiltro} onChange={e=>{ setFechaFiltro(e.target.value); setFiltroTodas(false); setSelectedForecast(null); }} />
-                <button className="op-date-nav-btn" onClick={()=>{ const d=new Date(fechaFiltro); d.setDate(d.getDate()+1); setFechaFiltro(d.toISOString().split('T')[0]); setFiltroTodas(false); setSelectedForecast(null); }} title="Día siguiente"><span className="material-symbols-outlined" style={{fontSize:16}}>chevron_right</span></button>
-                <button className={`op-date-chip-btn ${fechaFiltro===hoyISO && !filtroTodas ? 'active':''}`} onClick={()=>{ setFechaFiltro(hoyISO); setFiltroTodas(false); setSelectedForecast(null); }}>Hoy</button>
-                <button className={`op-date-chip-btn ${filtroTodas?'active':''}`} onClick={()=> setFiltroTodas(v=>!v)}>{filtroTodas? 'Filtrar por fecha' : 'Ver todas futuras'}</button>
+                <button className="op-date-nav-btn" onClick={()=>{ const d=new Date(fechaFiltro); d.setDate(d.getDate()+1); setFechaFiltro(d.toISOString().split('T')[0]); setFiltroTodas(false); setSelectedForecast(null); }} title={t("dashboard.diaSiguiente")}><span className="material-symbols-outlined" style={{fontSize:16}}>chevron_right</span></button>
+                <button className={`op-date-chip-btn ${fechaFiltro===hoyISO && !filtroTodas ? 'active':''}`} onClick={()=>{ setFechaFiltro(hoyISO); setFiltroTodas(false); setSelectedForecast(null); }}>{t("dashboard.hoyTitulo")}</button>
+                <button className={`op-date-chip-btn ${filtroTodas?'active':''}`} onClick={()=> setFiltroTodas(v=>!v)}>{filtroTodas? t("dashboard.filtrarPorFecha") : t("dashboard.verTodasFuturas")}</button>
                 <div className="op-date-chips" style={{marginLeft:'auto'}}>
-                  {Array.from({length:7}, (_,i)=>{ const d=new Date(); d.setDate(d.getDate()+i); const iso=d.toISOString().split('T')[0]; const count=(data?.proximasReservas||[]).concat(data?.reservasHoy||[]).filter(r=> r.fecha===iso && String(r.estado).toLowerCase()!=='cancelada').length; const label=d.toLocaleDateString('es-ES',{day:'2-digit', month:'short'}); return (
-                    <button key={iso} onClick={()=>{ setFechaFiltro(iso); setFiltroTodas(false); setSelectedForecast(null); }} className={`op-date-chip-btn ${fechaFiltro===iso && !filtroTodas ? 'active':''}`} title={`${count} reservas`}>{label} {count? `·${count}`:''}</button>
+                  {Array.from({length:7}, (_,i)=>{ const d=new Date(); d.setDate(d.getDate()+i); const iso=d.toISOString().split('T')[0]; const count=(data?.proximasReservas||[]).concat(data?.reservasHoy||[]).filter(r=> r.fecha===iso && String(r.estado).toLowerCase()!=='cancelada').length; const label=d.toLocaleDateString(t('modelos.locale'),{day:'2-digit', month:'short'}); return (
+                    <button key={iso} onClick={()=>{ setFechaFiltro(iso); setFiltroTodas(false); setSelectedForecast(null); }} className={`op-date-chip-btn ${fechaFiltro===iso && !filtroTodas ? 'active':''}`} title={t("dashboard.reservasTituloN", { n: count })}>{label} {count? `·${count}`:''}</button>
                   );})}
                 </div>
               </div>
               <div className="op-table-wrap">
                 <table className="op-table">
-                  <thead><tr><th>Hora / ID</th><th>Comensal &amp; Notas</th><th style={{textAlign:'center'}}>Pax</th><th>Mesa</th><th>Estado</th><th style={{textAlign:'right'}}>Ticket TPV</th></tr></thead>
+                  <thead><tr><th>{t("dashboard.horaId")}</th><th>{t("dashboard.comensalNotas")}</th><th style={{textAlign:'center'}}>{t("dashboard.paxLabel")}</th><th>{t("dashboard.mesa")}</th><th>{t("dashboard.estado")}</th><th style={{textAlign:'right'}}>{t("dashboard.ticketTpv")}</th></tr></thead>
                   <tbody>
                     {(()=>{ 
                       // Todas las reservas dedup para filtrar por fecha (hoy + futuras)
@@ -636,22 +671,22 @@ function DashboardRestaurante({ usuario, perfil }) {
                         // ya está cubierto, pero intentamos fallback a reservas directas (ya tenemos)
                       }
                       if (base.length===0) {
-                        return (<tr key="empty"><td colSpan={6} className="op-empty">Sin reservas {filtroTodas? 'futuras' : `para ${fechaFiltro}`} — {filtroTodas? 'no hay reservas próximas' : `prueba ${fechaFiltro===hoyISO? 'otro día o "Ver todas futuras"' : 'otra fecha'}`} </td></tr>);
+                        return (<tr key="empty"><td colSpan={6} className="op-empty">{t("dashboard.sinReservas")} {filtroTodas? t("dashboard.futuras") : t("dashboard.paraFecha", { fecha: fechaFiltro })} — {filtroTodas? t("dashboard.noHayReservasProximas") : (fechaFiltro===hoyISO? t("dashboard.pruebaOtroDia") : t("dashboard.pruebaOtraFecha"))} </td></tr>);
                       }
                       return base.slice(0, showAllReservas? 50 : 8).map(r=>{
                       const badge = estadoToBadge(r.estado);
-                      const mesa = r.mesa || (r.terraza? 'T-04' : `Mesa ${String(r.id).slice(-2)}`);
-                      const comensal = r.usuarioNombre || r.usuarioEmail || r.email || 'Cliente';
+                      const mesa = r.mesa || (r.terraza? 'T-04' : `${t("dashboard.mesa")} ${String(r.id).slice(-2)}`);
+                      const comensal = r.usuarioNombre || r.usuarioEmail || r.email || t("dashboard.cliente");
                       const codigo = r.codigo || `#BK-${String(r.id).slice(-4).toUpperCase()}`;
-                      const ticket = r.ticketTotal != null ? euro(r.ticketTotal) : (r.totalPagado != null ? euro(r.totalPagado) : 'Pendiente servicio');
+                      const ticket = r.ticketTotal != null ? euro(r.ticketTotal) : (r.totalPagado != null ? euro(r.totalPagado) : t("dashboard.pendienteServicio"));
                       return (
                         <tr key={r.id}>
                           <td><div className="op-mono" style={{fontWeight:800}}>{r.hora||'-'}</div><span style={{fontFamily:'ui-monospace', fontSize:'0.62rem', color:'var(--op-outline)'}}>{codigo}</span></td>
-                          <td><div style={{fontWeight:700, fontSize:'0.78rem'}}>{comensal}</div><span style={{fontSize:'0.62rem', color:'var(--op-on-variant)'}}>{r.comentarios ? r.comentarios.slice(0,28) : (String(r.usuarioEmail||'').includes('vip') || Number(r.comensales)>=6 ? 'MIRA VIP' : 'Sin notas')}</span></td>
+                          <td><div style={{fontWeight:700, fontSize:'0.78rem'}}>{comensal}</div><span style={{fontSize:'0.62rem', color:'var(--op-on-variant)'}}>{r.comentarios ? r.comentarios.slice(0,28) : (String(r.usuarioEmail||'').includes('vip') || Number(r.comensales)>=6 ? 'MIRA VIP' : t("dashboard.sinNotas"))}</span></td>
                           <td style={{textAlign:'center'}} className="op-mono">{r.comensales||0}</td>
                           <td><span className="op-mesa">{mesa}</span></td>
                           <td><span className={`op-status ${badge.cls}`}><span className="op-status-dot"></span>{badge.label}</span></td>
-                          <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:700}}>{String(ticket).includes('Pendiente') ? (<span style={{fontSize:'0.62rem', color:'var(--op-outline)', fontWeight:400}}>{ticket}</span>) : ticket}</td>
+                          <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:700}}>{String(ticket).includes(t("dashboard.pendienteServicio")) ? (<span style={{fontSize:'0.62rem', color:'var(--op-outline)', fontWeight:400}}>{ticket}</span>) : ticket}</td>
                         </tr>
                       );
                     });
@@ -660,13 +695,13 @@ function DashboardRestaurante({ usuario, perfil }) {
                 </table>
               </div>
               <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:'0.6rem', borderTop:'1px solid var(--op-surface-low)', fontSize:'0.68rem', color:'var(--op-on-variant)' }}>
-                <span>{(()=>{ const allMap2=new Map(); [...(reservasHoyList||[]), ...(proximasReservas||[])].forEach(x=> allMap2.set(x.id,x)); const all2=Array.from(allMap2.values()); const cnt = filtroTodas ? all2.filter(r=> r.fecha>=hoyISO && !isCanceladaLocal(r.estado)).length : all2.filter(r=> r.fecha===fechaFiltro && !isCanceladaLocal(r.estado)).length; const shown = Math.min(showAllReservas? 50:8, cnt); return `Mostrando ${shown} de ${cnt} para ${filtroTodas? 'futuro' : fechaFiltro}`; })()}</span>
-                <button onClick={()=> setShowAllReservas(v=>!v)} style={{color:'var(--op-primary)', background:'none', border:'none', fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'0.15rem'}}>{showAllReservas? 'Ver menos' : 'Abrir cuadrante de sala completo'} <span className="material-symbols-outlined" style={{fontSize:12}}>{showAllReservas? 'expand_less' : 'chevron_right'}</span></button>
+                <span>{(()=>{ const allMap2=new Map(); [...(reservasHoyList||[]), ...(proximasReservas||[])].forEach(x=> allMap2.set(x.id,x)); const all2=Array.from(allMap2.values()); const cnt = filtroTodas ? all2.filter(r=> r.fecha>=hoyISO && !isCanceladaLocal(r.estado)).length : all2.filter(r=> r.fecha===fechaFiltro && !isCanceladaLocal(r.estado)).length; const shown = Math.min(showAllReservas? 50:8, cnt); return t("dashboard.mostrandoReservas", { shown, cnt, para: filtroTodas? t("dashboard.futuro") : fechaFiltro }); })()}</span>
+                <button onClick={()=> setShowAllReservas(v=>!v)} style={{color:'var(--op-primary)', background:'none', border:'none', fontWeight:700, cursor:'pointer', display:'inline-flex', alignItems:'center', gap:'0.15rem'}}>{showAllReservas? t("dashboard.verMenos") : t("dashboard.abrirCuadrante")} <span className="material-symbols-outlined" style={{fontSize:12}}>{showAllReservas? 'expand_less' : 'chevron_right'}</span></button>
               </div>
               {/* Acciones rápidas: se muestran para las reservas visibles (cualquier fecha) para poder cancelar/confirmar */}
               {(()=>{ const allMap3=new Map(); [...(reservasHoyList||[]), ...(proximasReservas||[])].forEach(x=> allMap3.set(x.id,x)); let base2; if(filtroTodas) base2=Array.from(allMap3.values()).filter(r=> r.fecha>=hoyISO && !isCanceladaLocal(r.estado)).sort((a,b)=> `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`)); else if(selectedForecast) base2=Array.from(allMap3.values()).filter(r=> r.fecha===selectedForecast && !isCanceladaLocal(r.estado)).sort((a,b)=> String(a.hora).localeCompare(String(b.hora))); else base2=Array.from(allMap3.values()).filter(r=> r.fecha===fechaFiltro && !isCanceladaLocal(r.estado)).sort((a,b)=> String(a.hora).localeCompare(String(b.hora))); const vis = base2.slice(0,3); if(vis.length===0) return null; return (
                 <div style={{marginTop:'0.5rem', display:'flex', flexDirection:'column', gap:'0.4rem'}}>
-                  <span style={{fontSize:'0.68rem', fontWeight:700, color:'var(--op-on-variant)'}}>Acción rápida sobre {filtroTodas? 'próximas' : fechaFiltro}:</span>
+                  <span style={{fontSize:'0.68rem', fontWeight:700, color:'var(--op-on-variant)'}}>{t("dashboard.accionRapidaSobre", { x: filtroTodas? t("dashboard.proximas") : fechaFiltro })}</span>
                   <div style={{display:'flex', flexWrap:'wrap', gap:'0.4rem'}}>
                     {vis.map(r=> <ReservationActions key={'act-'+r.id} reserva={r} comisionPct={comisionPct} onStatusChange={(id, act)=>{ handleReservationChange(id, act); if(act==='confirmar' || act==='no_show' || act==='cancelada'){ setTimeout(()=> dashboardApi.getMyRestaurant().then(d=> setData(prev=> ({...prev, ...d, restaurante: d.restaurante || prev.restaurante })) ).catch(()=>{}), 400); } }} t={t} />)}
                   </div>
@@ -676,8 +711,8 @@ function DashboardRestaurante({ usuario, perfil }) {
 
             <div className="op-panel">
               <div className="op-panel-head">
-                <div><div className="op-panel-title">Previsión y Calendario</div><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>Próximas reservas reales</p></div>
-                <div style={{textAlign:'right'}}><div style={{fontWeight:800, fontSize:'1.1rem', color:'var(--op-primary)', fontVariantNumeric:'tabular-nums'}}>{stats.totalReservas || 0}</div><p style={{fontSize:'0.62rem', color:'var(--op-on-variant)'}}>{totalComensales || 0} pax acumulados</p></div>
+                <div><div className="op-panel-title">{t("dashboard.previsionCalendario")}</div><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{t("dashboard.proximasReservasReales")}</p></div>
+                <div style={{textAlign:'right'}}><div style={{fontWeight:800, fontSize:'1.1rem', color:'var(--op-primary)', fontVariantNumeric:'tabular-nums'}}>{stats.totalReservas || 0}</div><p style={{fontSize:'0.62rem', color:'var(--op-on-variant)'}}>{t("dashboard.paxAcumulados", { n: totalComensales || 0 })}</p></div>
               </div>
               <div className="op-forecast-list">
                 {forecastToShow.map(d=>(
@@ -686,40 +721,40 @@ function DashboardRestaurante({ usuario, perfil }) {
                       <div className="op-cal"><span className="op-cal-day">{d.dow}</span><span className="op-cal-num">{d.day}</span></div>
                       <div className="op-forecast-meta">
                         <div className="op-forecast-title">{d.dow} · {d.fecha} <span className={`op-tag ${d.tagClass}`}>{d.tag}</span></div>
-                        <div className="op-forecast-sub">{d.pax} pax confirmados ({d.res} res) · {d.fecha}</div>
+                        <div className="op-forecast-sub">{t("dashboard.paxConfirmadosRes", { pax: d.pax, res: d.res, fecha: d.fecha })}</div>
                       </div>
                     </div>
-                    <div style={{textAlign:'right'}}><div style={{fontFamily:'ui-monospace', fontWeight:800, fontSize:'0.78rem', color: d.pct>=98? 'var(--op-secondary)': 'var(--op-primary)'}}>{d.pct}%</div><p style={{fontFamily:'ui-monospace', fontSize:'0.58rem', color:'var(--op-outline)'}}>{d.res} en espera</p></div>
+                    <div style={{textAlign:'right'}}><div style={{fontFamily:'ui-monospace', fontWeight:800, fontSize:'0.78rem', color: d.pct>=98? 'var(--op-secondary)': 'var(--op-primary)'}}>{d.pct}%</div><p style={{fontFamily:'ui-monospace', fontSize:'0.58rem', color:'var(--op-outline)'}}>{t("dashboard.enEspera", { n: d.res })}</p></div>
                   </div>
                 ))}
               </div>
               {forecastToShow.length === 0 && (
-                <div style={{fontSize:'0.72rem', color:'var(--op-on-variant)', padding:'0.75rem'}}>Sin reservas próximas para prever.</div>
+                <div style={{fontSize:'0.72rem', color:'var(--op-on-variant)', padding:'0.75rem'}}>{t("dashboard.sinReservasProximasPrever")}</div>
               )}
-              {selectedForecast && <div style={{fontSize:'0.68rem', background:'var(--op-secondary-container)', color:'var(--op-on-secondary-container)', padding:'0.35rem 0.5rem', borderRadius:'0.4rem', display:'flex', justifyContent:'space-between', alignItems:'center'}}><span>Filtrando reservas por {selectedForecast}</span><button onClick={()=> setSelectedForecast(null)} style={{background:'none', border:'none', fontWeight:800, cursor:'pointer', color:'inherit'}}>Quitar ×</button></div>}
-              <div style={{display:'flex', justifyContent:'space-between', paddingTop:'0.5rem', borderTop:'1px solid var(--op-surface-low)', fontSize:'0.68rem', color:'var(--op-on-variant)'}}><span>Aforo por hora configurable</span><button onClick={()=> { setAforoLimit(data?.restaurante?.maxReservasPorHora||12); setShowAforoModal(true); }} style={{color:'var(--op-primary)', background:'none', border:'none', fontWeight:700, cursor:'pointer'}}>Configurar aforos</button></div>
+              {selectedForecast && <div style={{fontSize:'0.68rem', background:'var(--op-secondary-container)', color:'var(--op-on-secondary-container)', padding:'0.35rem 0.5rem', borderRadius:'0.4rem', display:'flex', justifyContent:'space-between', alignItems:'center'}}><span>{t("dashboard.filtrandoPor")} {selectedForecast}</span><button onClick={()=> setSelectedForecast(null)} style={{background:'none', border:'none', fontWeight:800, cursor:'pointer', color:'inherit'}}>{t("dashboard.quitar")}</button></div>}
+              <div style={{display:'flex', justifyContent:'space-between', paddingTop:'0.5rem', borderTop:'1px solid var(--op-surface-low)', fontSize:'0.68rem', color:'var(--op-on-variant)'}}><span>{t("dashboard.aforoHoraConfigurable")}</span><button onClick={()=> { setAforoLimit(data?.restaurante?.maxReservasPorHora||12); setShowAforoModal(true); }} style={{color:'var(--op-primary)', background:'none', border:'none', fontWeight:700, cursor:'pointer'}}>{t("dashboard.configurarAforos")}</button></div>
             </div>
           </div>
 
           {/* Directorio & Liquidaciones */}
           <div className="op-directory">
             <div className="op-dir-head">
-              <div><h3 style={{fontWeight:800, fontSize:'0.95rem'}}>Directorio de Restaurantes &amp; Liquidaciones</h3><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>Conmuta de restaurante, supervisa tickets pendientes y verifica retenciones por sede.</p></div>
+              <div><h3 style={{fontWeight:800, fontSize:'0.95rem'}}>{t("dashboard.directorioLiquidaciones")}</h3><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{t("dashboard.directorioAyuda")}</p></div>
               <div className="op-dir-filters">
-                <button onClick={()=> setDirFilter('todos')} className={`op-dir-filter ${dirFilter==='todos'?'active':''}`}>Todos ({listaRests.length || 1})</button>
-                <button onClick={()=> setDirFilter('premium')} className={`op-dir-filter ${dirFilter==='premium'?'active':''}`}>Activos ({restaurante.activo !== false ? 1 : 0})</button>
-                <button onClick={()=> setDirFilter('incidencias')} className={`op-dir-filter ${dirFilter==='incidencias'?'active':''}`}>Con Incidencias <span style={{width:'0.35rem', height:'0.35rem', borderRadius:'50%', background:'var(--op-error)', display:'inline-block', marginLeft:'0.2rem'}}></span></button>
-                <button onClick={()=> setDirFilter('pendiente')} className={`op-dir-filter ${dirFilter==='pendiente'?'active':''}`}>Pendiente de Tickets ({ticketsPendientesSubir})</button>
+                <button onClick={()=> setDirFilter('todos')} className={`op-dir-filter ${dirFilter==='todos'?'active':''}`}>{t("dashboard.todos")} ({listaRests.length || 1})</button>
+                <button onClick={()=> setDirFilter('premium')} className={`op-dir-filter ${dirFilter==='premium'?'active':''}`}>{t("dashboard.activos")} ({restaurante.activo !== false ? 1 : 0})</button>
+                <button onClick={()=> setDirFilter('incidencias')} className={`op-dir-filter ${dirFilter==='incidencias'?'active':''}`}>{t("dashboard.conIncidencias")} <span style={{width:'0.35rem', height:'0.35rem', borderRadius:'50%', background:'var(--op-error)', display:'inline-block', marginLeft:'0.2rem'}}></span></button>
+                <button onClick={()=> setDirFilter('pendiente')} className={`op-dir-filter ${dirFilter==='pendiente'?'active':''}`}>{t("dashboard.pendienteTickets")} ({ticketsPendientesSubir})</button>
               </div>
             </div>
             <div className="op-table-wrap">
               <table className="op-table">
-                <thead><tr><th>Restaurante &amp; ID</th><th>Ciudad / Zona</th><th style={{textAlign:'right'}}>Ingresos Mes (Bruto)</th><th style={{textAlign:'right'}}>Comisión MIRA</th><th style={{textAlign:'center'}}>Tickets Subidos</th><th style={{textAlign:'right'}}>Próx. Reservas</th><th style={{textAlign:'right'}}>Acciones</th></tr></thead>
+                <thead><tr><th>{t("dashboard.thRestauranteId")}</th><th>{t("dashboard.thCiudadZona")}</th><th style={{textAlign:'right'}}>{t("dashboard.thIngresosMes")}</th><th style={{textAlign:'right'}}>{t("dashboard.comisionMiraTitulo")}</th><th style={{textAlign:'center'}}>{t("dashboard.thTicketsSubidos")}</th><th style={{textAlign:'right'}}>{t("dashboard.thProxReservas")}</th><th style={{textAlign:'right'}}>{t("dashboard.thAcciones")}</th></tr></thead>
                 <tbody>
                   {dirFilter==='incidencias' ? (
-                    <tr><td colSpan={7} className="op-empty">Sin incidencias críticas · Buen trabajo <span className="material-symbols-outlined" style={{fontSize:14, color:'var(--op-secondary)'}}>verified</span></td></tr>
+                    <tr><td colSpan={7} className="op-empty">{t("dashboard.sinIncidencias")} <span className="material-symbols-outlined" style={{fontSize:14, color:'var(--op-secondary)'}}>verified</span></td></tr>
                   ) : dirFilter==='pendiente' && ticketsPendientesSubir<=0 ? (
-                    <tr><td colSpan={7} className="op-empty">Al día — no hay tickets pendientes de subir</td></tr>
+                    <tr><td colSpan={7} className="op-empty">{t("dashboard.alDiaSinTickets")}</td></tr>
                   ) : (
                   <tr className="op-dir-row active">
                     <td><div style={{display:'flex', gap:'0.4rem', alignItems:'center'}}><span style={{width:'0.45rem', height:'0.45rem', borderRadius:'50%', background:'var(--op-primary)'}}></span><div><div style={{fontWeight:800, fontSize:'0.78rem', color:'var(--op-primary)', display:'flex', gap:'0.2rem', alignItems:'center'}}>{nombreCorto} <span className="material-symbols-outlined" style={{fontSize:10, color:'var(--op-secondary)', fontVariationSettings:"'FILL' 1"}}>star</span></div><span style={{fontFamily:'ui-monospace', fontSize:'0.62rem', color:'var(--op-outline)'}}>{restId} · {restaurante.ciudad||'-'}</span></div></div></td>
@@ -727,14 +762,14 @@ function DashboardRestaurante({ usuario, perfil }) {
                     <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:800}}>{euro(totalFacturacion)}</td>
                     <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:700, color:'var(--op-secondary)'}}>{euro(totalComisiones)}</td>
                     <td style={{textAlign:'center'}}><span style={{fontFamily:'ui-monospace', fontSize:'0.68rem', background:'var(--op-surface-lowest)', padding:'0.15rem 0.4rem', borderRadius:'0.3rem', boxShadow:'0 1px 2px rgba(0,0,0,0.04)'}}>1 / 1</span></td>
-                    <td style={{textAlign:'right', fontFamily:'ui-monospace'}}>{stats.totalReservas} res.</td>
-                    <td style={{textAlign:'right'}}><button onClick={()=> window.scrollTo({top:0, behavior:'smooth'})} className="op-btn-primary" style={{padding:'0.25rem 0.5rem', fontSize:'0.68rem'}}>Panel Activo</button></td>
+                    <td style={{textAlign:'right', fontFamily:'ui-monospace'}}>{t("dashboard.resAbrev", { n: stats.totalReservas })}</td>
+                    <td style={{textAlign:'right'}}><button onClick={()=> window.scrollTo({top:0, behavior:'smooth'})} className="op-btn-primary" style={{padding:'0.25rem 0.5rem', fontSize:'0.68rem'}}>{t("dashboard.panelActivo")}</button></td>
                   </tr>
                   )}
                 </tbody>
               </table>
             </div>
-            <div style={{display:'flex', justifyContent:'space-between', paddingTop:'0.5rem', fontSize:'0.68rem', color:'var(--op-on-variant)'}}><span>Mostrando 1 de {listaRests.length || 1} restaurantes</span><div style={{display:'flex', gap:'0.25rem', alignItems:'center'}}><span style={{padding:'0.15rem 0.35rem', borderRadius:'0.25rem', background:'var(--op-primary-container)', color:'var(--op-on-primary)', fontFamily:'ui-monospace', fontWeight:800}}>1</span></div></div>
+            <div style={{display:'flex', justifyContent:'space-between', paddingTop:'0.5rem', fontSize:'0.68rem', color:'var(--op-on-variant)'}}><span>{t("dashboard.mostrandoRestaurantes", { n: listaRests.length || 1 })}</span><div style={{display:'flex', gap:'0.25rem', alignItems:'center'}}><span style={{padding:'0.15rem 0.35rem', borderRadius:'0.25rem', background:'var(--op-primary-container)', color:'var(--op-on-primary)', fontFamily:'ui-monospace', fontWeight:800}}>1</span></div></div>
             {/* Charts kept for data depth, styled with new palette */}
             <div style={{marginTop:'0.75rem', display:'grid', gap:'0.75rem'}}>
               <RevenueLineChart data={ingresosPorMes} title={t("dashboard.evolucionIngresos") || "Evolución ingresos"} />
@@ -743,7 +778,7 @@ function DashboardRestaurante({ usuario, perfil }) {
           </div>
 
           {/* Help / Consistency footer */}
-          <div style={{textAlign:'center', fontSize:'0.68rem', color:'var(--op-outline)', padding:'0.5rem'}}>Operator Hub · MIRA · Consistencia con web: tipografía Plus Jakarta Sans, tokens Operator, glass &amp; shadows</div>
+          <div style={{textAlign:'center', fontSize:'0.68rem', color:'var(--op-outline)', padding:'0.5rem'}}>{t("dashboard.consistenciaWeb")}</div>
         </div>
       </div>
 
@@ -754,17 +789,17 @@ function DashboardRestaurante({ usuario, perfil }) {
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'flex-start'}}>
               <div style={{display:'flex', gap:'0.6rem', alignItems:'center'}}>
                 <div style={{width:'2.2rem', height:'2.2rem', borderRadius:'0.6rem', background:'var(--op-primary-container)', color:'var(--op-on-primary)', display:'grid', placeItems:'center'}}><span className="material-symbols-outlined">receipt</span></div>
-                <div><h3 style={{fontWeight:800, fontSize:'0.95rem'}}>Cargar Tickets &amp; Facturas</h3><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{nombreCorto} · ID {restId} · Comisión {comisionPct}%</p></div>
+                <div><h3 style={{fontWeight:800, fontSize:'0.95rem'}}>{t("dashboard.cargarTicketsFacturas")}</h3><p style={{fontSize:'0.68rem', color:'var(--op-on-variant)'}}>{nombreCorto} · ID {restId} · {t("dashboard.comisionPctLabel", { pct: comisionPct })}</p></div>
               </div>
               <button className="op-btn-ghost" style={{padding:'0.2rem'}} onClick={()=> setShowTicketModal(false)}><span className="material-symbols-outlined">close</span></button>
             </div>
             <div style={{background:'var(--op-surface-low)', borderRadius:'0.6rem', padding:'0.7rem', display:'flex', gap:'0.5rem', alignItems:'flex-start', border:'1px solid var(--op-outline-variant)'}}>
               <span className="material-symbols-outlined" style={{fontSize:20, color:'var(--op-primary)', marginTop:'0.1rem'}}>info</span>
               <div style={{fontSize:'0.72rem', lineHeight:'1.4'}}>
-                <strong>¿Cómo funciona?</strong> Indica el importe total pagado por el cliente. Calculamos automáticamente la comisión MIRA del {comisionPct}% y el neto para tu liquidación. Marca si el cliente asistió para confirmar la reserva o como no-show.
+                <strong>{t("dashboard.comoFuncionaTitulo")}</strong> {t("dashboard.comoFuncionaTexto", { pct: comisionPct })}
                 <div style={{marginTop:'0.3rem', display:'flex', gap:'0.4rem', flexWrap:'wrap'}}>
-                  <span style={{background:'white', padding:'0.2rem 0.45rem', borderRadius:'0.4rem', border:'1px solid var(--op-outline-variant)', fontSize:'0.68rem'}}>Ej: 50€ → comisión {euro(50*comisionPct/100)} · neto {euro(50 - 50*comisionPct/100)}</span>
-                  <span style={{background:'white', padding:'0.2rem 0.45rem', borderRadius:'0.4rem', border:'1px solid var(--op-outline-variant)', fontSize:'0.68rem'}}>Asistió: <span style={{color:'var(--op-primary)', fontWeight:700}}>completada</span> · No asistió: <span style={{color:'var(--op-error)', fontWeight:700}}>no-show</span></span>
+                  <span style={{background:'white', padding:'0.2rem 0.45rem', borderRadius:'0.4rem', border:'1px solid var(--op-outline-variant)', fontSize:'0.68rem'}}>{t("dashboard.ejemploComisionNeto", { comision: euro(50*comisionPct/100), neto: euro(50 - 50*comisionPct/100) })}</span>
+                  <span style={{background:'white', padding:'0.2rem 0.45rem', borderRadius:'0.4rem', border:'1px solid var(--op-outline-variant)', fontSize:'0.68rem'}}>{t("dashboard.asistioLabel")}: <span style={{color:'var(--op-primary)', fontWeight:700}}>{t("dashboard.completada")}</span> · {t("dashboard.noAsistioLabel")}: <span style={{color:'var(--op-error)', fontWeight:700}}>{t("dashboard.noShow")}</span></span>
                 </div>
               </div>
             </div>
@@ -776,14 +811,14 @@ function DashboardRestaurante({ usuario, perfil }) {
                     // no cerramos modal automáticamente para permitir varios tickets seguidos
                   }} t={t} /></div>
                 ))
-              ) : <p className="op-empty" style={{padding:'1.5rem'}}>Todas las reservas activas ya tienen ticket · Las nuevas reservas aparecerán aquí</p>}
+              ) : <p className="op-empty" style={{padding:'1.5rem'}}>{t("dashboard.reservasActivasConTicket")}</p>}
             </div>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', paddingTop:'0.4rem', borderTop:'1px solid var(--op-surface-low)', fontSize:'0.68rem', color:'var(--op-on-variant)'}}>
-              <span>{reservasParaTicket.length} reservas sin ticket · {totalTickets} subidos</span>
-              <span style={{display:'inline-flex', alignItems:'center', gap:'0.2rem'}}><span className="material-symbols-outlined" style={{fontSize:14}}>lock</span> Comisión {comisionPct}% · Liquidación MIRA</span>
+              <span>{t("dashboard.reservasSinTicketSubidas", { n: reservasParaTicket.length, m: totalTickets })}</span>
+              <span style={{display:'inline-flex', alignItems:'center', gap:'0.2rem'}}><span className="material-symbols-outlined" style={{fontSize:14}}>lock</span> {t("dashboard.comisionPctLabel", { pct: comisionPct })} · {t("dashboard.liquidacionMira")}</span>
             </div>
             <div style={{display:'flex', justifyContent:'flex-end', gap:'0.4rem'}}>
-              <button className="op-btn-ghost" onClick={()=> setShowTicketModal(false)}>Cerrar</button>
+              <button className="op-btn-ghost" onClick={()=> setShowTicketModal(false)}>{t("dashboard.cerrar")}</button>
             </div>
           </div>
         </div>
@@ -797,15 +832,15 @@ function DashboardRestaurante({ usuario, perfil }) {
         <div className="op-modal-overlay" onClick={()=> setShowHistorial(false)}>
           <div className="op-modal" onClick={e=> e.stopPropagation()} style={{maxWidth:'48rem', maxHeight:'85vh', overflow:'auto', background:'#ffffff', backgroundColor:'#ffffff', opacity:1}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', position:'sticky', top:0, background:'white', paddingBottom:'0.5rem', zIndex:1}}>
-              <h3 style={{fontWeight:800}}>Historial de Tickets ({ticketsRecientes.length})</h3>
+              <h3 style={{fontWeight:800}}>{t("dashboard.historialTickets")} ({ticketsRecientes.length})</h3>
               <div style={{display:'flex', gap:'0.4rem'}}>
-                <button className="op-btn-ghost" style={{fontSize:'0.72rem'}} onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:14}}>download</span> Exportar CSV</button>
+                <button className="op-btn-ghost" style={{fontSize:'0.72rem'}} onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:14}}>download</span> {t("dashboard.exportarCsv")}</button>
                 <button className="op-btn-ghost" onClick={()=> setShowHistorial(false)}><span className="material-symbols-outlined">close</span></button>
               </div>
             </div>
             <div className="op-table-wrap" style={{marginTop:'0.5rem'}}>
               <table className="op-table">
-                <thead><tr><th>Fecha</th><th>Código</th><th>Cliente</th><th style={{textAlign:'right'}}>Total</th><th style={{textAlign:'right'}}>Comisión {comisionPct}%</th><th style={{textAlign:'right'}}>Neto</th><th>Estado</th></tr></thead>
+                <thead><tr><th>{t("dashboard.fecha")}</th><th>{t("dashboard.codigo")}</th><th>{t("dashboard.cliente")}</th><th style={{textAlign:'right'}}>{t("dashboard.total")}</th><th style={{textAlign:'right'}}>{t("dashboard.comisionPctLabel", { pct: comisionPct })}</th><th style={{textAlign:'right'}}>{t("dashboard.netoLabel")}</th><th>{t("dashboard.estado")}</th></tr></thead>
                 <tbody>
                   {ticketsRecientes.length? ticketsRecientes.map(ti=> (
                     <tr key={ti.id}>
@@ -815,9 +850,9 @@ function DashboardRestaurante({ usuario, perfil }) {
                       <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:700}}>{euro(ti.totalPagado||0)}</td>
                       <td style={{textAlign:'right', fontFamily:'ui-monospace', color:'var(--op-error)'}}>{euro(ti.importeComision!=null ? ti.importeComision : Math.round((ti.totalPagado||0)*(comisionPct/100)*100)/100)}</td>
                       <td style={{textAlign:'right', fontFamily:'ui-monospace', fontWeight:700, color:'var(--op-primary)'}}>{euro(ti.netoRestaurante!=null ? ti.netoRestaurante : Math.round(((ti.totalPagado||0) - (ti.importeComision!=null ? ti.importeComision : (ti.totalPagado||0)*(comisionPct/100)))*100)/100)}</td>
-                      <td><span className={`op-status ${ti.asistio===false?'no_show':'pagado'}`}><span className="op-status-dot"></span>{ti.asistio===false?'No-show':'Conciliado'}</span></td>
+                      <td><span className={`op-status ${ti.asistio===false?'no_show':'pagado'}`}><span className="op-status-dot"></span>{ti.asistio===false? t("dashboard.noShow") : t("dashboard.registrado")}</span></td>
                     </tr>
-                  )) : <tr><td colSpan={7} className="op-empty">Sin tickets conciliados aún</td></tr>}
+                  )) : <tr><td colSpan={7} className="op-empty">{t("dashboard.sinTickets")}</td></tr>}
                 </tbody>
               </table>
             </div>
@@ -829,17 +864,17 @@ function DashboardRestaurante({ usuario, perfil }) {
         <div className="op-modal-overlay" onClick={()=> setShowAforoModal(false)}>
           <div className="op-modal" onClick={e=> e.stopPropagation()} style={{maxWidth:'28rem', background:'#ffffff', backgroundColor:'#ffffff', opacity:1}}>
             <div style={{display:'flex', justifyContent:'space-between', alignItems:'center'}}>
-              <h3 style={{fontWeight:800}}>Configurar aforos</h3>
+              <h3 style={{fontWeight:800}}>{t("dashboard.configurarAforos")}</h3>
               <button className="op-btn-ghost" onClick={()=> setShowAforoModal(false)}><span className="material-symbols-outlined">close</span></button>
             </div>
-            <p style={{fontSize:'0.78rem', color:'var(--op-on-variant)'}}>Define el máximo de reservas por franja horaria (slots {['13:00','14:00','15:00','20:00','21:00','22:00'].join(', ')}). Se guarda en la ficha del restaurante y aplica al control de disponibilidad.</p>
-            <label className="op-field"><span>Máx. reservas por hora</span>
+            <p style={{fontSize:'0.78rem', color:'var(--op-on-variant)'}}>{t("dashboard.aforoAyuda", { slots: ['13:00','14:00','15:00','20:00','21:00','22:00'].join(', ') })}</p>
+            <label className="op-field"><span>{t("dashboard.maxReservasHora")}</span>
               <input type="number" min="4" max="30" value={aforoLimit} onChange={e=> setAforoLimit(e.target.value)} className="op-input" />
             </label>
-            <div style={{fontSize:'0.68rem', background:'var(--op-surface-low)', padding:'0.5rem', borderRadius:'0.4rem'}}>Actual: <strong>{data?.restaurante?.maxReservasPorHora || 12} pax/hora</strong> · Nuevo: <strong>{aforoLimit}</strong></div>
+            <div style={{fontSize:'0.68rem', background:'var(--op-surface-low)', padding:'0.5rem', borderRadius:'0.4rem'}}>{t("dashboard.actual")} <strong>{data?.restaurante?.maxReservasPorHora || 12} pax/hora</strong> · {t("dashboard.nuevo")} <strong>{aforoLimit}</strong></div>
             <div style={{display:'flex', justifyContent:'flex-end', gap:'0.4rem'}}>
-              <button className="op-btn-ghost" onClick={()=> setShowAforoModal(false)}>Cancelar</button>
-              <button className="op-btn-primary" onClick={handleSaveAforo} disabled={saving}>{saving? 'Guardando…':'Guardar aforo'}</button>
+              <button className="op-btn-ghost" onClick={()=> setShowAforoModal(false)}>{t("dashboard.cancelar")}</button>
+              <button className="op-btn-primary" onClick={handleSaveAforo} disabled={saving}>{saving? t("dashboard.guardando") : t("dashboard.guardarAforo")}</button>
             </div>
           </div>
         </div>

@@ -17,7 +17,7 @@ import en from '../i18n/en.js';
 const TRADS = { es, ca, en };
 
 function nombreZona(z, t) {
-  return String(z || '').replace(', Spain', '') || (t ? t('otros.sinZona') : 'Sin zona');
+  return String(z || '').replace(', Spain', '') || (t ? t('otros.sinZona') : '');
 }
 
 function escapar(s) {
@@ -147,11 +147,11 @@ export default function Mapa({ todos, total, onVerDetalle }) {
     if (zona && capaCentro) {
       const mkCentro = L.marker([centro.lat, centro.lng], {
         icon: iconoCentro(),
-        title: `Centro de ${centro.nombre || nombreZona(zona, t)}`,
+        title: t('otros.centroDe', { nombre: centro.nombre || nombreZona(zona, t) }),
         keyboard: false,
         zIndexOffset: 1000,
       });
-      mkCentro.bindTooltip(`Centro de ${escapar(centro.nombre || nombreZona(zona, t))}`, {
+      mkCentro.bindTooltip(escapar(t('otros.centroDe', { nombre: centro.nombre || nombreZona(zona, t) })), {
         permanent: false,
         direction: 'top',
       });
@@ -219,7 +219,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
       <div className="auth-tarjeta tarjeta-ancha">
         <h1 id="mapa-titulo">{t('otros.mapaPorZonas')}</h1>
 
-        <div className="tabs" role="group" aria-label="Filtrar por zona">
+          <div className="tabs" role="group" aria-label={t('nav.filtrarZona')}>
           <button
             type="button"
             aria-pressed={zona === ''}
@@ -244,7 +244,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
         <p className="vacio-texto" aria-live="polite">
           {cargando
             ? t('otros.cargandoLocales')
-            : t('otros.localesEnMapa', { count: visibles.length }) + (zona ? ` · ${nombreZona(zona, t)} (centrado en su centro)` : '') + '.'}
+            : t('otros.localesEnMapa', { count: visibles.length }) + (zona ? t('otros.centradoEnCentro', { zona: nombreZona(zona, t) }) : '') + '.'}
         </p>
 
         {error && fuente.length === 0 && (

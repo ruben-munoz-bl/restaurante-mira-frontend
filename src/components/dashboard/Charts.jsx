@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } from "recharts";
 import { GlassTooltip, SerieToggles } from "../ops/OpsCharts.jsx";
+import { useT } from "../../i18n/index.jsx";
+import es from "../../i18n/es.js";
+import ca from "../../i18n/ca.js";
+import en from "../../i18n/en.js";
+
+const TRADS = { es, ca, en };
 
 const VERDE = "#0E6B47";
 const ORO = "#E0A526";
@@ -9,20 +15,21 @@ const AZUL = "#2D6FD8";
 const COLORS = [VERDE, ORO, ROJO, AZUL, "#6bfe9c", "#004393", "#85d7ab", "#bec9c0"];
 const eje = { tickLine: false, axisLine: false, tick: { fontSize: 11, fill: "var(--chart-tick, #6f7a72)" } };
 
-function mesCorto(m) {
+function mesCorto(m, locale = "es-ES") {
   const d = new Date(`${m}-01T00:00:00`);
-  return Number.isNaN(d.getTime()) ? m : d.toLocaleDateString("es-ES", { month: "short", year: "2-digit" });
+  return Number.isNaN(d.getTime()) ? m : d.toLocaleDateString(locale, { month: "short", year: "2-digit" });
 }
 
 export function RevenueLineChart({ data, title }) {
   const [vis, setVis] = useState({ facturacion: true, comisiones: true });
-  if (!data || Object.keys(data).length === 0) return <p className="vacio-texto">Sin datos</p>;
+  const t = useT(TRADS);
+  if (!data || Object.keys(data).length === 0) return <p className="vacio-texto">{t('dashboard.sinDatos')}</p>;
   const chartData = Object.entries(data)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([mes, d]) => ({ mes: mesCorto(mes), facturacion: Math.round(d.facturacion * 100) / 100, comisiones: Math.round(d.comisiones * 100) / 100 }));
+    .map(([mes, d]) => ({ mes: mesCorto(mes, t('modelos.locale')), facturacion: Math.round(d.facturacion * 100) / 100, comisiones: Math.round(d.comisiones * 100) / 100 }));
   const series = [
-    { key: "facturacion", nombre: "Facturación", color: VERDE },
-    { key: "comisiones", nombre: "Comisiones", color: ORO },
+    { key: "facturacion", nombre: t('dashboard.facturacion'), color: VERDE },
+    { key: "comisiones", nombre: t('dashboard.comisiones'), color: ORO },
   ];
 
   return (
@@ -58,13 +65,14 @@ export function RevenueLineChart({ data, title }) {
 
 export function ReservationsPieChart({ completadas, canceladas, noShow, pendientes, title }) {
   const [activo, setActivo] = useState(null);
+  const t = useT(TRADS);
   const total = completadas + canceladas + noShow + pendientes;
-  if (total === 0) return <p className="vacio-texto">Sin datos</p>;
+  if (total === 0) return <p className="vacio-texto">{t('dashboard.sinDatos')}</p>;
   const chartData = [
-    { name: "Completadas", value: completadas, color: VERDE },
-    { name: "Pendientes", value: pendientes, color: AZUL },
-    { name: "Canceladas", value: canceladas, color: ORO },
-    { name: "No Show", value: noShow, color: ROJO },
+    { name: t('dashboard.completadas'), value: completadas, color: VERDE },
+    { name: t('dashboard.pendientes'), value: pendientes, color: AZUL },
+    { name: t('dashboard.canceladas'), value: canceladas, color: ORO },
+    { name: t('dashboard.noShow'), value: noShow, color: ROJO },
   ].filter(d => d.value > 0);
   const sel = activo != null ? chartData[activo] : null;
 
@@ -86,7 +94,7 @@ export function ReservationsPieChart({ completadas, canceladas, noShow, pendient
           </ResponsiveContainer>
           <div className="donut-centro">
             <strong key={sel?.name || "t"}>{sel ? sel.value : total}</strong>
-            <span>{sel ? sel.name : "reservas"}</span>
+            <span>{sel ? sel.name : t('dashboard.reservas')}</span>
           </div>
         </div>
         <div className="ops-legend">
@@ -105,10 +113,11 @@ export function ReservationsPieChart({ completadas, canceladas, noShow, pendient
 
 export function RevenueBarChart({ data, title }) {
   const [activo, setActivo] = useState(null);
-  if (!data || Object.keys(data).length === 0) return <p className="vacio-texto">Sin datos</p>;
+  const t = useT(TRADS);
+  if (!data || Object.keys(data).length === 0) return <p className="vacio-texto">{t('dashboard.sinDatos')}</p>;
   const chartData = Object.entries(data)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([mes, d]) => ({ mes: mesCorto(mes), tickets: d.tickets || 0 }));
+    .map(([mes, d]) => ({ mes: mesCorto(mes, t('modelos.locale')), tickets: d.tickets || 0 }));
 
   return (
     <div className="dash-chart chart-anim">
@@ -119,7 +128,7 @@ export function RevenueBarChart({ data, title }) {
           <XAxis dataKey="mes" {...eje} />
           <YAxis {...eje} allowDecimals={false} />
           <Tooltip content={<GlassTooltip />} cursor={{ fill: "rgba(14,107,71,0.06)", radius: 8 }} />
-          <Bar dataKey="tickets" name="Tickets" radius={[8, 8, 3, 3]} maxBarSize={44} animationDuration={800}
+          <Bar dataKey="tickets" name={t('dashboard.tabTickets')} radius={[8, 8, 3, 3]} maxBarSize={44} animationDuration={800}
             onMouseEnter={(_, i) => setActivo(i)}>
             {chartData.map((_, i) => <Cell key={i} fill={VERDE} style={{ opacity: activo == null || activo === i ? 1 : 0.45, transition: "opacity 160ms ease" }} />)}
           </Bar>
@@ -130,7 +139,8 @@ export function RevenueBarChart({ data, title }) {
 }
 
 export function RestaurantPerformanceChart({ data, title }) {
-  if (!data || Object.keys(data).length === 0) return <p className="vacio-texto">Sin datos</p>;
+  const t = useT(TRADS);
+  if (!data || Object.keys(data).length === 0) return <p className="vacio-texto">{t('dashboard.sinDatos')}</p>;
   const chartData = Object.entries(data)
     .sort(([, a], [, b]) => b.total - a.total)
     .slice(0, 10)
@@ -150,9 +160,9 @@ export function RestaurantPerformanceChart({ data, title }) {
           <XAxis type="number" {...eje} />
           <YAxis type="category" dataKey="nombre" width={120} {...eje} />
           <Tooltip content={<GlassTooltip />} cursor={{ fill: "rgba(14,107,71,0.06)" }} />
-          <Bar dataKey="completadas" stackId="a" fill={COLORS[0]} name="Completadas" animationDuration={800} />
-          <Bar dataKey="canceladas" stackId="a" fill={COLORS[1]} name="Canceladas" animationDuration={800} />
-          <Bar dataKey="noShow" stackId="a" fill={COLORS[2]} name="No Show" radius={[0, 6, 6, 0]} animationDuration={800} />
+          <Bar dataKey="completadas" stackId="a" fill={COLORS[0]} name={t('dashboard.completadas')} animationDuration={800} />
+          <Bar dataKey="canceladas" stackId="a" fill={COLORS[1]} name={t('dashboard.canceladas')} animationDuration={800} />
+          <Bar dataKey="noShow" stackId="a" fill={COLORS[2]} name={t('dashboard.noShow')} radius={[0, 6, 6, 0]} animationDuration={800} />
         </BarChart>
       </ResponsiveContainer>
     </div>

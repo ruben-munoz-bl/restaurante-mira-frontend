@@ -8,7 +8,7 @@ import { crearResena, listarResenasDeRestaurante, darLikeResena, quitarLikeResen
 import { semillaLikes, parseFechaLocal, hoyLocalISO, ordenarResenas, cartaDelLocal, flagsPlato, imagenParaRestaurante } from '../models/restaurantModel.js';
 import { fotoDePlato } from '../services/fotosPlatos.js';
 import { esEstimado } from '../models/serviciosEstimados.js';
-import { pronosticoDia, alertaTerraza } from '../services/meteoApi.js';
+import { pronosticoDia, alertaTerraza, resumenTexto } from '../services/meteoApi.js';
 import { fetchNearbyParkings } from '../services/parkingApi.js';
 import RestaurantMap from './RestaurantMap.jsx';
 import ParkingsPanel from './ParkingsPanel.jsx';
@@ -182,7 +182,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     return () => { vivo = false; };
   }, [restaurant, reserva.fecha]);
 
-  const avisoTerraza = alertaTerraza(restaurant.terraza, meteoReserva);
+  const avisoTerraza = alertaTerraza(restaurant.terraza, meteoReserva, t);
 
   function cerrarDesdeFondo(e) { if (e.target === e.currentTarget) onClose(); }
 
@@ -249,6 +249,8 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
       setNuevaResena({ puntuacion: 5, comentario: '' });
       const list = await listarResenasDeRestaurante(restaurant.id);
       setResenasFs(list);
+      // La reseña puede otorgar puntos en servidor: refresca el saldo del header.
+      fetchBalance().catch(() => {});
     } catch (err) { setErrorResena(err.message); }
     finally { setEnviandoResena(false); }
   }
@@ -474,7 +476,10 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                 </p>
               )}
               {avisoTerraza && (
-                <p className="reserva-aviso-meteo" role="status">{avisoTerraza}{meteoReserva && ` (${meteoReserva.resumen})`}</p>
+                <p className="reserva-aviso-meteo" role="status">
+                  {avisoTerraza}
+                  {meteoReserva && ` (${resumenTexto(meteoReserva.codigo, t)})`}
+                </p>
               )}
               {errorReserva && <p className="reserva-error" role="alert">{errorReserva}</p>}
 

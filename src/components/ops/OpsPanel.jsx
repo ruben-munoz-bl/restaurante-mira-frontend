@@ -13,6 +13,12 @@ import OpsUsuarios from './OpsUsuarios.jsx';
 import OpsAjustes from './OpsAjustes.jsx';
 import { crearOverviewSimulado } from './opsDemo.js';
 import '../../styles/ops.css';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 const CLAVE_SIM = 'mira:ops-simulado';
 function leerSimulado() {
@@ -20,16 +26,17 @@ function leerSimulado() {
 }
 
 const SECCIONES = [
-  { id: 'dashboard', nombre: 'Dashboard General', icono: 'dashboard' },
-  { id: 'restaurantes', nombre: 'Gestión Restaurantes', icono: 'restaurant' },
-  { id: 'reservas', nombre: 'Reservas Globales', icono: 'calendar_month', live: true },
-  { id: 'finanzas', nombre: 'Finanzas & Comisiones', icono: 'payments' },
-  { id: 'incidencias', nombre: 'Incidencias & Soporte', icono: 'report_problem', badgeCrit: true },
-  { id: 'usuarios', nombre: 'Usuarios & Comensales', icono: 'group' },
-  { id: 'ajustes', nombre: 'Ajustes & Auditoría', icono: 'settings' },
+  { id: 'dashboard', clave: 'ops.seccDashboard', icono: 'dashboard' },
+  { id: 'restaurantes', clave: 'ops.seccRestaurantes', icono: 'restaurant' },
+  { id: 'reservas', clave: 'ops.seccReservas', icono: 'calendar_month', live: true },
+  { id: 'finanzas', clave: 'ops.seccFinanzas', icono: 'payments' },
+  { id: 'incidencias', clave: 'ops.seccIncidencias', icono: 'report_problem', badgeCrit: true },
+  { id: 'usuarios', clave: 'ops.seccUsuarios', icono: 'group' },
+  { id: 'ajustes', clave: 'ops.seccAjustes', icono: 'settings' },
 ];
 
 export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema, todos }) {
+  const t = useT(TRADS);
   const [seccion, setSeccion] = useState('dashboard');
   const [menuMovil, setMenuMovil] = useState(false);
   const [busqueda, setBusqueda] = useState('');
@@ -69,16 +76,16 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
       <div className="ops-shell">
         <div className="ops-content" style={{ maxWidth: 640 }}>
           <div className="ops-card" role="alert">
-            <h2>Sin acceso</h2>
-            <p className="ops-card-sub">Este panel es solo para operadores (allowlist de admins).</p>
-            <p style={{ marginTop: 12 }}><a className="ops-btn primary" href="#/">Volver al inicio</a></p>
+            <h2>{t('ops.sinAcceso')}</h2>
+            <p className="ops-card-sub">{t('ops.sinAccesoSub')}</p>
+            <p style={{ marginTop: 12 }}><a className="ops-btn primary" href="#/">{t('ops.volverInicio')}</a></p>
           </div>
         </div>
       </div>
     );
   }
 
-  const nombre = perfil?.nombre || usuario.displayName || usuario.email || 'Operador';
+  const nombre = perfil?.nombre || usuario.displayName || usuario.email || t('ops.operador');
   const inicial = (nombre.trim().charAt(0) || 'O').toUpperCase();
 
   function ir(id) {
@@ -92,16 +99,19 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
           <div className="ops-sidebar-trigger" onMouseEnter={() => setSidebarFija(true)} />
           <aside className={`ops-sidebar${menuMovil ? ' open' : ''}${sidebarFija ? ' pinned' : ''}`}
             onMouseLeave={() => setSidebarFija(false)}
-            aria-label="Navegación del panel">
+            aria-label={t('ops.navPanel')}>
           <div>
             <div className="ops-brand">
-              <img src="/logo.png" alt="MIRA" onError={(e) => { e.currentTarget.src = '/logotipo.png'; }} />
-              <div>
-                <div className="ops-brand-name">MIRA</div>
-                <div className="ops-brand-sub">Operator Hub</div>
-              </div>
+              {/* El header del sitio no se monta en #/admin: el logo es la vuelta a la web. */}
+              <a href="#/" className="ops-brand-link" title={t('ops.volverWeb')} aria-label={t('ops.miraVolver')}>
+                <img src="/logo.png" alt="" onError={(e) => { e.currentTarget.src = '/logotipo.png'; }} />
+                <span>
+                  <span className="ops-brand-name">MIRA</span>
+                  <span className="ops-brand-sub">Operator Hub</span>
+                </span>
+              </a>
             </div>
-            <div className="ops-nav-label">Plataforma Global</div>
+            <div className="ops-nav-label">{t('ops.plataformaGlobal')}</div>
             <nav className="ops-nav">
               {SECCIONES.map((s) => (
                 <button
@@ -113,11 +123,11 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
                 >
                   <span className="ops-nav-item-left">
                     <span className="material-symbols-outlined">{s.icono}</span>
-                    <span>{s.nombre}</span>
+                    <span>{t(s.clave)}</span>
                   </span>
                   {s.badge && <span className="ops-badge">{s.badge}</span>}
-                  {s.live && <span className="ops-dot-live" aria-label="En directo" />}
-                  {s.badgeCrit && criticas > 0 && <span className="ops-badge crit">{criticas} críticas</span>}
+                  {s.live && <span className="ops-dot-live" aria-label={t('ops.enDirecto')} />}
+                  {s.badgeCrit && criticas > 0 && <span className="ops-badge crit">{t('ops.criticas', { n: criticas })}</span>}
                 </button>
               ))}
             </nav>
@@ -128,12 +138,12 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
               <span className="ops-sys-live">Live</span>
             </div>
             <div className="ops-theme-row">
-              <span>Modo visual</span>
-              <button type="button" className="ops-theme-btn" onClick={onCambiarTema} aria-label="Cambiar tema">
+              <span>{t('ops.modoVisual')}</span>
+              <button type="button" className="ops-theme-btn" onClick={onCambiarTema} aria-label={t('ops.cambiarTema')}>
                 <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
                   {tema === 'oscuro' ? 'dark_mode' : 'light_mode'}
                 </span>
-                {tema === 'oscuro' ? 'Oscuro' : 'Claro'}
+                {tema === 'oscuro' ? t('ops.oscuro') : t('ops.claro')}
               </button>
             </div>
             <div className="ops-userbox">
@@ -148,14 +158,14 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
 
         <div className="ops-main">
           <header className="ops-header">
-            <button type="button" className="ops-icon-btn ops-menu-btn" onClick={() => setMenuMovil((v) => !v)} aria-label="Abrir menú">
+            <button type="button" className="ops-icon-btn ops-menu-btn" onClick={() => setMenuMovil((v) => !v)} aria-label={t('ops.abrirMenu')}>
               <span className="material-symbols-outlined">menu</span>
             </button>
             <div className="ops-search">
               <span className="material-symbols-outlined">search</span>
               <input
                 type="search"
-                placeholder="Buscar restaurante, reserva #ID, comensal o ticket..."
+                placeholder={t('ops.phBuscarPanel')}
                 value={busqueda}
                 onChange={(e) => setBusqueda(e.target.value)}
                 onKeyDown={(e) => {
@@ -163,7 +173,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
                     setSeccion('reservas');
                   }
                 }}
-                aria-label="Buscar en el panel"
+                aria-label={t('ops.buscarEnPanel')}
               />
             </div>
             <div className="ops-header-spacer" />
@@ -174,20 +184,20 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
             </button>
             <div className="ops-select hide-m">
               <span className="material-symbols-outlined">calendar_today</span>
-              <select aria-label="Periodo">
-                <option>Hoy</option>
-                <option>Esta semana</option>
-                <option>Mes actual</option>
+              <select aria-label={t('ops.periodo')}>
+                <option>{t('ops.hoy')}</option>
+                <option>{t('ops.estaSemana')}</option>
+                <option>{t('ops.mesActual')}</option>
               </select>
             </div>
             <div className="ops-select hide-m">
               <span className="material-symbols-outlined">location_on</span>
-              <select aria-label="Región">
-                <option>Cataluña</option>
-                <option>Todas las regiones</option>
+              <select aria-label={t('ops.region')}>
+                <option>{t('ops.cataluna')}</option>
+                <option>{t('ops.todasRegiones')}</option>
               </select>
             </div>
-            <button type="button" className="ops-icon-btn" aria-label="Notificaciones" onClick={() => ir('incidencias')}>
+            <button type="button" className="ops-icon-btn" aria-label={t('ops.notificaciones')} onClick={() => ir('incidencias')}>
               <span className="material-symbols-outlined">notifications</span>
               {criticas > 0 && <span className="ops-ping-dot" />}
             </button>

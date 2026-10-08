@@ -54,7 +54,7 @@ export default function Negocio({ usuario, perfil, onProponer }) {
             {t('otros.estaPaginaEsParaEmpresas')}
           </p>
           <p>
-            <a href="#buscar">{t('favoritos.volverBuscador')}</a>
+            <a href="#buscar">{t('contacto.volverBuscador')}</a>
           </p>
         </div>
       </section>
@@ -95,7 +95,7 @@ export default function Negocio({ usuario, perfil, onProponer }) {
             {t('negocio.revisaremos')} <strong>{form.nombre}</strong> {t('negocio.publicaremos')}
           </p>
           <p>
-            <a href="#buscar">{t('favoritos.volverBuscador')}</a>
+            <a href="#buscar">{t('contacto.volverBuscador')}</a>
           </p>
         </div>
       </section>
@@ -146,7 +146,7 @@ export default function Negocio({ usuario, perfil, onProponer }) {
         </div>
         <div className="campo">
           <label htmlFor="ng-cat">{t('negocio.cocinas')}</label>
-          <input id="ng-cat" type="text" placeholder="Mediterránea, Tapas" value={form.categorias} onChange={(e) => set('categorias', e.target.value)} />
+          <input id="ng-cat" type="text" placeholder={t('negocio.placeholderCategorias')} value={form.categorias} onChange={(e) => set('categorias', e.target.value)} />
         </div>
         <div className="campo">
           <label htmlFor="ng-precio">{t('negocio.precio')}</label>
@@ -216,7 +216,7 @@ export default function Negocio({ usuario, perfil, onProponer }) {
         </div>
         <div className="campo">
           <label htmlFor="ng-alerg">{t('negocio.alergenos')}</label>
-          <textarea id="ng-alerg" rows="2" maxLength="500" placeholder="Ej: disponemos de pan sin gluten; cocina con frutos secos…" value={form.alergenos} onChange={(e) => set('alergenos', e.target.value)} />
+          <textarea id="ng-alerg" rows="2" maxLength="500" placeholder={t('negocio.placeholderAlergenos')} value={form.alergenos} onChange={(e) => set('alergenos', e.target.value)} />
         </div>
         <button type="submit" className="btn-cta btn-grande auth-boton" disabled={enviando}>
           {enviando ? t('negocio.enviando') : t('negocio.enviar')}

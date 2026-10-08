@@ -1,9 +1,24 @@
+import es from '../i18n/es.js';
+
 /**
  * Model — meteo con Open-Meteo (gratis, sin claves, CORS abierto).
  * Caché en memoria por (lat,lng,fecha). Si falla, devuelve null y la app
  * sigue funcionando sin meteo. 0 lecturas de Firestore.
  */
 const CACHE = new Map();
+
+/** Texto i18n: usa `t('clave', params)` y, si falta, cae al español con params. */
+function trad(key, params, t) {
+  if (typeof t === 'function') {
+    try {
+      const v = t(key, params);
+      if (v && v !== key) return v;
+    } catch { /* sin traductor */ }
+  }
+  const [sec, k] = key.split('.');
+  const base = (es[sec] && es[sec][k]) || key;
+  return String(base).replace(/\{\{(\w+)\}\}/g, (m, n) => (params && params[n] != null ? String(params[n]) : m));
+}
 
 /**
  * Pronóstico diario: { tempMax, lluviaProb, codigo, resumen } o null.
@@ -31,7 +46,7 @@ export async function pronosticoDia(lat, lng, fechaISO) {
             tempMax: d.temperature_2m_max?.[0] ?? null,
             lluviaProb: d.precipitation_probability_max?.[0] ?? null,
             codigo: d.weathercode?.[0] ?? null,
-            resumen: resumenCodigo(d.weathercode?.[0]),
+            resumen: resumenTexto(d.weathercode?.[0]),
           };
         })
         .catch(() => {
@@ -43,34 +58,39 @@ export async function pronosticoDia(lat, lng, fechaISO) {
   return CACHE.get(clave);
 }
 
-/** Descripción corta de un código WMO. */
-export function resumenCodigo(codigo) {
-  if (codigo == null) return '—';
-  if (codigo === 0) return 'Despejado';
-  if (codigo <= 3) return 'Nubes y claros';
-  if (codigo === 45 || codigo === 48) return 'Niebla';
-  if (codigo <= 67) return 'Lluvia';
-  if (codigo <= 77) return 'Nieve';
-  if (codigo <= 82) return 'Chubascos';
-  if (codigo <= 99) return 'Tormenta';
-  return '—';
+/** Clave i18n (`meteo.<clave>`) de un código WMO. */
+export function claveMeteo(codigo) {
+  if (codigo == null) return 'otro';
+  if (codigo === 0) return 'despejado';
+  if (codigo <= 3) return 'nublado';
+  if (codigo === 45 || codigo === 48) return 'niebla';
+  if (codigo <= 67) return 'lluvia';
+  if (codigo <= 77) return 'nieve';
+  if (codigo <= 82) return 'chubascos';
+  if (codigo <= 99) return 'tormenta';
+  return 'otro';
+}
+
+/** Descripción corta de un código WMO (traducida si se pasa `t`). */
+export function resumenTexto(codigo, t) {
+  return trad(`meteo.${claveMeteo(codigo)}`, {}, t);
 }
 
 /**
  * Aviso para terrazas: calor >=33°C o lluvia >=60%. Solo si terraza===true.
  * Devuelve el texto o null.
  */
-export function alertaTerraza(terraza, pronostico) {
+export function alertaTerraza(terraza, pronostico, t) {
   if (terraza !== true || !pronostico) return null;
   const avisos = [];
   if (pronostico.tempMax != null && pronostico.tempMax >= 33) {
-    avisos.push(`calor extremo (${Math.round(pronostico.tempMax)}°)`);
+    avisos.push(trad('meteo.calor', { grados: Math.round(pronostico.tempMax) }, t));
   }
   if (pronostico.lluviaProb != null && pronostico.lluviaProb >= 60) {
-    avisos.push(`lluvia probable (${pronostico.lluviaProb}%)`);
+    avisos.push(trad('meteo.lluviaProb', { prob: pronostico.lluviaProb }, t));
   }
   if (!avisos.length) return null;
-  return `¡Ojo! Este local tiene terraza y se espera ${avisos.join(' y ')}. Pide interior o ven preparado.`;
+  return trad('meteo.aviso', { avisos: avisos.join(trad('meteo.y', {}, t)) }, t);
 }
 
 /**

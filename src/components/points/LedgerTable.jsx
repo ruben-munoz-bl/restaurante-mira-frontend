@@ -1,18 +1,24 @@
 import { useEffect, useState } from 'react';
 import usePointsStore from '../../stores/usePointsStore.js';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 const TIPO_LABELS = {
-  reserva: 'Reserva completada',
-  login_diario: 'Login diario',
-  racha_reserva_bonus: 'Bonus racha semanal',
-  resena: 'Reseña',
-  promo_view: 'Vista restaurante promocionado',
-  promo_click: 'Click restaurante promocionado',
-  invitacion: 'Invitación aceptada',
-  canje_descuento: 'Canje de puntos',
-  ajuste_admin: 'Ajuste admin',
-  ajuste_admin_negativo: 'Ajuste admin',
-  wheel: 'Ruleta',
+  reserva: 'points.types.reserva',
+  login_diario: 'points.types.login_diario',
+  racha_reserva_bonus: 'points.types.racha_reserva_bonus',
+  resena: 'points.types.resena',
+  promo_view: 'points.types.promo_view',
+  promo_click: 'points.types.promo_click',
+  invitacion: 'points.types.invitacion',
+  canje_descuento: 'points.types.canje_descuento',
+  ajuste_admin: 'points.types.ajuste_admin',
+  ajuste_admin_negativo: 'points.types.ajuste_admin',
+  wheel: 'points.types.ruleta_dia7',
 };
 
 const TIPO_COLORS = {
@@ -37,6 +43,7 @@ function puntosDe(mov) {
 }
 
 export default function LedgerTable({ limit = 10, showFilters = false, usuario }) {
+  const t = useT(TRADS);
   const { ledger, fetchLedger, ledgerLoading } = usePointsStore();
   const [filtro, setFiltro] = useState('');
 
@@ -47,7 +54,7 @@ export default function LedgerTable({ limit = 10, showFilters = false, usuario }
   }, [usuario, filtro, limit]);
 
   if (ledgerLoading) {
-    return <div className="ledger-loading">Cargando historial...</div>;
+    return <div className="ledger-loading">{t('points.loading')}</div>;
   }
 
   return (
@@ -55,24 +62,24 @@ export default function LedgerTable({ limit = 10, showFilters = false, usuario }
       {showFilters && (
         <div className="ledger-filters">
           <select value={filtro} onChange={(e) => setFiltro(e.target.value)}>
-            <option value="">Todos</option>
-            <option value="reserva">Reservas</option>
-            <option value="login_diario">Login diario</option>
-            <option value="resena">Reseñas</option>
-            <option value="invitacion">Invitaciones</option>
-            <option value="promo_view">Vistas promo</option>
-            <option value="promo_click">Clicks promo</option>
-            <option value="canje_descuento">Canjes</option>
-            <option value="ajuste_admin">Ajustes admin</option>
+            <option value="">{t('points.all')}</option>
+            <option value="reserva">{t('points.reservas')}</option>
+            <option value="login_diario">{t('points.dailyLogin')}</option>
+            <option value="resena">{t('points.reviews')}</option>
+            <option value="invitacion">{t('points.invitations')}</option>
+            <option value="promo_view">{t('points.promoViews')}</option>
+            <option value="promo_click">{t('points.promoClicks')}</option>
+            <option value="canje_descuento">{t('points.redeems')}</option>
+            <option value="ajuste_admin">{t('points.adminAdjustments')}</option>
           </select>
         </div>
       )}
       <table className="ledger-table__table">
         <thead>
           <tr>
-            <th>Concepto</th>
-            <th>Puntos</th>
-            <th>Fecha</th>
+            <th>{t('points.colConcepto')}</th>
+            <th>{t('points.colPuntos')}</th>
+            <th>{t('points.colFecha')}</th>
           </tr>
         </thead>
         <tbody>
@@ -85,7 +92,7 @@ export default function LedgerTable({ limit = 10, showFilters = false, usuario }
                     className="ledger-badge"
                     style={{ backgroundColor: TIPO_COLORS[mov.tipo] || '#666' }}
                   >
-                    {TIPO_LABELS[mov.tipo] || mov.tipo}
+                    {TIPO_LABELS[mov.tipo] ? t(TIPO_LABELS[mov.tipo]) : mov.tipo}
                   </span>
                   {mov.descripcion ? (
                     <div className="ledger-desc">{mov.descripcion}</div>
@@ -99,7 +106,7 @@ export default function LedgerTable({ limit = 10, showFilters = false, usuario }
                     mov.createdAt?.seconds
                       ? mov.createdAt.seconds * 1000
                       : mov.createdAt,
-                  ).toLocaleDateString('es-ES')}
+                  ).toLocaleDateString(t('modelos.locale'))}
                 </td>
               </tr>
             );
@@ -107,7 +114,7 @@ export default function LedgerTable({ limit = 10, showFilters = false, usuario }
         </tbody>
       </table>
       {ledger.length === 0 && (
-        <div className="ledger-empty">No hay movimientos todavía</div>
+        <div className="ledger-empty">{t('points.noMovements')}</div>
       )}
     </div>
   );

@@ -1,10 +1,23 @@
 /** OpsReservas — reservas globales: buscar, filtrar y cambiar estado. */
 import { useEffect, useState } from 'react';
 import { getReservasGlobales, nombreRestauranteDe, descargarCSV, csvReservas, mensajeErrorFirestore, updateReservationStatus } from './opsData.js';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
 
+const TRADS = { es, ca, en };
 const ESTADOS = ['', 'pendiente', 'confirmada', 'completada', 'cancelada', 'no_show'];
+const CLAVE_ESTADO = {
+  pendiente: 'ops.estadoPendiente',
+  confirmada: 'ops.estadoConfirmada',
+  completada: 'ops.estadoCompletada',
+  cancelada: 'ops.estadoCancelada',
+  no_show: 'ops.estadoNoShow',
+};
 
 export default function OpsReservas({ busquedaInicial = '' }) {
+  const t = useT(TRADS);
   const [q, setQ] = useState(busquedaInicial);
   const [estado, setEstado] = useState('');
   const [lista, setLista] = useState([]);
@@ -44,31 +57,31 @@ export default function OpsReservas({ busquedaInicial = '' }) {
     <div className="ops-card">
       <div className="ops-card-head">
         <div>
-          <h2>Reservas Globales</h2>
-          <p className="ops-card-sub">{lista.length} reservas · confirmar, completar, no-show o cancelar</p>
+          <h2>{t('ops.seccReservas')}</h2>
+          <p className="ops-card-sub">{t('ops.reservasGlobalesSub', { n: lista.length })}</p>
         </div>
         <button type="button" className="ops-btn soft sm" onClick={() => { const c = csvReservas(lista); descargarCSV('reservas.csv', c.cabeceras, c.filas); }}>
-          <span className="material-symbols-outlined">download</span>Exportar CSV
+          <span className="material-symbols-outlined">download</span>{t('ops.exportarCsv')}
         </button>
       </div>
       <div className="ops-toolbar" role="search">
-        <input className="ops-input" type="search" placeholder="Código, cliente, email, restaurante…" value={q}
+        <input className="ops-input" type="search" placeholder={t('ops.phCodigoCliente')} value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') cargar(); }} style={{ flex: 1, minWidth: 220 }} />
-        <select className="ops-selectbox" value={estado} onChange={(e) => setEstado(e.target.value)} aria-label="Filtrar por estado">
-          <option value="">Todos los estados</option>
-          {ESTADOS.slice(1).map((e) => <option key={e} value={e}>{e}</option>)}
+        <select className="ops-selectbox" value={estado} onChange={(e) => setEstado(e.target.value)} aria-label={t('ops.filtrarEstado')}>
+          <option value="">{t('ops.todosEstados')}</option>
+          {ESTADOS.slice(1).map((e) => <option key={e} value={e}>{t(CLAVE_ESTADO[e])}</option>)}
         </select>
-        <button type="button" className="ops-btn primary sm" onClick={cargar}>Buscar</button>
+        <button type="button" className="ops-btn primary sm" onClick={cargar}>{t('ops.buscar')}</button>
       </div>
       {error && <p className="ops-error" role="alert">{error}</p>}
-      {cargando && <p className="ops-empty" role="status">Cargando reservas…</p>}
-      {!cargando && lista.length === 0 && <p className="ops-empty">Sin resultados.</p>}
+      {cargando && <p className="ops-empty" role="status">{t('ops.cargandoReservas')}</p>}
+      {!cargando && lista.length === 0 && <p className="ops-empty">{t('ops.sinResultados')}</p>}
       {!cargando && lista.length > 0 && (
         <div className="ops-table-wrap">
           <table className="ops-table">
             <thead>
-              <tr><th>Código</th><th>Cliente</th><th>Restaurante</th><th>Fecha</th><th>Pax</th><th>Estado</th><th>Acciones</th></tr>
+              <tr><th>{t('ops.colCodigo')}</th><th>{t('ops.colCliente')}</th><th>{t('ops.colRestaurante')}</th><th>{t('ops.colFecha')}</th><th>{t('ops.colPax')}</th><th>{t('ops.colEstado')}</th><th>{t('ops.colAcciones')}</th></tr>
             </thead>
             <tbody>
               {lista.map((r) => (
@@ -80,15 +93,15 @@ export default function OpsReservas({ busquedaInicial = '' }) {
                   <td className="num">{r.comensales}</td>
                   <td>
                     <span className={`ops-status-pill ${(r.estado === 'cancelada' || r.estado === 'no_show') ? 'danger' : (r.estado === 'pendiente' ? 'info' : '')}`}>
-                      {r.estado || 'pendiente'}
+                      {t(CLAVE_ESTADO[r.estado] || 'ops.estadoPendiente')}
                     </span>
                   </td>
                   <td>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'confirmada')}>Confirmar</button>
-                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'completada')}>Completar</button>
+                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'confirmada')}>{t('ops.confirmar')}</button>
+                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'completada')}>{t('ops.completar')}</button>
                       <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'no_show')}>No-show</button>
-                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'cancelada')}>Cancelar</button>
+                      <button type="button" className="ops-btn soft sm" disabled={actuando === r.id} onClick={() => cambiar(r.id, 'cancelada')}>{t('ops.cancelar')}</button>
                     </div>
                   </td>
                 </tr>

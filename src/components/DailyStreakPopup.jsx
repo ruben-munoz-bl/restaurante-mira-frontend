@@ -1,4 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useT } from '../i18n/index.jsx';
+import es from '../i18n/es.js';
+import ca from '../i18n/ca.js';
+import en from '../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 function calcularPuntosPorDia(dia) {
   if (dia >= 7) return 0;
@@ -27,7 +33,6 @@ function construirCamino(dias, yaReclamado, esDia7) {
     const bloqueado = !completado && !esHoy;
     return {
       dia,
-      label: `Día ${dia}`,
       completado,
       esHoy,
       bloqueado,
@@ -73,6 +78,7 @@ function createConfetti() {
 }
 
 export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, onWheel, onClose }) {
+  const t = useT(TRADS);
   const [claimed, setClaimed] = useState(yaReclamado || false);
   const [showToast, setShowToast] = useState(false);
   const [animSaldo, setAnimSaldo] = useState(saldo || 0);
@@ -94,6 +100,9 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
       ? puntosDesdeApi
       : calcularPuntosPorDia(Math.max(dias + 1, 1)));
   const camino = construirCamino(dias, claimed, esDia7);
+  // Singular/plural del día según idioma (es Día/Días, ca Dia/Dies, en Day/Days).
+  const formasDia = t('streak.diasFormas');
+  const diaPalabra = (n) => (Array.isArray(formasDia) ? formasDia[n === 1 ? 0 : 1] : (n === 1 ? t('ops.dia') : t('ops.dias')));
 
   useEffect(() => {
     requestAnimationFrame(() => setIsVisible(true));
@@ -159,10 +168,10 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
             </div>
             <div>
               <span className="streak-modal__brand-name">MIRA Club</span>
-              <span className="streak-modal__brand-sub">Recompensa Diaria</span>
+              <span className="streak-modal__brand-sub">{t('streak.dailyReward')}</span>
             </div>
           </div>
-          <button className="streak-modal__close" onClick={handleClose} aria-label="Cerrar">✕</button>
+          <button className="streak-modal__close" onClick={handleClose} aria-label={t('otros.cerrar')}>✕</button>
         </div>
 
         {/* Hero con mascota */}
@@ -172,10 +181,18 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
 
           <div className="streak-modal__mascot-area">
             <div className="streak-modal__mascot">
-              <img src="/mascota-racha.png" alt="Mascota MIRA" className="streak-modal__mascot-img" />
+              <img src="/mascota-racha.png" alt={t('streak.altMascota')} className="streak-modal__mascot-img" />
               <div className="streak-modal__speech">
                 <span>🔥</span>
-                <span>{esDia7 ? '¡Llegaste al día 7!' : justClaimed ? `¡Día ${Math.max(dias, 1)} completado!` : claimed ? '¡Racha imparable!' : '¡Te toca reclamar hoy!'}</span>
+                <span>
+                  {esDia7
+                    ? t('streak.speechDay7')
+                    : justClaimed
+                      ? t('streak.speechDayDone', { n: Math.max(dias, 1) })
+                      : claimed
+                        ? t('streak.speechUnstoppable')
+                        : t('streak.speechClaimToday')}
+                </span>
                 <div className="streak-modal__speech-arrow" />
               </div>
             </div>
@@ -190,26 +207,39 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
 
           <div className="streak-modal__titles">
             <div className="streak-modal__day-badge">
-              <span>⚡</span> {dias === 0 ? 'BIENVENIDO' : esDia7 ? 'DÍA 7 COMPLETADO' : claimed ? `DÍA ${Math.max(dias, 1)} COMPLETADO` : `RACHA DE ${dias} DÍA${dias !== 1 ? 'S' : ''}`}
+              <span>⚡</span>{' '}
+              {dias === 0
+                ? t('streak.badgeWelcome')
+                : esDia7
+                  ? t('streak.dayCompleted', { n: 7 })
+                  : claimed
+                    ? t('streak.dayCompleted', { n: Math.max(dias, 1) })
+                    : t('streak.streakBadge', { n: dias, dia: diaPalabra(dias) })}
             </div>
             <h2 className="streak-modal__title">
               {dias === 0 ? (
-                <>¡Bienvenido a <span className="streak-modal__fire">MIRA Club!</span> <span>🎉</span></>
+                <span dangerouslySetInnerHTML={{ __html: t('streak.welcomeTitle') }} />
               ) : esDia7 ? (
-                <>¡Completaste la racha de 7 días! <span className="streak-modal__fire">🎉</span></>
+                <>{t('streak.wheelTitle')} <span className="streak-modal__fire">🎉</span></>
               ) : claimed ? (
-                <>¡Llevas <span className="streak-modal__fire">{Math.max(dias, 1)} Días <span>🔥</span></span> de Racha!</>
+                <span
+                  dangerouslySetInnerHTML={{
+                    __html: t('streak.streakTitle', { n: Math.max(dias, 1), dia: diaPalabra(Math.max(dias, 1)) }),
+                  }}
+                />
               ) : (
-                <>¡Racha de <span className="streak-modal__fire">{dias} Día{dias !== 1 ? 's' : ''} <span>🔥</span></span> — reclama hoy!</>
+                <span
+                  dangerouslySetInnerHTML={{ __html: t('streak.rachaHoyTitle', { n: dias, dia: diaPalabra(dias) }) }}
+                />
               )}
             </h2>
             <p className="streak-modal__subtitle">
               {dias === 0 ? (
-                <>Reclama tu primera recompensa y empieza a acumular <strong>MIRA Points</strong></>
+                <span dangerouslySetInnerHTML={{ __html: t('streak.firstRewardSub') }} />
               ) : esDia7 ? (
-                <>Gira la ruleta para ganar entre <strong>20 y 100 MIRA Points</strong></>
+                <span dangerouslySetInnerHTML={{ __html: t('streak.wheelSubtitle') }} />
               ) : (
-                <>Entra a diario para desbloquear más <strong>MIRA Points</strong> y conseguir descuentos en tu próxima cena.</>
+                <span dangerouslySetInnerHTML={{ __html: t('streak.streakSubtitle') }} />
               )}
             </p>
           </div>
@@ -219,12 +249,12 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
         <div className="streak-modal__calendar">
           <div className="streak-modal__calendar-header">
             <div className="streak-modal__calendar-label">
-              <span className="streak-modal__calendar-title">Camino del Foodie</span>
-              <span className="streak-modal__calendar-week">· 7 días</span>
+              <span className="streak-modal__calendar-title">{t('streak.foodiePath')}</span>
+              <span className="streak-modal__calendar-week">{t('streak.sevenDays')}</span>
             </div>
             {esDia7 && (
               <div className="streak-modal__calendar-prize">
-                🎡 Ruleta: ¡hasta 100 MIRA pts!
+                {t('streak.wheelPrize')}
               </div>
             )}
           </div>
@@ -242,20 +272,20 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
                   key={dia}
                   className={`streak-day ${completado ? 'streak-day--done' : ''} ${esHoy && !esDia7 ? 'streak-day--today' : ''} ${esHoy && esDia7 ? 'streak-day--wheel' : ''} ${bloqueado ? 'streak-day--locked' : ''}`}
                 >
-                  {esHoy && <div className="streak-day__tag">Hoy</div>}
-                  <span className="streak-day__name">{celda.label}</span>
+                  {esHoy && <div className="streak-day__tag">{t('streak.hoy')}</div>}
+                  <span className="streak-day__name">{t('streak.dayLabel', { n: dia })}</span>
                   <div className="streak-day__icon">
                     {completado && <span className="streak-day__check">✓</span>}
                     {!completado && esHoy && esDia7 && (
-                      <img src="/racha-fuego.png" alt="Ruleta" className="streak-day__wheel-icon" />
+                      <img src="/racha-fuego.png" alt={t('streak.altRuleta')} className="streak-day__wheel-icon" />
                     )}
                     {!completado && esHoy && !esDia7 && (
-                      <img src="/moneda-mira.png" alt="Moneda" className="streak-day__coin" />
+                      <img src="/moneda-mira.png" alt={t('streak.altMoneda')} className="streak-day__coin" />
                     )}
                     {bloqueado && <span className="streak-day__lock">🔒</span>}
                   </div>
                   {dia === 7 ? (
-                    <span className="streak-day__points streak-day__points--wheel">🎡 Ruleta</span>
+                    <span className="streak-day__points streak-day__points--wheel">{t('streak.ruletaDia7')}</span>
                   ) : (
                     <span className="streak-day__points">+{puntos}</span>
                   )}
@@ -273,14 +303,14 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
               <img src="/moneda-mira.png" alt="" />
             </div>
             <div>
-              <div className="streak-modal__balance-label">Tu saldo de MIRA Points</div>
+              <div className="streak-modal__balance-label">{t('streak.yourBalance')}</div>
               <div className="streak-modal__balance-amount">
                 <span className="streak-modal__balance-num">{animSaldo}</span>
-                <span className="streak-modal__balance-text">acumulados</span>
+                <span className="streak-modal__balance-text">{t('streak.accumulated')}</span>
               </div>
             </div>
             <div className="streak-modal__balance-bar-wrap">
-              <span className="streak-modal__balance-bar-label">{animSaldo} / 1.000 pts (10€ dto.)</span>
+              <span className="streak-modal__balance-bar-label">{t('streak.balanceGoal', { n: animSaldo })}</span>
               <div className="streak-modal__balance-bar">
                 <div className="streak-modal__balance-bar-fill" style={{ width: `${Math.min((animSaldo / 1000) * 100, 100)}%` }} />
               </div>
@@ -293,11 +323,11 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
             disabled={false}
           >
             {esDia7 ? (
-              <>¡GIRAR RULETA! 🎡</>
+              <>{t('streak.spinWheel')} 🎡</>
             ) : claimed ? (
-              <>VER RACHA ACTUAL ✓</>
+              <>{t('streak.viewStreak')}</>
             ) : (
-              <>¡RECLAMAR +{puntosHoy} MIRA! ✨</>
+              <>{t('streak.claim', { n: puntosHoy })} ✨</>
             )}
           </button>
         </div>
@@ -306,7 +336,7 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
         <div className="streak-modal__footer">
           <div className="streak-modal__footer-protect">
             <span>🛡️</span>
-            <span>Protector de racha activo: si olvidas entrar mañana, tu racha no se pierde.</span>
+            <span>{t('streak.streakProtector')}</span>
           </div>
         </div>
       </div>
@@ -315,8 +345,8 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
       <div className={`streak-toast ${showToast ? 'streak-toast--visible' : ''}`}>
         <div className="streak-toast__icon">✓</div>
         <div>
-          <p className="streak-toast__title">+{lastPuntos} MIRA Points acreditados</p>
-          <p className="streak-toast__sub">¡Vuelve mañana para continuar tu racha!</p>
+          <p className="streak-toast__title">{t('streak.toastClaimed', { n: lastPuntos })}</p>
+          <p className="streak-toast__sub">{t('streak.toastNext')}</p>
         </div>
       </div>
     </div>

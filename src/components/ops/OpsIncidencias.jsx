@@ -2,8 +2,15 @@
 import { useEffect, useState } from 'react';
 import { listarPendientes, resolverIncidencia } from '../../services/incidenciaApi.js';
 import { listarNegociosPendientes, aprobarNegocio, rechazarNegocio } from '../../services/negocioApi.js';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 export default function OpsIncidencias() {
+  const t = useT(TRADS);
   const [contactos, setContactos] = useState([]);
   const [negocios, setNegocios] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -37,23 +44,23 @@ export default function OpsIncidencias() {
       <div className="ops-card">
         <div className="ops-card-head">
           <div>
-            <h2>Incidencias &amp; Soporte ({contactos.length})</h2>
-            <p className="ops-card-sub">Mensajes de contacto pendientes · resolver los marca como resueltos</p>
+            <h2>{t('ops.seccIncidencias')} ({contactos.length})</h2>
+            <p className="ops-card-sub">{t('ops.incidenciasSub')}</p>
           </div>
         </div>
         {error && <p className="ops-error" role="alert">{error}</p>}
-        {cargando && <p className="ops-empty" role="status">Cargando…</p>}
-        {!cargando && contactos.length === 0 && <p className="ops-empty">Sin incidencias pendientes.</p>}
+        {cargando && <p className="ops-empty" role="status">{t('otros.cargando')}</p>}
+        {!cargando && contactos.length === 0 && <p className="ops-empty">{t('ops.sinIncidencias')}</p>}
         <ul className="ops-list">
           {contactos.map((c) => (
             <li key={c.id} className="ops-list-item">
               <div style={{ minWidth: 0 }}>
-                <strong>{c.motivo || 'Incidencia'}</strong> · {c.nombre} ({c.email})
+                <strong>{c.motivo || t('ops.incidencia')}</strong> · {c.nombre} ({c.email})
                 <div className="ops-muted">{(c.mensaje || '').slice(0, 220)}</div>
               </div>
               <button type="button" className="ops-btn primary sm" disabled={actuando === c.id}
                 onClick={() => accionar(resolverIncidencia, c.id, 'c')}>
-                Resolver
+                {t('ops.resolver')}
               </button>
             </li>
           ))}
@@ -63,11 +70,11 @@ export default function OpsIncidencias() {
       <div className="ops-card">
         <div className="ops-card-head">
           <div>
-            <h2>Locales propuestos ({negocios.length})</h2>
-            <p className="ops-card-sub">Aprobar copia el local a la red · rechazar lo archiva</p>
+            <h2>{t('ops.localesPropuestos')} ({negocios.length})</h2>
+            <p className="ops-card-sub">{t('ops.localesPropuestosSub')}</p>
           </div>
         </div>
-        {!cargando && negocios.length === 0 && <p className="ops-empty">Sin propuestas pendientes.</p>}
+        {!cargando && negocios.length === 0 && <p className="ops-empty">{t('ops.sinPropuestas')}</p>}
         <ul className="ops-list">
           {negocios.map((n) => (
             <li key={n.id} className="ops-list-item">
@@ -78,11 +85,11 @@ export default function OpsIncidencias() {
               <div style={{ display: 'flex', gap: 6 }}>
                 <button type="button" className="ops-btn primary sm" disabled={actuando === n.id}
                   onClick={() => accionar(aprobarNegocio, n.id, 'n')}>
-                  Aprobar
+                  {t('ops.aprobar')}
                 </button>
                 <button type="button" className="ops-btn soft sm" disabled={actuando === n.id}
                   onClick={() => accionar(rechazarNegocio, n.id, 'n')}>
-                  Rechazar
+                  {t('ops.rechazar')}
                 </button>
               </div>
             </li>

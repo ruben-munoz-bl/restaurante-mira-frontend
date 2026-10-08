@@ -4,15 +4,23 @@ import {
   ResponsiveContainer, ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   PieChart, Pie, Cell, ReferenceLine, BarChart, Bar,
 } from 'recharts';
+import { useT } from '../../i18n/index.jsx';
+import es from '../../i18n/es.js';
+import ca from '../../i18n/ca.js';
+import en from '../../i18n/en.js';
+
+const TRADS = { es, ca, en };
 
 const VERDE = '#0e6b47';
 const AZUL = '#2d6fd8';
 const ORO = '#c9a227';
 
-const fmtEur = (v) => `${Number(v || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+const fmtEur = (v, locale = 'es-ES') => `${Number(v || 0).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
 
 /** Tooltip compartido (también lo usa el panel de restaurante). */
 export function GlassTooltip({ active, payload, label, unidades = {} }) {
+  const t = useT(TRADS);
+  const locale = t('modelos.locale');
   if (!active || !payload?.length) return null;
   return (
     <div className="chart-tip">
@@ -21,7 +29,7 @@ export function GlassTooltip({ active, payload, label, unidades = {} }) {
         <div className="chart-tip-row" key={p.dataKey}>
           <span className="chart-tip-dot" style={{ background: p.color || p.payload?.color }} />
           <span>{p.name}</span>
-          <strong>{unidades[p.dataKey] === '€' ? fmtEur(p.value) : `${Number(p.value).toLocaleString('es-ES')}${unidades[p.dataKey] ? ` ${unidades[p.dataKey]}` : ''}`}</strong>
+          <strong>{unidades[p.dataKey] === '€' ? fmtEur(p.value, locale) : `${Number(p.value).toLocaleString(locale)}${unidades[p.dataKey] ? ` ${unidades[p.dataKey]}` : ''}`}</strong>
         </div>
       ))}
     </div>
@@ -30,8 +38,9 @@ export function GlassTooltip({ active, payload, label, unidades = {} }) {
 
 /** Píldoras que encienden/apagan series. */
 export function SerieToggles({ series, visibles, onToggle }) {
+  const t = useT(TRADS);
   return (
-    <div className="chart-toggles" role="group" aria-label="Series visibles">
+    <div className="chart-toggles" role="group" aria-label={t('ops.seriesVisibles')}>
       {series.map((s) => (
         <button key={s.key} type="button" aria-pressed={visibles[s.key]} className={`chart-toggle ${visibles[s.key] ? 'on' : ''}`}
           style={{ '--c': s.color }} onClick={() => onToggle(s.key)}>
@@ -47,7 +56,7 @@ export function SerieToggles({ series, visibles, onToggle }) {
  * proyecta el mes en curso a mes completo (etiquetado «proy.») para que la curva
  * no caiga artificialmente al final.
  */
-function agruparPorMes(serie) {
+function agruparPorMes(serie, locale = 'es-ES', proy = 'proy.') {
   const porMes = {};
   serie.forEach((s) => {
     const k = s.fecha.slice(0, 7);
@@ -64,9 +73,9 @@ function agruparPorMes(serie) {
   return meses.map((m) => {
     const proyectar = m.k === actual && m.dias < diasDe(m.k);
     const f = proyectar ? diasDe(m.k) / m.dias : 1;
-    const nombre = new Date(`${m.k}-01T00:00:00`).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
+    const nombre = new Date(`${m.k}-01T00:00:00`).toLocaleDateString(locale, { month: 'short', year: '2-digit' });
     return {
-      etiqueta: proyectar ? `${nombre} (proy.)` : nombre,
+      etiqueta: proyectar ? `${nombre} (${proy})` : nombre,
       reservas: Math.round(m.reservas * f), pax: Math.round(m.pax * f), comisiones: Math.round(m.comisiones * f * 100) / 100,
     };
   });
@@ -74,17 +83,18 @@ function agruparPorMes(serie) {
 
 /** Evolución: reservas (área) + comisiones (línea, eje derecho). Granularidad Días/Meses. */
 export function OpsLineChart({ serie, serieMeses = null, modo = 'dias', height = 280 }) {
+  const t = useT(TRADS);
   const [vis, setVis] = useState({ reservas: true, pax: false, comisiones: true });
-  if (!serie?.length) return <p className="ops-empty">Sin datos todavía.</p>;
+  if (!serie?.length) return <p className="ops-empty">{t('ops.sinDatos')}</p>;
   if (modo === 'horas') return <OpsHorasChart serie={serie} height={height} />;
 
   let datos = serie.map((s) => ({ etiqueta: s.etiqueta, reservas: s.reservas, pax: s.pax || 0, comisiones: s.comisiones || 0 }));
-  if (modo === 'meses') datos = agruparPorMes(serieMeses || serie);
+  if (modo === 'meses') datos = agruparPorMes(serieMeses || serie, t('modelos.locale'), t('ops.proy'));
   const media = datos.reduce((a, d) => a + d.reservas, 0) / datos.length;
   const series = [
-    { key: 'reservas', nombre: 'Reservas', color: VERDE },
-    { key: 'pax', nombre: 'Comensales', color: ORO },
-    { key: 'comisiones', nombre: 'Comisión €', color: AZUL },
+    { key: 'reservas', nombre: t('ops.reservas'), color: VERDE },
+    { key: 'pax', nombre: t('ops.comensales'), color: ORO },
+    { key: 'comisiones', nombre: `${t('ops.comision')} €`, color: AZUL },
   ];
 
   return (
@@ -107,10 +117,10 @@ export function OpsLineChart({ serie, serieMeses = null, modo = 'dias', height =
           <YAxis yAxisId="izq" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--chart-tick, #6f7a72)' }} allowDecimals={false} />
           <YAxis yAxisId="der" orientation="right" hide />
           <Tooltip content={<GlassTooltip unidades={{ comisiones: '€', pax: 'pax' }} />} cursor={{ stroke: VERDE, strokeDasharray: '3 3', strokeOpacity: 0.5 }} />
-          {vis.reservas && <ReferenceLine yAxisId="izq" y={media} stroke={VERDE} strokeOpacity={0.35} strokeDasharray="2 4" label={{ value: 'media', position: 'insideTopRight', fontSize: 10, fill: VERDE }} />}
-          {vis.pax && <Area yAxisId="izq" type="monotone" dataKey="pax" name="Comensales" stroke={ORO} strokeWidth={2} fill="url(#opsGradP)" animationDuration={900} activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} />}
-          {vis.reservas && <Area yAxisId="izq" type="monotone" dataKey="reservas" name="Reservas" stroke={VERDE} strokeWidth={3} fill="url(#opsGradR)" animationDuration={900} activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }} />}
-          {vis.comisiones && <Line yAxisId="der" type="monotone" dataKey="comisiones" name="Comisión" stroke={AZUL} strokeWidth={2} strokeDasharray="5 4" dot={false} animationDuration={1100} activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} />}
+          {vis.reservas && <ReferenceLine yAxisId="izq" y={media} stroke={VERDE} strokeOpacity={0.35} strokeDasharray="2 4" label={{ value: t('ops.media'), position: 'insideTopRight', fontSize: 10, fill: VERDE }} />}
+          {vis.pax && <Area yAxisId="izq" type="monotone" dataKey="pax" name={t('ops.comensales')} stroke={ORO} strokeWidth={2} fill="url(#opsGradP)" animationDuration={900} activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} />}
+          {vis.reservas && <Area yAxisId="izq" type="monotone" dataKey="reservas" name={t('ops.reservas')} stroke={VERDE} strokeWidth={3} fill="url(#opsGradR)" animationDuration={900} activeDot={{ r: 6, strokeWidth: 2, stroke: '#fff' }} />}
+          {vis.comisiones && <Line yAxisId="der" type="monotone" dataKey="comisiones" name={t('ops.comision')} stroke={AZUL} strokeWidth={2} strokeDasharray="5 4" dot={false} animationDuration={1100} activeDot={{ r: 5, strokeWidth: 2, stroke: '#fff' }} />}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
@@ -119,10 +129,11 @@ export function OpsLineChart({ serie, serieMeses = null, modo = 'dias', height =
 
 /** Donut interactivo: el sector y la fila de leyenda se resaltan juntos. */
 export function OpsDonut({ segmentos, centro, centroSub }) {
+  const t = useT(TRADS);
   const [activo, setActivo] = useState(null);
   const datos = segmentos.filter((s) => s.valor > 0);
   const total = datos.reduce((s, x) => s + x.valor, 0);
-  if (!total) return <p className="ops-empty">Sin datos todavía.</p>;
+  if (!total) return <p className="ops-empty">{t('ops.sinDatos')}</p>;
   const sel = activo != null ? datos[activo] : null;
 
   return (
@@ -164,7 +175,8 @@ export function OpsDonut({ segmentos, centro, centroSub }) {
 
 /** Barras horizontales (p. ej. ocupación por servicio) que crecen al montarse. */
 export function OpsHBars({ filas }) {
-  if (!filas?.length) return <p className="ops-empty">Sin datos todavía.</p>;
+  const t = useT(TRADS);
+  if (!filas?.length) return <p className="ops-empty">{t('ops.sinDatos')}</p>;
   const max = Math.max(1, ...filas.map((f) => f.valor));
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -187,6 +199,7 @@ export function OpsHBars({ filas }) {
 const PESOS_HORA = { 12: 0.03, 13: 0.14, 14: 0.17, 15: 0.06, 16: 0.01, 17: 0.01, 18: 0.02, 19: 0.05, 20: 0.15, 21: 0.22, 22: 0.11, 23: 0.03 };
 
 function OpsHorasChart({ serie, height }) {
+  const t = useT(TRADS);
   const [activo, setActivo] = useState(null);
   const total = serie.reduce((s, d) => s + (d.reservas || 0), 0);
   const pax = serie.reduce((s, d) => s + (d.pax || 0), 0);
@@ -197,8 +210,8 @@ function OpsHorasChart({ serie, height }) {
   return (
     <div className="chart-anim">
       <div className="chart-toggles">
-        <span className="chart-toggle on" style={{ '--c': ORO }}><i />Comida</span>
-        <span className="chart-toggle on" style={{ '--c': VERDE }}><i />Cena</span>
+        <span className="chart-toggle on" style={{ '--c': ORO }}><i />{t('ops.comida')}</span>
+        <span className="chart-toggle on" style={{ '--c': VERDE }}><i />{t('ops.cena')}</span>
       </div>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={datos} margin={{ top: 10, right: 4, left: -18, bottom: 0 }} onMouseLeave={() => setActivo(null)}>
@@ -206,7 +219,7 @@ function OpsHorasChart({ serie, height }) {
           <XAxis dataKey="etiqueta" tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--chart-tick, #6f7a72)' }} />
           <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 11, fill: 'var(--chart-tick, #6f7a72)' }} allowDecimals={false} />
           <Tooltip content={<GlassTooltip unidades={{ pax: 'pax' }} />} cursor={{ fill: 'rgba(14,107,71,0.06)', radius: 8 }} />
-          <Bar dataKey="reservas" name="Reservas" radius={[8, 8, 3, 3]} maxBarSize={38} animationDuration={800} onMouseEnter={(_, i) => setActivo(i)}>
+          <Bar dataKey="reservas" name={t('ops.reservas')} radius={[8, 8, 3, 3]} maxBarSize={38} animationDuration={800} onMouseEnter={(_, i) => setActivo(i)}>
             {datos.map((d, i) => (
               <Cell key={d.etiqueta} fill={d.franja === 'comida' ? ORO : VERDE}
                 style={{ opacity: activo == null || activo === i ? 1 : 0.45, transition: 'opacity 160ms ease' }} />

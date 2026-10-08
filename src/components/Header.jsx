@@ -103,7 +103,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
       <a
         href="#/"
         className={`logo logo-imagen logo-mira${compacto ? ' compacto' : ''}`}
-        aria-label="MIRA - inicio"
+        aria-label={t('nav.inicio')}
         onClick={cerrar}
       >
         {/* Letras reales para poder plegarlas al hacer scroll (como el logo de Anthropic). */}
@@ -175,7 +175,7 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
                 type="button"
                 className={`header-streak-btn${loadingStreak ? ' header-streak-btn--loading' : ''}`}
                 onClick={handleStreakTap}
-                aria-label="Abrir racha diaria"
+                aria-label={t('nav.abrirRacha')}
                 title="Racha diaria"
               >
                 <img src="/racha-fuego.png" alt="" className="header-streak-btn-img" />
