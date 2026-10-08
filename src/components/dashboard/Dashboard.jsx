@@ -5,7 +5,7 @@ import { RevenueLineChart, ReservationsPieChart, RevenueBarChart } from "./Chart
 import ReservationActions from "./ReservationActions.jsx";
 import TicketUpload from "./TicketUpload.jsx";
 import { useT } from "../../i18n/index.jsx";
-import { CIUDADES_CATALUNA } from "../../models/restaurantModel.js";
+import { CIUDADES_CATALUNA, ZONAS_CATALUNA } from "../../models/restaurantModel.js";
 import es from "../../i18n/es.js";
 import ca from "../../i18n/ca.js";
 import en from "../../i18n/en.js";
@@ -92,6 +92,7 @@ function DashboardRestaurante({ usuario, perfil }) {
     try {
       if (sessionStorage.getItem('mira_abrir_crear')) {
         sessionStorage.removeItem('mira_abrir_crear');
+        setError("");
         setShowCreateForm(true);
       }
     } catch { /* ignore */ }
@@ -125,7 +126,8 @@ function DashboardRestaurante({ usuario, perfil }) {
       .catch(e => {
         if (!vivo) return;
         const msg = e.message || "Error al cargar";
-        if (msg.includes("Restaurante no encontrado")) {
+        // 404 = la empresa aún no tiene restaurante (el texto del backend ha cambiado, el código no).
+        if (e.status === 404 || /no encontrado|ningún restaurante/i.test(msg)) {
           listarMisNegocios(usuario.uid).then(negocios=>{
             if (!vivo) return;
             const pendiente = negocios.find(n=> n.estado==="pendiente");
@@ -230,7 +232,7 @@ function DashboardRestaurante({ usuario, perfil }) {
 
   // —— loading / empty states (keep MIRA web consistency but with op tokens) ——
   if (loading) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><p>{t("otros.cargando")}</p></div></section>;
-  if (error && !data && !noRestaurant && !pendingNegocio) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><h1>{t("dashboard.miRestaurante")}</h1><p className="auth-error">{error}</p></div></section>;
+  if (error && !data && !noRestaurant && !pendingNegocio && !showCreateForm) return <section className="auth-pagina"><div className="auth-tarjeta tarjeta-ancha"><h1>{t("dashboard.miRestaurante")}</h1><p className="auth-error">{error}</p></div></section>;
   if (!data && !noRestaurant && !pendingNegocio && !showCreateForm) return null;
 
   if (pendingNegocio && !showCreateForm && !data){
@@ -259,7 +261,7 @@ function DashboardRestaurante({ usuario, perfil }) {
           <span className="material-symbols-outlined" style={{fontSize:40, color:'var(--op-primary-container)'}}>storefront</span>
           <h2 style={{fontWeight:800, fontSize:'1.2rem'}}>Aún no tienes un restaurante registrado</h2>
           <p style={{color:'var(--op-on-variant)', fontSize:'0.85rem', maxWidth:480}}>Crea uno para empezar a gestionar reservas, facturación y rendimiento operativo con el Operator Hub.</p>
-          <button className="op-btn-primary" onClick={()=> setShowCreateForm(true)}><span className="material-symbols-outlined" style={{fontSize:16}}>add_business</span> Crear mi restaurante</button>
+          <button className="op-btn-primary" onClick={()=> { setError(""); setShowCreateForm(true); }}><span className="material-symbols-outlined" style={{fontSize:16}}>add_business</span> Crear mi restaurante</button>
         </div>
       </div></section>
     );
@@ -286,7 +288,12 @@ function DashboardRestaurante({ usuario, perfil }) {
                     {CIUDADES_CATALUNA.map(c=> <option key={c} value={c}>{c}</option>)}
                   </select>
                 </label>
-                <label className="op-field"><span>Zona *</span><input className="op-input" value={newRest.zona} onChange={e=> setNewRest(p=>({...p, zona:e.target.value}))} required /></label>
+                <label className="op-field"><span>Zona *</span>
+                  <select className="op-select" value={newRest.zona} onChange={e=> setNewRest(p=>({...p, zona:e.target.value}))} required>
+                    <option value="">Elige zona</option>
+                    {ZONAS_CATALUNA.map(z=> <option key={z} value={z}>{z.replace(', Spain','')}</option>)}
+                  </select>
+                </label>
                 <label className="op-field"><span>Dirección *</span><input className="op-input" value={newRest.direccion} onChange={e=> setNewRest(p=>({...p, direccion:e.target.value}))} required /></label>
                 <label className="op-field"><span>Teléfono</span><input className="op-input" value={newRest.telefono} onChange={e=> setNewRest(p=>({...p, telefono:e.target.value}))} /></label>
                 <label className="op-field"><span>Email</span><input className="op-input" type="email" value={newRest.email} onChange={e=> setNewRest(p=>({...p, email:e.target.value}))} /></label>
