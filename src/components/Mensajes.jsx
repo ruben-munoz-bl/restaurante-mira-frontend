@@ -5,6 +5,7 @@ import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
+import { urlSegura } from '../utils/urlSegura.js';
 
 const TRADS = { es, ca, en };
 
@@ -89,7 +90,7 @@ export default function Mensajes({ usuario, onLeidos }) {
                   <>
                     <p className="mensaje-cuerpo" style={{ whiteSpace: 'pre-line' }}>{m.cuerpo}</p>
                     {m.enlace && /^#\//.test(m.enlace) && (
-                      <p><a className="btn-cta btn-peq" href={m.enlace}>{m.enlaceTexto || 'Abrir'}</a></p>
+                      <p><a className="btn-cta btn-peq" href={urlSegura(m.enlace)}>{m.enlaceTexto || 'Abrir'}</a></p>
                     )}
                     {(m.parkingLink || m.parkingNombre) && (
                       <p className="mensaje-parking" style={{ fontSize: '0.88rem' }}>
@@ -98,7 +99,7 @@ export default function Mensajes({ usuario, onLeidos }) {
                           ? ` a ${m.parkingDistanciaM < 1000 ? `${m.parkingDistanciaM} m` : `${(m.parkingDistanciaM / 1000).toLocaleString(t('modelos.locale'), { maximumFractionDigits: 1 })} km`}`
                           : ''}{' '}
                         {m.parkingLink && (
-                          <a href={m.parkingLink} target="_blank" rel="noreferrer">
+                          <a href={urlSegura(m.parkingLink)} target="_blank" rel="noreferrer">
                             {t('mensajes.comoLlegarParking')}
                           </a>
                         )}

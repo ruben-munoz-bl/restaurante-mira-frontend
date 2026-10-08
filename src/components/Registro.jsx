@@ -11,6 +11,24 @@ const TRADS = { es, ca, en };
 
 const EMAIL_OK = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/** 0-3: longitud + variedad de caracteres. Solo orientativo para el usuario. */
+function fuerzaPassword(p) {
+  if (!p) return 0;
+  if (p.length < 8) return 1;
+  const variedad = [/[a-z]/i, /\d/, /[^a-z\d]/i].filter((re) => re.test(p)).length;
+  if (variedad === 3 || (variedad === 2 && p.length >= 12)) return 3;
+  return variedad >= 2 ? 2 : 1;
+}
+
+function Chip({ id, checked, onChange, children }) {
+  return (
+    <label className={`chip-check${checked ? ' chip-check--on' : ''}`} htmlFor={id}>
+      <input id={id} type="checkbox" checked={checked} onChange={onChange} />
+      <span>{children}</span>
+    </label>
+  );
+}
+
 export default function Registro({ onRegistro, yaTieneSesion }) {
   const t = useT(TRADS);
   const { lang, setLang, available } = useI18n();
@@ -22,6 +40,8 @@ export default function Registro({ onRegistro, yaTieneSesion }) {
   const [error, setError] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [paso, setPaso] = useState(1); // 1 = datos, 2 = dieta/accesibilidad
+  const [verPass, setVerPass] = useState(false);
+  const fuerza = fuerzaPassword(password);
 
   const [vegano, setVegano] = useState(false);
   const [vegetariano, setVegetariano] = useState(false);
@@ -43,7 +63,7 @@ export default function Registro({ onRegistro, yaTieneSesion }) {
     if (paso === 1) {
       if (nombre.trim().length < 2) return setError(t('registro.errorNombre'));
       if (!EMAIL_OK.test(email.trim())) return setError(t('registro.errorCorreo'));
-      if (password.length < 6) return setError(t('registro.errorPass'));
+      if (password.length < 8) return setError(t('registro.errorPass'));
       setError('');
       setPaso(2);
       return;
@@ -80,16 +100,26 @@ export default function Registro({ onRegistro, yaTieneSesion }) {
     return null;
   }
 
+  const etiquetasFuerza = ['', t('registro.fuerzaDebil'), t('registro.fuerzaMedia'), t('registro.fuerzaFuerte')];
+
   return (
     <section className="auth-pagina" aria-labelledby="registro-titulo">
-      <form className="auth-tarjeta" onSubmit={manejarEnvio} noValidate>
+      <form className="auth-tarjeta registro-tarjeta" onSubmit={manejarEnvio} noValidate>
+        <ol className="registro-pasos" aria-label={t('registro.crearCuenta')}>
+          {[t('registro.pasoDatos'), t('registro.pasoPrefs')].map((nombrePaso, i) => (
+            <li
+              key={nombrePaso}
+              className={`registro-paso${paso === i + 1 ? ' registro-paso--activo' : ''}${paso > i + 1 ? ' registro-paso--hecho' : ''}`}
+              aria-current={paso === i + 1 ? 'step' : undefined}
+            >
+              <span className="registro-paso-num">{paso > i + 1 ? '✓' : i + 1}</span>
+              {nombrePaso}
+            </li>
+          ))}
+        </ol>
         <h1 id="registro-titulo">{t('registro.crearCuenta')}</h1>
         <p className="auth-sub">{t('registro.gratis')}</p>
-        {inviteCodigo && (
-          <div style={{ background: 'var(--primary-container)', color: 'var(--primary)', padding: '0.8rem 1rem', borderRadius: 'var(--radio-peq)', fontSize: '0.9rem', fontWeight: 600, marginBottom: '1rem', textAlign: 'center' }}>
-            🎉 Te invitaron a MIRA Points
-          </div>
-        )}
+        {inviteCodigo && <div className="registro-invite">🎉 {t('registro.invitado')}</div>}
         {error && (
           <p className="auth-error" role="alert">
             {error}
@@ -98,119 +128,119 @@ export default function Registro({ onRegistro, yaTieneSesion }) {
 
         {paso === 1 && (
           <>
+            <fieldset className="tipo-cuenta">
+              <legend>{t('registro.tipoCuenta')}</legend>
+              {[
+                [false, '🍽️', t('registro.tipoCliente'), t('registro.tipoClienteDesc')],
+                [true, '🏪', t('registro.tipoEmpresa'), t('registro.tipoEmpresaDesc')],
+              ].map(([valor, icono, titulo, desc]) => (
+                <label key={String(valor)} className={`tipo-cuenta-opcion${esEmpresa === valor ? ' tipo-cuenta-opcion--on' : ''}`}>
+                  <input type="radio" name="tipo-cuenta" checked={esEmpresa === valor} onChange={() => setEsEmpresa(valor)} />
+                  <span className="tipo-cuenta-icono" aria-hidden="true">{icono}</span>
+                  <strong>{titulo}</strong>
+                  <small>{desc}</small>
+                </label>
+              ))}
+            </fieldset>
             <div className="campo">
               <label htmlFor="reg-nombre">{t('registro.nombre')}</label>
-              <input
-                id="reg-nombre"
-                type="text"
-                autoComplete="name"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-              />
+              <input id="reg-nombre" type="text" autoComplete="name" maxLength={80} required value={nombre} onChange={(e) => setNombre(e.target.value)} />
             </div>
             <div className="campo">
               <label htmlFor="reg-email">{t('registro.correo')}</label>
-              <input
-                id="reg-email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
+              <input id="reg-email" type="email" autoComplete="email" inputMode="email" maxLength={254} required value={email} onChange={(e) => setEmail(e.target.value)} />
             </div>
             <div className="campo">
               <label htmlFor="reg-pass">{t('registro.contrasena')}</label>
-              <input
-                id="reg-pass"
-                type="password"
-                autoComplete="new-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div className="campo campo-check">
-              <label htmlFor="reg-empresa">
+              <div className="campo-pass">
                 <input
-                  id="reg-empresa"
-                  type="checkbox"
-                  checked={esEmpresa}
-                  onChange={(e) => setEsEmpresa(e.target.checked)}
+                  id="reg-pass"
+                  type={verPass ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  minLength={8}
+                  maxLength={128}
+                  required
+                  aria-describedby="reg-pass-ayuda"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
-                {t('auth.soyEmpresa')}
-              </label>
+                <button
+                  type="button"
+                  className="campo-pass-toggle"
+                  onClick={() => setVerPass((v) => !v)}
+                  aria-label={verPass ? t('registro.ocultar') : t('registro.mostrar')}
+                  aria-pressed={verPass}
+                >
+                  {verPass ? '🙈' : '👁️'}
+                </button>
+              </div>
+              {password && (
+                <div className={`pass-fuerza pass-fuerza--${fuerza}`} aria-live="polite">
+                  <span className="pass-fuerza-barra"><span /></span>
+                  <span className="pass-fuerza-texto">{etiquetasFuerza[fuerza]}</span>
+                </div>
+              )}
+              <small id="reg-pass-ayuda" className="campo-ayuda">{t('registro.passAyuda')}</small>
             </div>
             <button type="submit" className="btn-cta btn-grande auth-boton">
-              {t('registro.siguiente')}
+              {t('registro.siguiente')} →
             </button>
           </>
         )}
 
         {paso === 2 && (
           <>
-            <h2 className="cuenta-sub" style={{ fontSize: '1.05rem', margin: '1rem 0 0.5rem' }}>{t('registro.miDieta')}</h2>
-            <label className="campo-check" htmlFor="reg-vegano">
-              <input id="reg-vegano" type="checkbox" checked={vegano} onChange={() => setVegano(!vegano)} />
-              {t('registro.vegano')}: {t('registro.veganoDesc')}
-            </label>
-            <label className="campo-check" htmlFor="reg-vegetariano">
-              <input id="reg-vegetariano" type="checkbox" checked={vegetariano} onChange={() => setVegetariano(!vegetariano)} />
-              {t('registro.vegetariano')}: {t('registro.vegetarianoDesc')}
-            </label>
-            <label className="campo-check" htmlFor="reg-sinGluten">
-              <input id="reg-sinGluten" type="checkbox" checked={sinGluten} onChange={() => setSinGluten(!sinGluten)} />
-              {t('registro.sinGluten')}
-            </label>
-<fieldset className="prefs-alergias" style={{ border: 'none', padding: 0 }}>
-               <legend style={{ fontWeight: 600, fontSize: '0.95rem' }}>{t('registro.misAlergias')}</legend>
-               {ALERGENOS.filter((a) => a.key !== 'gluten').map(({ key, label }) => (
-                <label key={key} className="campo-check" htmlFor={`reg-alerg-${key}`}>
-                  <input
-                    id={`reg-alerg-${key}`}
-                    type="checkbox"
-                    checked={alergias.includes(key)}
-                    onChange={() => toggleAlergia(key)}
-                  />
-                  {label}
-                </label>
-              ))}
-            </fieldset>
+            <section className="registro-bloque">
+              <h2>{t('registro.miDieta')}</h2>
+              <div className="chip-grid">
+                <Chip id="reg-vegano" checked={vegano} onChange={() => setVegano(!vegano)}>🌱 {t('registro.vegano')}</Chip>
+                <Chip id="reg-vegetariano" checked={vegetariano} onChange={() => setVegetariano(!vegetariano)}>🥕 {t('registro.vegetariano')}</Chip>
+                <Chip id="reg-sinGluten" checked={sinGluten} onChange={() => setSinGluten(!sinGluten)}>🌾 {t('registro.sinGluten')}</Chip>
+              </div>
+            </section>
+            <section className="registro-bloque">
+              <h2>{t('registro.misAlergias')}</h2>
+              <div className="chip-grid">
+                {ALERGENOS.filter((a) => a.key !== 'gluten').map(({ key, label }) => (
+                  <Chip key={key} id={`reg-alerg-${key}`} checked={alergias.includes(key)} onChange={() => toggleAlergia(key)}>{label}</Chip>
+                ))}
+              </div>
+            </section>
+            <section className="registro-bloque">
+              <h2>{t('registro.miAccesibilidad')}</h2>
+              <div className="chip-grid">
+                <Chip id="reg-silla" checked={sillaRuedas} onChange={() => setSillaRuedas(!sillaRuedas)}>♿ {t('registro.sillaRuedas')}</Chip>
+                <Chip id="reg-tea" checked={tea} onChange={() => setTea(!tea)}>🧩 {t('registro.espectroAutista')}</Chip>
+              </div>
+            </section>
+            <section className="registro-bloque">
+              <h2>{t('registro.idioma')}</h2>
+              <div className="lang-selector" role="group" aria-label={t('registro.idioma')}>
+                {Object.entries(available).map(([code, label]) => (
+                  <button
+                    key={code}
+                    type="button"
+                    className={`lang-option${lang === code ? ' lang-activo' : ''}`}
+                    onClick={() => setLang(code)}
+                    aria-pressed={lang === code}
+                    title={label}
+                  >
+                    {code.toUpperCase()}
+                  </button>
+                ))}
+              </div>
+            </section>
 
-            <h2 className="cuenta-sub" style={{ fontSize: '1.05rem', margin: '1rem 0 0.5rem' }}>{t('registro.miAccesibilidad')}</h2>
-            <label className="campo-check" htmlFor="reg-silla">
-              <input id="reg-silla" type="checkbox" checked={sillaRuedas} onChange={() => setSillaRuedas(!sillaRuedas)} />
-              {t('registro.sillaRuedas')}
-            </label>
-            <label className="campo-check" htmlFor="reg-tea">
-              <input id="reg-tea" type="checkbox" checked={tea} onChange={() => setTea(!tea)} />
-              {t('registro.espectroAutista')}
-            </label>
+            <p className="campo-ayuda">{t('registro.cambiarDespues')}.</p>
 
-            <h2 className="cuenta-sub" style={{ fontSize: '1.05rem', margin: '1rem 0 0.5rem' }}>{t('registro.idioma')}</h2>
-            <select
-              className="search-select"
-              value={lang}
-              onChange={(e) => setLang(e.target.value)}
-            >
-              {Object.entries(available).map(([code, label]) => (
-                <option key={code} value={code}>{label}</option>
-              ))}
-            </select>
-
-            <p style={{ fontSize: '0.82rem', color: 'var(--gris)', margin: '0.8rem 0 0.5rem' }}>
-              {t('registro.cambiarDespues')}.
-            </p>
-
-            <button type="submit" className="btn-cta btn-grande auth-boton" disabled={enviando}>
-              {enviando ? t('registro.creando') : t('registro.crear')}
-            </button>
-            <button
-              type="button"
-              className="btn-secundario btn-peq"
-              style={{ width: '100%', marginTop: '0.5rem' }}
-              onClick={() => { setPaso(1); setError(''); }}
-            >
-              ← {t('registro.volver')}
-            </button>
+            <div className="registro-acciones">
+              <button type="button" className="btn-secundario" onClick={() => { setPaso(1); setError(''); }}>
+                ← {t('registro.volver')}
+              </button>
+              <button type="submit" className="btn-cta btn-grande auth-boton" disabled={enviando}>
+                {enviando ? t('registro.creando') : t('registro.crear')}
+              </button>
+            </div>
           </>
         )}
 

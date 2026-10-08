@@ -91,7 +91,7 @@ export default function DailyStreakPopup({ racha, saldo, yaReclamado, onClaim, o
     setClaimed(Boolean(yaReclamado));
   }, [yaReclamado]);
 
-  const dias = racha?.dias || 0;
+  const dias = Math.max(0, Math.floor(Number(racha?.dias) || 0)); // número seguro: se interpola en HTML
   const puntosDesdeApi = racha?.puntosHoy;
   const esDia7 = Boolean(racha?.dia7Disponible) || dias >= 7;
   const puntosHoy = claimed || esDia7

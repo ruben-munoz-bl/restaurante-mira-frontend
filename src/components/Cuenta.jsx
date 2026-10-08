@@ -181,7 +181,7 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
 
   return (
     <section className="auth-pagina" aria-labelledby="cuenta-titulo">
-      <div className="auth-tarjeta">
+      <div className="auth-tarjeta cuenta-tarjeta">
         <div className="emblema-progreso" aria-live="polite">
           <p className="emblema-progreso-label">{t('emblemas.tituloProgreso')}</p>
           <p className={`emblema-progreso-titulo${emblema ? ` emblema-progreso-titulo--activo emblema-progreso-titulo--${emblema.id}` : ''}`}>
@@ -248,14 +248,14 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
 
         {/* --- DIETA --- */}
         <h2 className="cuenta-sub">{t('cuenta.miDieta')}</h2>
-        <form onSubmit={guardarPrefs} className="prefs-form">
+        <form onSubmit={guardarPrefs} className="prefs-form prefs-card">
           {[['vegano', t('cuenta.vegano')], ['vegetariano', t('cuenta.vegetariano')]].map(([campo, etiqueta]) => (
             <label key={campo} className="campo-check" htmlFor={`pref-${campo}`}>
               <input id={`pref-${campo}`} type="checkbox" checked={Boolean(borrador[campo])} onChange={() => toggleDieta(campo)} />
               {etiqueta}
             </label>
           ))}
-          <fieldset className="prefs-alergias">
+          <fieldset className="prefs-alergias chip-grid">
             <legend>{t('cuenta.misAlergias')}</legend>
             {ALERGENOS.map(({ key, label }) => (
               <label key={key} className="campo-check" htmlFor={`alerg-${key}`}>
@@ -272,7 +272,7 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
 
         {/* --- ACCESIBILIDAD --- */}
         <h2 className="cuenta-sub">{t('cuenta.miAccesibilidad')}</h2>
-        <form onSubmit={guardarAcc} className="prefs-form">
+        <form onSubmit={guardarAcc} className="prefs-form prefs-card">
           <p className="vacio-texto">{t('cuenta.soloAccesibilidad')}</p>
           <label className="campo-check" htmlFor="acc-silla">
             <input id="acc-silla" type="checkbox" checked={Boolean(borradorAcc.sillaRuedas)} onChange={() => toggleAcc('sillaRuedas')} />
@@ -307,7 +307,7 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
 
         {/* --- Verificación de email --- */}
         <h2 className="cuenta-sub">{t('cuenta.verificacionCorreo')}</h2>
-        <div className="prefs-form">
+        <div className="prefs-form prefs-card">
           {usuario.emailVerified ? (
             <div style={{ padding: '0.8rem', background: 'var(--fondo-suave)', borderRadius: 'var(--radio-peq)' }}>
               <p style={{ color: 'var(--verde)', fontWeight: 600 }}>✓ {t('cuenta.correoVerificado')}</p>
@@ -331,7 +331,7 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
 
         {/* --- COOKIES --- */}
         <h2 className="cuenta-sub">{t('cuenta.preferenciasCookies')}</h2>
-        <div className="prefs-form">
+        <div className="prefs-form prefs-card">
           <p className="vacio-texto">{t('cuenta.cookiesDescripcion')}</p>
           {COOKIE_CATEGORIAS.filter((c) => !c.requerida).map((cat) => (
             <div key={cat.key} className="cookie-item">

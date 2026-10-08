@@ -1,0 +1,326 @@
+/* Cuenta + registro: tarjetas de sección, chips de preferencias, stepper. */
+
+/* ---------- Chips (checkbox como pastilla) ---------- */
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.chip-check,
+.prefs-card > .campo-check,
+.prefs-card .chip-grid > .campo-check {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.5rem 0.9rem;
+  border: 1.5px solid var(--borde);
+  border-radius: 999px;
+  background: var(--papel);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+
+.chip-check:hover,
+.prefs-card .campo-check:hover {
+  border-color: var(--primary-container);
+}
+
+.chip-check:active,
+.prefs-card .campo-check:active {
+  transform: scale(0.97);
+}
+
+.chip-check input,
+.prefs-card .campo-check input[type='checkbox'] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.chip-check--on,
+.prefs-card .campo-check:has(input:checked) {
+  background: var(--primary-container);
+  border-color: var(--primary-container);
+  color: #fff;
+}
+
+.chip-check--on::before,
+.prefs-card .campo-check:has(input:checked)::before {
+  content: '✓';
+  font-weight: 700;
+}
+
+.chip-check:has(input:focus-visible),
+.prefs-card .campo-check:has(input:focus-visible),
+.tipo-cuenta-opcion:has(input:focus-visible) {
+  outline: 3px solid var(--secondary-container);
+  outline-offset: 2px;
+}
+
+/* ---------- Cuenta ---------- */
+.cuenta-tarjeta {
+  max-width: 640px;
+}
+
+.prefs-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+  background: var(--verde-suave);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radio);
+  padding: 1rem 1.1rem;
+}
+
+.prefs-card > p,
+.prefs-card > fieldset,
+.prefs-card > button,
+.prefs-card > div,
+.prefs-card > .cookie-item {
+  flex-basis: 100%;
+}
+
+.prefs-card > button {
+  flex-basis: auto;
+  margin-top: 0.3rem;
+}
+
+.prefs-card .prefs-alergias {
+  border: 0;
+  padding: 0;
+  margin: 0.2rem 0 0;
+}
+
+.prefs-card .prefs-alergias legend {
+  padding: 0 0 0.5rem;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris);
+}
+
+.prefs-card .cookie-desc {
+  margin-left: 0.2rem;
+}
+
+.cuenta-tarjeta .cuenta-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--glass-border);
+}
+
+/* ---------- Registro ---------- */
+.registro-tarjeta {
+  max-width: 520px;
+}
+
+.registro-pasos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 0.5rem;
+  counter-reset: none;
+}
+
+.registro-paso {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--texto-sec);
+  padding-bottom: 0.6rem;
+  border-bottom: 3px solid var(--fondo-suave);
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.registro-paso--activo,
+.registro-paso--hecho {
+  color: var(--primary-container);
+  border-color: var(--primary-container);
+}
+
+.registro-paso-num {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--fondo-suave);
+  font-size: 0.78rem;
+}
+
+.registro-paso--activo .registro-paso-num,
+.registro-paso--hecho .registro-paso-num {
+  background: var(--primary-container);
+  color: #fff;
+}
+
+.registro-invite {
+  background: var(--secondary-container);
+  color: var(--primary);
+  padding: 0.7rem 1rem;
+  border-radius: var(--radio-peq);
+  font-size: 0.9rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.tipo-cuenta {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.tipo-cuenta legend {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.tipo-cuenta-opcion {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.85rem;
+  border: 1.5px solid var(--borde);
+  border-radius: var(--radio);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.tipo-cuenta-opcion input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tipo-cuenta-opcion small {
+  color: var(--gris);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.tipo-cuenta-icono {
+  font-size: 1.4rem;
+}
+
+.tipo-cuenta-opcion:hover {
+  border-color: var(--primary-container);
+}
+
+.tipo-cuenta-opcion--on {
+  border-color: var(--primary-container);
+  background: var(--verde-suave);
+  box-shadow: inset 0 0 0 1px var(--primary-container);
+}
+
+.campo-pass {
+  position: relative;
+}
+
+.campo-pass input {
+  width: 100%;
+  padding-right: 2.8rem;
+}
+
+.campo-pass-toggle {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1.05rem;
+  padding: 0.3rem 0.45rem;
+  border-radius: var(--radio-peq);
+}
+
+.campo-pass-toggle:focus-visible {
+  outline: 2px solid var(--primary-container);
+}
+
+.pass-fuerza {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.pass-fuerza-barra {
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--fondo-suave);
+  overflow: hidden;
+}
+
+.pass-fuerza-barra span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 0.25s, background 0.25s;
+}
+
+.pass-fuerza--1 .pass-fuerza-barra span { width: 33%; background: var(--rojo); }
+.pass-fuerza--2 .pass-fuerza-barra span { width: 66%; background: var(--dorado-claro); }
+.pass-fuerza--3 .pass-fuerza-barra span { width: 100%; background: var(--primary-container); }
+.pass-fuerza--1 .pass-fuerza-texto { color: var(--rojo); }
+.pass-fuerza--3 .pass-fuerza-texto { color: var(--primary-container); }
+
+.campo-ayuda {
+  display: block;
+  margin: 0.3rem 0 0;
+  font-size: 0.78rem;
+  color: var(--texto-sec);
+}
+
+.registro-bloque h2 {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--gris);
+  margin: 0.4rem 0 0.6rem;
+}
+
+.registro-acciones {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.6rem;
+}
+
+@media (max-width: 480px) {
+  .tipo-cuenta,
+  .registro-acciones {
+    grid-template-columns: 1fr;
+  }
+  .registro-acciones .btn-secundario {
+    order: 2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip-check,
+  .prefs-card .campo-check,
+  .tipo-cuenta-opcion,
+  .pass-fuerza-barra span {
+    transition: none;
+  }
+}

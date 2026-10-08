@@ -21,6 +21,7 @@ import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
 import '../styles/detalle.css';
 import { track } from '../services/auditoria.js';
+import { urlSegura } from '../utils/urlSegura.js';
 
 const TRADS = { es, ca, en };
 const MOSTRAR_INICIAL = 6;
@@ -332,7 +333,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
             <span className="foto-credito foto-credito--det">
               Foto:{' '}
               {restaurant.imagenCredito.url
-                ? <a href={restaurant.imagenCredito.url} target="_blank" rel="noreferrer">{restaurant.imagenCredito.autor}</a>
+                ? <a href={urlSegura(restaurant.imagenCredito.url)} target="_blank" rel="noreferrer">{restaurant.imagenCredito.autor}</a>
                 : restaurant.imagenCredito.autor}
               {' '}· Google
             </span>
@@ -381,7 +382,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                 {t('detail.llamar')}
               </a>
             )}
-            {restaurant.yelpUrl && (<a className="det-accion" href={restaurant.yelpUrl} target="_blank" rel="noreferrer">{t('detail.verEnYelp')}</a>)}
+            {restaurant.yelpUrl && (<a className="det-accion" href={urlSegura(restaurant.yelpUrl)} target="_blank" rel="noreferrer">{t('detail.verEnYelp')}</a>)}
           </div>
 
           {(restaurant.categorias?.length > 1 || restaurant.direccion) && (

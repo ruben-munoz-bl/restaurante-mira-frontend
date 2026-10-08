@@ -59,6 +59,7 @@ import useDailyLogin from './hooks/useDailyLogin.js';
 import './App.css';
 import './styles/motion.css';
 import './styles/paneles.css';
+import './styles/cuenta.css';
 import { I18nProvider } from './i18n/index.jsx';
 import { instalarAuditoria } from './services/auditoria.js';
 
