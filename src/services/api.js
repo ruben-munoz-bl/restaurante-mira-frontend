@@ -194,7 +194,7 @@ export const dashboardApi = {
     return Array.isArray(d) ? d : d.data || [];
   },
   getMyRestaurant: async (restaurantIdOverride) => {
-    const q = restaurantIdOverride ? `?id=${encodeURIComponent(restaurantIdOverride)}` : '';
+    const q = restaurantIdOverride ? `?restaurantId=${encodeURIComponent(restaurantIdOverride)}` : '';
     return api.get(`/v1/dashboard/my-restaurant${q}`);
   },
   getRestaurant: async (restaurantId) => api.get(`/v1/dashboard/restaurant/${restaurantId}`),
