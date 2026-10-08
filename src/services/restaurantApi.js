@@ -166,7 +166,8 @@ export async function fetchRestaurantesMapa({ ciudad = '' } = {}) {
   const promesa = api.get(`/v1/restaurants/mapa${q}`, { auth: false }).then((d) =>
     (d.items || []).map((r) => {
       const base = mapearDoc(r.id, r);
-      return { ...base, zona: base.zona || r.ciudad || '', parcial: true };
+      // Mismo formato que zona_busqueda ('Barcelona, Spain') para que el filtro de zona funcione.
+      return { ...base, zona: base.zona || (r.ciudad ? `${r.ciudad}, Spain` : ''), parcial: true };
     }),
   );
   cacheMapa.set(clave, { promesa });

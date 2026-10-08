@@ -11,6 +11,7 @@ import {
   fetchPrimeraPagina,
   fetchSiguientePagina,
   fetchRestaurants,
+  fetchRestaurantesMapa,
   fetchRestaurantePorId,
   contarRestaurantes,
   TAMANO_PAGINA,
@@ -104,7 +105,11 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     setModo(traerTodo ? 'todo' : 'pagina');
 
     const p = traerTodo
-      ? fetchRestaurants().then((items) => ({ items, cursor: null, terminado: true }))
+      ? // Catálogo ligero (/mapa) basta para texto, zona, precio, cocina, distancia,
+        // dieta y servicios. La accesibilidad verificada necesita los campos
+        // reales que solo trae el catálogo completo.
+        (accesibilidadActiva(accEfectiva) ? fetchRestaurants() : fetchRestaurantesMapa())
+          .then((items) => ({ items, cursor: null, terminado: true }))
       : fetchPrimeraPagina();
 
     p.then((pg) => {
@@ -316,6 +321,8 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     abrirDetalle: (r) => {
       if (r) track('restaurante_pulsado', { entidadTipo: 'restaurante', entidadId: String(r.id), entidadNombre: r.nombre });
       setSeleccionado(r);
+      // Desde el catálogo ligero: completa la ficha (reseñas, teléfono, horarios…).
+      if (r?.parcial) fetchRestaurantePorId(r.id).then((c) => { if (c) setSeleccionado((act) => (act?.id === r.id ? c : act)); }).catch(() => {});
     },
     cerrarDetalle: () => setSeleccionado(null),
     abrirCarta: (r) => {
