@@ -35,7 +35,7 @@ export default function Dashboard(props) {
   return <DashboardRestaurante {...props} />;
 }
 
-function DashboardRestaurante({ usuario, perfil }) {
+function DashboardRestaurante({ usuario, perfil, esAdmin }) {
   const t = useT(TRADS);
 
   const [data, setData] = useState(null);
