@@ -19,6 +19,9 @@ import { filterRestaurants, sortRestaurants, necesitaCargaTotal } from '../servi
 import { completarRestaurante, dietaActiva, accesibilidadActiva, ZONAS_CATALUNA, COCINAS } from '../models/restaurantModel.js';
 import { centroDeZona } from '../services/cityCenters.js';
 
+const MIN_CHARS = 3;
+const DEBOUNCE_MS = 450;
+
 const FILTROS_INICIALES = {
   q: '',
   precio: '',
@@ -44,6 +47,19 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
   const [error, setError] = useState('');
   const [intento, setIntento] = useState(0);
   const [filtros, setFiltros] = useState(FILTROS_INICIALES);
+  // Texto de búsqueda que dispara red: espera a que el usuario deje de teclear
+  // (DEBOUNCE_MS) y no busca con menos de MIN_CHARS letras.
+  const [qCarga, setQCarga] = useState('');
+  useEffect(() => {
+    const q = filtros.q.trim();
+    const valor = q.length >= MIN_CHARS ? q : '';
+    if (valor === qCarga) return undefined;
+    const id = setTimeout(() => setQCarga(valor), DEBOUNCE_MS);
+    return () => clearTimeout(id);
+  }, [filtros.q, qCarga]);
+  // Solo cambia de identidad si cambia algo que afecta a la carga (no cada tecla).
+  const claveCarga = JSON.stringify({ ...filtros, q: qCarga });
+  const filtrosCarga = useMemo(() => JSON.parse(claveCarga), [claveCarga]);
   // Sin geolocalización: la distancia es al punto más céntrico de su ciudad.
   const [seleccionado, setSeleccionado] = useState(null); // Restaurant | null (modal detalle)
   const [libro, setLibro] = useState(null); // Restaurant | null (modal carta libro)
@@ -71,7 +87,7 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     const id = ++reqId.current;
     const dietaEfectiva = ignorarDieta ? null : dieta;
     const accEfectiva = ignorarDieta ? null : accesibilidad;
-    const traerTodo = necesitaCargaTotal({ ...filtros, dieta: dietaEfectiva, accesibilidad: accEfectiva });
+    const traerTodo = necesitaCargaTotal({ ...filtrosCarga, dieta: dietaEfectiva, accesibilidad: accEfectiva });
 
     setEstado('cargando');
     setError('');
@@ -100,7 +116,7 @@ export function useRestaurantController({ dieta = null, accesibilidad = null } =
     return () => {
       vivo = false;
     };
-  }, [filtros, intento, dieta, accesibilidad, ignorarDieta]);
+  }, [filtrosCarga, intento, dieta, accesibilidad, ignorarDieta]);
 
   /**
    * Siguiente tanda del scroll infinito (siempre +27):

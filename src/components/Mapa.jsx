@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { fetchRestaurants } from '../services/restaurantApi.js';
+import { fetchRestaurantesMapa, fetchRestaurantePorId } from '../services/restaurantApi.js';
 import { ZONAS_CATALUNA, imagenParaRestaurante } from '../models/restaurantModel.js';
 import { centroDeZona, CENTRO_CATALUNA } from '../services/cityCenters.js';
 import { useT } from '../i18n/index.jsx';
@@ -131,7 +131,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
       setFuente((prev) => (prev.length ? prev : [...todos]));
       setCargando(false);
     }
-    fetchRestaurants()
+    fetchRestaurantesMapa()
       .then((l) => {
         if (!vivo) return;
         if (Array.isArray(l) && l.length) {
@@ -268,7 +268,13 @@ export default function Mapa({ todos, total, onVerDetalle }) {
   }, [seleccionado, visibles]);
 
   const cerrar = useCallback(() => setSeleccionado(null), []);
-  const verFicha = useCallback((r) => onVerDetalle(r), [onVerDetalle]);
+  // Los pines solo traen datos ligeros: la ficha completa se pide al abrirla.
+  const verFicha = useCallback((r) => {
+    if (!r?.parcial) return onVerDetalle(r);
+    fetchRestaurantePorId(r.id)
+      .then((completo) => onVerDetalle(completo || r))
+      .catch(() => onVerDetalle(r));
+  }, [onVerDetalle]);
 
   const zonas = useMemo(() => [...new Set([...ZONAS_CATALUNA, ...Object.keys(porZona)])], [porZona]);
   const mapaVacio = !cargando && fuente.length === 0 && !error;

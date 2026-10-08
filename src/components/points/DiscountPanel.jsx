@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import usePointsStore from '../../stores/usePointsStore.js';
+import { pointsApi } from '../../services/api.js';
 import { useT } from '../../i18n/index.jsx';
 import es from '../../i18n/es.js';
 import ca from '../../i18n/ca.js';
 import en from '../../i18n/en.js';
 
 const TRADS = { es, ca, en };
-const OPTIONS = [5, 10, 20];
 
 export default function DiscountPanel({ usuario }) {
   const t = useT(TRADS);
@@ -14,6 +14,14 @@ export default function DiscountPanel({ usuario }) {
   const [loadingEuros, setLoadingEuros] = useState(null);
   const [error, setError] = useState('');
   const [ok, setOk] = useState(null);
+  const [opciones, setOpciones] = useState([]);
+
+  useEffect(() => {
+    if (!usuario) return undefined;
+    let vivo = true;
+    pointsApi.discounts().then((l) => { if (vivo) setOpciones(l); });
+    return () => { vivo = false; };
+  }, [usuario]);
 
   if (!usuario) return null;
 
@@ -43,12 +51,13 @@ export default function DiscountPanel({ usuario }) {
           <strong>
             {descuentoPendiente.euros} € {t('points.discountPending') || 'pendientes'}
           </strong>
+          {descuentoPendiente.codigo && <code className="discount-panel__codigo">{descuentoPendiente.codigo}</code>}
           <span>{t('points.discountPendingHint') || 'Se aplicará en tu próxima reserva'}</span>
         </div>
       ) : (
         <div className="discount-panel__options">
-          {OPTIONS.map((euros) => {
-            const pts = euros * 100;
+          {opciones.map(({ euros, puntos }) => {
+            const pts = puntos ?? euros * 100;
             const insufficient = !balanceLoading && saldoActual < pts;
             const busy = loadingEuros !== null;
             return (

@@ -6,7 +6,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet, useWindowDimensions } from 'react-native';
 import MapView, { UrlTile, Marker, Callout } from 'react-native-maps';
-import { fetchRestaurants } from '../services/restaurantApi.js';
+import { fetchRestaurantesMapa } from '../services/restaurantApi.js';
 import { ZONAS_CATALUNA } from '../models/restaurantModel.js';
 import { centroDeZona, CENTRO_CATALUNA } from '../services/cityCenters.js';
 import { useT } from '../i18n/index.jsx';
@@ -54,7 +54,7 @@ export default function Mapa({ todos, total, onVerDetalle }) {
       setFuente((prev) => (prev.length ? prev : [...todos]));
       setCargando(false);
     }
-    fetchRestaurants()
+    fetchRestaurantesMapa()
       .then((l) => {
         if (!vivo) return;
         if (Array.isArray(l) && l.length) {

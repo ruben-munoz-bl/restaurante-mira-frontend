@@ -893,6 +893,7 @@ export default {
     "puntosCanjeados": "Points redeemed"
   },
   "dashboard": {
+    "sinAcceso": "You don't have access to this restaurant.",
     "panelAdmin": "Admin Panel",
     "errorSinRestaurante": "Make sure you have a restaurant created. If you're a company, go to \"My account\" → \"Add restaurant\" to create one first.",
     "sinDatos": "No data",

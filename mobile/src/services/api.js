@@ -10,6 +10,31 @@ const WHEEL_PRIZES = [
   { puntos: 100, label: '100 MIRA', peso: 5 },
 ];
 
+/** Descuentos canjeables (GET /v1/points/discounts). Cae a 5/10/20 € si falla. */
+const DESCUENTOS_POR_DEFECTO = [5, 10, 20].map((e) => ({ id: String(e), puntos: e * 100, euros: e, etiqueta: `${e} €` }));
+async function listarDescuentos() {
+  try {
+    const d = await api.get('/v1/points/discounts');
+    const lista = d?.descuentos;
+    return Array.isArray(lista) && lista.length ? lista : DESCUENTOS_POR_DEFECTO;
+  } catch {
+    return DESCUENTOS_POR_DEFECTO;
+  }
+}
+
+/** POST /v1/points/discount/claim con el descuentoId que corresponde a esos euros. */
+async function reclamarDescuento(euros) {
+  const lista = await listarDescuentos();
+  const d = lista.find((x) => Number(x.euros) === Number(euros));
+  const r = await api.post('/v1/points/discount/claim', { descuentoId: String(d?.id ?? euros) });
+  // Normaliza el cupón al formato que ya usa la UI (descuentoPendiente).
+  const cupon = r?.cupon || null;
+  return {
+    ...r,
+    descuentoPendiente: cupon ? { ...cupon, puntos: d?.puntos ?? Number(euros) * 100 } : r?.descuentoPendiente || null,
+  };
+}
+
 export const pointsApi = {
   isNewUser: async () => {
     const d = await api.get('/v1/points/is-new-user');
@@ -43,7 +68,9 @@ export const pointsApi = {
 
   redeem: async (puntos) => api.post('/v1/points/redeem', { puntos }),
 
-  claimDiscount: async (euros) => api.post('/v1/points/discount/claim', { euros }),
+  discounts: listarDescuentos,
+
+  claimDiscount: async (euros) => reclamarDescuento(euros),
 
   review: async () => api.post('/v1/points/review', {}),
 };

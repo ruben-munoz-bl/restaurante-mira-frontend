@@ -324,3 +324,14 @@
     transition: none;
   }
 }
+
+.discount-panel__codigo {
+  display: inline-block;
+  font-family: ui-monospace, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0.25rem 0.6rem;
+  border: 1px dashed var(--dorado);
+  border-radius: var(--radio-peq);
+  user-select: all;
+}

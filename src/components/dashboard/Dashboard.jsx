@@ -168,7 +168,7 @@ const restDropdownRef = useRef(null);
       const d = await dashboardApi.getMyRestaurant(id);
       setData(d); setFormData(d.restaurante); setEditing(false); setShowFicha(false);
       try { sessionStorage.setItem('mira_rest_activo', id); } catch { /* ignore */ }
-    } catch(e){ setError(e.message); } finally { setLoading(false); }
+    } catch(e){ setError(e.status === 403 ? t('dashboard.sinAcceso') : e.message); } finally { setLoading(false); }
   }
 
   function handleEditChange(field, value){ setFormData(prev=> ({...prev,[field]:value})); }

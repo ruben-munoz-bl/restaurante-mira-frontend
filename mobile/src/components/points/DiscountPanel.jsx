@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import usePointsStore from '../../stores/usePointsStore.js';
+import { pointsApi } from '../../services/api.js';
 import { useT } from '../../i18n/index.jsx';
 import es from '../../i18n/es.js';
 import ca from '../../i18n/ca.js';
@@ -9,7 +10,6 @@ import { useTheme } from '../../theme/ThemeContext';
 import { FUENTES, RADIO } from '../../theme/tokens';
 
 const TRADS = { es, ca, en };
-const OPTIONS = [5, 10, 20];
 
 export default function DiscountPanel({ usuario }) {
   const t = useT(TRADS);
@@ -18,6 +18,14 @@ export default function DiscountPanel({ usuario }) {
   const [loadingEuros, setLoadingEuros] = useState(null);
   const [error, setError] = useState('');
   const [ok, setOk] = useState(null);
+  const [opciones, setOpciones] = useState([]);
+
+  useEffect(() => {
+    if (!usuario) return undefined;
+    let vivo = true;
+    pointsApi.discounts().then((l) => { if (vivo) setOpciones(l); });
+    return () => { vivo = false; };
+  }, [usuario]);
 
   if (!usuario) return null;
 
@@ -50,14 +58,19 @@ export default function DiscountPanel({ usuario }) {
           <Text style={[styles.pendingStrong, { color: colores.verde }]}>
             {descuentoPendiente.euros} € {t('points.discountPending')}
           </Text>
+          {descuentoPendiente.codigo ? (
+            <Text selectable style={[styles.pendingStrong, { color: colores.tinta, letterSpacing: 1 }]}>
+              {descuentoPendiente.codigo}
+            </Text>
+          ) : null}
           <Text style={[styles.pendingHint, { color: colores.gris }]}>
             {t('points.discountPendingHint')}
           </Text>
         </View>
       ) : (
         <View style={styles.options}>
-          {OPTIONS.map((euros) => {
-            const pts = euros * 100;
+          {opciones.map(({ euros, puntos }) => {
+            const pts = puntos ?? euros * 100;
             const insufficient = !balanceLoading && saldoActual < pts;
             const busy = loadingEuros !== null;
             return (

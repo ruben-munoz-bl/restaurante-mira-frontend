@@ -80,16 +80,43 @@ export async function enviarTurno({ message, history, confirmId, idempotencyKey,
     return responderMock({ ...body, confirmId: body.confirmId ?? null, signal });
   }
 
-  const { signal: senal, liberar } = conTimeout(signal, TIMEOUT_MS);
-  try {
-    return await api.post(RUTA, body, {
-      auth: 'opcional',
-      signal: senal,
-      headers: { 'Idempotency-Key': key },
-    });
-  } finally {
-    liberar();
+  // `retryable: true` = la IA se quedó sin cuota un instante: se reenvía la
+  // misma pregunta (hasta REINTENTOS_IA veces, con 2-4 s de espera) sin
+  // mostrar error. Cada reintento lleva clave nueva para no recibir la
+  // respuesta cacheada por idempotencia.
+  let res;
+  for (let intento = 0; intento <= REINTENTOS_IA; intento++) {
+    const { signal: senal, liberar } = conTimeout(signal, TIMEOUT_MS);
+    try {
+      res = await api.post(RUTA, body, {
+        auth: 'opcional',
+        signal: senal,
+        headers: { 'Idempotency-Key': intento === 0 ? key : nuevaIdempotencyKey() },
+      });
+    } finally {
+      liberar();
+    }
+    if (!res?.retryable || intento === REINTENTOS_IA) break;
+    await esperar(2000 + Math.random() * 2000, signal);
   }
+  return res;
+}
+
+const REINTENTOS_IA = 2;
+
+function esperar(ms, signal) {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const t = setTimeout(() => {
+      signal?.removeEventListener('abort', alAbortar);
+      resolve();
+    }, ms);
+    function alAbortar() {
+      clearTimeout(t);
+      reject(signal.reason);
+    }
+    signal?.addEventListener('abort', alAbortar, { once: true });
+  });
 }
 
 export { USA_MOCK };

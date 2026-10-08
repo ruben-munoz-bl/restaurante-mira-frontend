@@ -893,6 +893,7 @@ export default {
     "puntosCanjeados": "Punts bescanviats"
   },
   "dashboard": {
+    "sinAcceso": "No tens accés a aquest restaurant.",
     "panelAdmin": "Panell d'Administració",
     "errorSinRestaurante": "Assegura't de tenir un restaurant creat. Si ets empresa, ves a \"El meu compte\" → \"Afegeix restaurant\" per crear-ne un primer.",
     "sinDatos": "Sense dades",

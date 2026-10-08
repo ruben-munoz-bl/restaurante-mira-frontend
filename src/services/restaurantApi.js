@@ -148,6 +148,38 @@ export async function fetchRestaurants({ forzar = false } = {}) {
   }
 }
 
+/*
+ * Datos ligeros para el mapa (GET /v1/restaurants/mapa, ~198 KB frente a 1,25 MB
+ * de ?all=1). Solo trae id, nombre, coordenadas, rating, precio, categorías,
+ * imagen y ciudad; el resto se pide al abrir la ficha. `ciudad` filtra en el
+ * servidor (~60 KB). Caché en memoria por ciudad, alineada con el max-age=300.
+ */
+const MAPA_TTL_MS = 5 * 60 * 1000;
+const cacheMapa = new Map(); // ciudad|'' -> { items, guardado } | { promesa }
+
+export async function fetchRestaurantesMapa({ ciudad = '' } = {}) {
+  const clave = ciudad || '';
+  const c = cacheMapa.get(clave);
+  if (c?.items && Date.now() - c.guardado < MAPA_TTL_MS) return [...c.items];
+  if (c?.promesa) return [...(await c.promesa)];
+  const q = clave ? `?ciudad=${encodeURIComponent(clave)}` : '';
+  const promesa = api.get(`/v1/restaurants/mapa${q}`, { auth: false }).then((d) =>
+    (d.items || []).map((r) => {
+      const base = mapearDoc(r.id, r);
+      return { ...base, zona: base.zona || r.ciudad || '', parcial: true };
+    }),
+  );
+  cacheMapa.set(clave, { promesa });
+  try {
+    const items = await promesa;
+    cacheMapa.set(clave, { items, guardado: Date.now() });
+    return [...items];
+  } catch (err) {
+    cacheMapa.delete(clave);
+    throw err;
+  }
+}
+
 export async function fetchPrimeraPagina() {
   const d = await api.get(`/v1/restaurants?limit=${TAMANO_PAGINA}`, { auth: false });
   return {
