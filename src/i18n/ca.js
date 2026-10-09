@@ -1026,6 +1026,8 @@ export default {
     "ficha": "Fitxa",
     "botonFactura": "Factura",
     "botonReporteFiscal": "Informe fiscal",
+    "datosSimulados": "Dades simulades",
+    "datosSimuladosDesc": "Activa o desactiva la Factura i l'Informe fiscal de demostració (dades simulades, sense validesa fiscal)",
     "fichaRestaurante": "Fitxa del restaurant",
     "ingresosBrutos": "Ingressos bruts del restaurant",
     "totalGeneradoSala": "Total generat a sala",

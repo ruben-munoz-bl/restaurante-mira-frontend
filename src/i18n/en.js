@@ -1026,6 +1026,8 @@ export default {
     "ficha": "Details",
     "botonFactura": "Invoice",
     "botonReporteFiscal": "Tax report",
+    "datosSimulados": "Simulated data",
+    "datosSimuladosDesc": "Turn the demo Invoice and Tax report on or off (simulated data, no legal validity)",
     "fichaRestaurante": "Restaurant details",
     "ingresosBrutos": "Gross restaurant revenue",
     "totalGeneradoSala": "Total generated in the dining room",

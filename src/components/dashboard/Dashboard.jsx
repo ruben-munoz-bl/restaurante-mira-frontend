@@ -14,6 +14,8 @@ import "./dashboard.css";
 
 const TRADS = { es, ca, en };
 
+const CLAVE_DATOS_SIM = 'mira:rest-datos-simulados';
+
 const EMPTY_REST = {
   nombre: '', ciudad: '', zona: '', direccion: '', telefono: '', email: '',
   categorias: '', precio: '\u20AC\u20AC', descripcion: '', comisionPct: 10,
@@ -66,7 +68,17 @@ function DashboardRestaurante({ usuario, perfil, esAdmin }) {
   const [listaRests, setListaRests] = useState([]);
   const [showRestDropdown, setShowRestDropdown] = useState(false);
   const [loadingRestList, setLoadingRestList] = useState(false);
+  const [datosSimulados, setDatosSimulados] = useState(() => {
+    try { return localStorage.getItem(CLAVE_DATOS_SIM) !== 'no'; } catch { return true; }
+  });
 const restDropdownRef = useRef(null);
+
+  function toggleDatosSimulados() {
+    const next = !datosSimulados;
+    setDatosSimulados(next);
+    try { localStorage.setItem(CLAVE_DATOS_SIM, next ? 'si' : 'no'); } catch { /* ignore */ }
+    if (!next) setDocumento(null);
+  }
 
   async function refreshRestList(currentId) {
     setLoadingRestList(true);
@@ -469,10 +481,18 @@ const restDropdownRef = useRef(null);
             </div>
             <div className="op-topbar-actions">
               <button className="op-btn-primary" onClick={abrirModalTickets}><span className="material-symbols-outlined" style={{fontSize:16}}>cloud_upload</span> {t("dashboard.cargarTicketsFacturacion")}</button>
-              <button className="op-btn-ghost" onClick={()=> setDocumento('factura')}><span className="material-symbols-outlined" style={{fontSize:16}}>receipt_long</span> {t("dashboard.botonFactura")}</button>
-              <button className="op-btn-ghost" onClick={()=> setDocumento('fiscal')}><span className="material-symbols-outlined" style={{fontSize:16}}>file_present</span> {t("dashboard.botonReporteFiscal")}</button>
+              {datosSimulados && (
+                <>
+                  <button className="op-btn-ghost" onClick={()=> setDocumento('factura')}><span className="material-symbols-outlined" style={{fontSize:16}}>receipt_long</span> {t("dashboard.botonFactura")}</button>
+                  <button className="op-btn-ghost" onClick={()=> setDocumento('fiscal')}><span className="material-symbols-outlined" style={{fontSize:16}}>file_present</span> {t("dashboard.botonReporteFiscal")}</button>
+                </>
+              )}
               <button className="op-btn-ghost" onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:16}}>download</span> {t("dashboard.exportarLiquidacion")}</button>
               <button className="op-btn-ghost" onClick={()=> setShowFicha(v=>!v)}><span className="material-symbols-outlined" style={{fontSize:16}}>storefront</span> {t("dashboard.ficha")}</button>
+              <button type="button" role="switch" aria-checked={datosSimulados} className={`op-sim-switch ${datosSimulados ? 'on' : ''}`} onClick={toggleDatosSimulados} title={t("dashboard.datosSimuladosDesc")}>
+                <span className="op-sim-track"><i /></span>
+                <span>{t("dashboard.datosSimulados")}</span>
+              </button>
             </div>
           </div>
 
@@ -830,7 +850,7 @@ const restDropdownRef = useRef(null);
         </div>
       )}
 
-      {documento && (
+      {datosSimulados && documento && (
         <DocumentoFiscal tipo={documento} restaurante={data?.restaurante} comisionPct={comisionPct} onClose={()=> setDocumento(null)} />
       )}
 
