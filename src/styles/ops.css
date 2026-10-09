@@ -306,6 +306,107 @@
 .ops-modal h3 { margin: 0 0 12px; font-size: 18px; }
 .ops-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .ops-field label { font-size: 12px; font-weight: 700; color: var(--ops-on-variant); }
+
+/* ---------- Desplegable con buscador (data test de reservas) ---------- */
+/* La tarjeta sube de nivel: su animación de entrada la convierte en contexto
+   de apilamiento y, sin esto, cualquier elemento que sobresalga de la tarjeta
+   queda por debajo de las tarjetas de KPIs (posteriores y con position). */
+.ops-card-test { position: relative; z-index: 30; }
+.ops-combo { position: relative; }
+.ops-combo-trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  cursor: pointer; text-align: left;
+}
+.ops-combo-trigger:disabled { cursor: not-allowed; opacity: 0.7; }
+.ops-combo-valor { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops-combo-trigger .material-symbols-outlined { font-size: 18px; color: var(--ops-outline); flex: 0 0 auto; }
+/* Flota sobre el contenido (position: absolute + z-index de la tarjeta): al
+   abrirlo NO empuja ni mueve nada de abajo; la tarjeta ya sube de nivel. */
+.ops-combo-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; right: 0; z-index: 40;
+  display: flex; flex-direction: column; max-height: 320px; overflow: hidden;
+  background: var(--ops-surface-lowest); border: 1px solid var(--ops-surface-container);
+  border-radius: 10px; box-shadow: var(--ops-shadow-lg);
+  animation: ops-combo-abrir 160ms ease-out both;
+}
+@keyframes ops-combo-abrir { from { opacity: 0; transform: translateY(-6px); } }
+@media (prefers-reduced-motion: reduce) { .ops-combo-panel { animation: none; } }
+.ops-combo-panel .ops-search {
+  flex: 0 0 auto; max-width: none; padding: 8px;
+  background: var(--ops-surface-lowest); border-bottom: 1px solid var(--ops-surface-container);
+}
+.ops-combo-list { list-style: none; margin: 0; padding: 4px; overflow-y: auto; flex: 1 1 auto; }
+.ops-combo-list .ops-empty { padding: 14px 10px; }
+.ops-combo-op {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  border: none; background: none; color: var(--ops-on-surface); font-family: inherit; font-size: 13px;
+  padding: 8px 10px; border-radius: 6px; cursor: pointer; text-align: left;
+}
+.ops-combo-op:hover { background: var(--ops-surface-low); }
+.ops-combo-op.activa { background: var(--ops-surface-container); font-weight: 700; }
+.ops-combo-op .material-symbols-outlined { font-size: 16px; color: var(--ops-primary); flex: 0 0 auto; }
+.ops-combo-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops-combo-meta { color: var(--ops-on-variant); font-size: 12px; }
+.ops-combo-mio {
+  flex: 0 0 auto; font-size: 11px; font-weight: 700; white-space: nowrap;
+  color: var(--ops-primary); background: var(--ops-surface-container);
+  border-radius: 999px; padding: 2px 8px;
+}
+.ops-combo-foot {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 6px 10px; border-top: 1px solid var(--ops-surface-container); background: var(--ops-surface-low);
+}
+
+/* ---------- Calendario mini (fecha de la reserva del data test) ---------- */
+/* Igual que el combo: flota encima y no mueve el resto del contenido. */
+.ops-cal-panel {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 40;
+  width: 258px; max-width: calc(100vw - 32px);
+  background: var(--ops-surface-lowest); border: 1px solid var(--ops-surface-container);
+  border-radius: 10px; box-shadow: var(--ops-shadow-lg);
+  padding: 8px; display: flex; flex-direction: column; gap: 6px;
+  animation: ops-combo-abrir 160ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) { .ops-cal-panel { animation: none; } }
+.ops-cal-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.ops-cal-titulo { font-size: 13px; font-weight: 800; text-transform: capitalize; }
+.ops-cal-nav {
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 6px; background: none; color: var(--ops-on-surface); cursor: pointer;
+}
+.ops-cal-nav:hover:not(:disabled) { background: var(--ops-surface-low); }
+.ops-cal-nav:disabled { opacity: 0.35; cursor: not-allowed; }
+.ops-cal-nav .material-symbols-outlined { font-size: 20px; }
+.ops-cal-dow {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center;
+  font-size: 11px; font-weight: 700; color: var(--ops-on-variant);
+}
+.ops-cal-modos { display: flex; gap: 4px; }
+.ops-cal-modo {
+  flex: 1; border: 1px solid var(--ops-surface-container); background: var(--ops-surface-low);
+  color: var(--ops-on-variant); font: inherit; font-size: 11.5px; font-weight: 700;
+  padding: 5px 6px; border-radius: 999px; cursor: pointer;
+}
+.ops-cal-modo:hover { background: var(--ops-surface-container); }
+.ops-cal-modo.activa {
+  background: var(--ops-primary-container); border-color: var(--ops-primary-container);
+  color: var(--ops-on-primary);
+}
+.ops-cal-dias { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.ops-cal-dia {
+  min-height: 30px; border: none; border-radius: 8px; background: none;
+  font: inherit; font-size: 12.5px; color: var(--ops-on-surface); cursor: pointer;
+}
+.ops-cal-dia:hover:not(:disabled):not(.activa) { background: var(--ops-surface-low); }
+.ops-cal-dia:disabled { opacity: 0.3; cursor: not-allowed; }
+/* Días pasados: se ven atenuados pero se pueden elegir (el data test admite
+   fechas pasadas). Si están en un rango o son la selección, se ven normales. */
+.ops-cal-dia.pasada:not(.activa):not(.en-rango) { opacity: 0.45; }
+.ops-cal-dia.hoy { font-weight: 800; box-shadow: inset 0 0 0 1.5px var(--ops-primary); }
+.ops-cal-dia.activa { background: var(--ops-primary-container); color: var(--ops-on-primary); font-weight: 800; }
+.ops-cal-dia.en-rango { background: var(--ops-surface-high); border-radius: 4px; }
+.ops-cal-foot { border-top: 1px solid var(--ops-surface-container); padding-top: 6px; display: flex; }
+.ops-cal-foot .ops-btn { flex: 1; }
 .ops-modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 code.ops-code { font-family: ui-monospace, monospace; font-size: 11px; background: var(--ops-surface-high); border-radius: 4px; padding: 1px 5px; }
 

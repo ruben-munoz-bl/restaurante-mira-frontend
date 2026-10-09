@@ -1,7 +1,7 @@
 /**
  * Model — perfil en `usuarios/{uid}` vía API.
  */
-import { api } from './httpClient.js';
+import { api, apiFetch } from './httpClient.js';
 import { detectarIdioma } from '../i18n/index.jsx';
 
 export const PERFIL_VACIO = { tipo: 'cliente', soloVegano: false, alergias: [], lang: detectarIdioma() };
@@ -29,6 +29,19 @@ export async function obtenerPerfil() {
   }
 }
 
-export async function guardarPerfil(_uid, datos) {
+/**
+ * Guarda el perfil en el backend. Con `token` (data test) se envía el Bearer
+ * explícito; sin token usa la sesión actual, como siempre.
+ */
+export async function guardarPerfil(_uid, datos, token = null) {
+  if (token) {
+    await apiFetch('/v1/users/me', {
+      method: 'PUT',
+      body: datos,
+      auth: false,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return;
+  }
   await api.put('/v1/users/me', datos);
 }
