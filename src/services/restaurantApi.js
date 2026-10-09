@@ -113,11 +113,11 @@ export function invalidarCatalogo() {
 
 /** Catálogo completo. `forzar: true` ignora la caché y vuelve a pedirlo. */
 export async function fetchRestaurants({ forzar = false } = {}) {
-  if (!forzar) {
-    if (!fresco(catalogo)) catalogo = leerSesion();
-    if (fresco(catalogo)) return [...catalogo.items];
-    if (enVuelo) return [...(await enVuelo)];
-  }
+  if (!fresco(catalogo)) catalogo = leerSesion();
+  if (!forzar && fresco(catalogo)) return [...catalogo.items];
+  // Descarga ya en curso: es fresca por definición, aunque se pida con `forzar`
+  // (evita duplicar peticiones al montar dos veces o al pulsar Refrescar seguido).
+  if (enVuelo) return [...(await enVuelo)];
   const descarga = api.get('/v1/restaurants?all=1', { auth: false }).then((d) => {
     const items = (d.items || d.data || []).map((r) => mapearDoc(r.id, r));
     catalogo = { items, guardado: Date.now() };

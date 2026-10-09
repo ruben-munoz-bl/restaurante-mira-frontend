@@ -10,6 +10,7 @@ export function configValida() {
 }
 
 let app = null;
+let appDataTest = null;
 
 function obtenerApp() {
   if (!configValida()) {
@@ -24,4 +25,19 @@ function obtenerApp() {
 /** Devuelve la Firebase App (para Auth) o lanza error explicativo. */
 export function getFirebaseApp() {
   return obtenerApp();
+}
+
+/**
+ * App secundaria SOLO para el data test (misma config, otro nombre).
+ * Auth es independiente por instancia: crear/entrar cuentas de prueba aquí
+ * no toca la sesión de la app principal (la del panel sigue intacta).
+ */
+export function getFirebaseAppDataTest() {
+  if (!configValida()) {
+    throw new Error(
+      'Falta firebaseConfig: pega tu configuración web en src/services/firebaseConfig.js (pasos en README).',
+    );
+  }
+  if (!appDataTest) appDataTest = initializeApp(firebaseConfig, 'mira-data-test');
+  return appDataTest;
 }

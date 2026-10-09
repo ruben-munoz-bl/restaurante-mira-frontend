@@ -232,7 +232,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
           </header>
 
           <main className="ops-content">
-            {seccion === 'dashboard' && <OpsDashboard key={simulado ? 'sim' : 'real'} usuario={usuario} todos={todos} demo={simulado ? demo : null} />}
+            {seccion === 'dashboard' && <OpsDashboard key={simulado ? 'sim' : 'real'} usuario={usuario} esAdmin={esAdmin} todos={todos} demo={simulado ? demo : null} />}
             {seccion === 'restaurantes' && <OpsRestaurantes />}
             {seccion === 'reservas' && <OpsReservas busquedaInicial={busqueda} />}
             {seccion === 'finanzas' && <OpsFinanzas key={simulado ? 'sim' : 'real'} demo={simulado ? demo : null} />}

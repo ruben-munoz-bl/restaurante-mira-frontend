@@ -10,6 +10,7 @@ import { useT } from '../../i18n/index.jsx';
 import es from '../../i18n/es.js';
 import ca from '../../i18n/ca.js';
 import en from '../../i18n/en.js';
+import TestReservas from '../TestReservas.jsx';
 
 const TRADS = { es, ca, en };
 
@@ -28,7 +29,7 @@ function antiguedad(ts, t) {
   return h < 24 ? t('ops.haceH', { n: h }) : t('ops.haceD', { n: Math.round(h / 24) });
 }
 
-export default function OpsDashboard({ demo = null }) {
+export default function OpsDashboard({ demo = null, esAdmin = false, todos = [] }) {
   const t = useT(TRADS);
   const [datos, setDatos] = useState(null);
   const [cargando, setCargando] = useState(true);
@@ -36,6 +37,7 @@ export default function OpsDashboard({ demo = null }) {
   const [granularidad, setGranularidad] = useState('dias');
   const [resolviendo, setResolviendo] = useState('');
   const [documento, setDocumento] = useState(null);
+  const [verTest, setVerTest] = useState(false);
 
   useEffect(() => {
     if (demo) { setDatos(demo); setCargando(false); return undefined; }
@@ -149,8 +151,23 @@ export default function OpsDashboard({ demo = null }) {
           <button type="button" className="ops-btn soft" onClick={() => setDocumento('fiscal')}>
             <span className="material-symbols-outlined">file_present</span>{t('ops.exportarReporte')}
           </button>
+          {esAdmin && (
+            <button
+              type="button"
+              className={verTest ? 'ops-btn primary' : 'ops-btn soft'}
+              onClick={() => setVerTest((v) => !v)}
+              aria-expanded={verTest}
+            >
+              <span className="material-symbols-outlined">science</span>Data test
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Data test: 10 usuarios de prueba + sus reservas (no toca la sesión) */}
+      {verTest && (
+        <TestReservas esAdmin={esAdmin} todos={todos} onOcultar={() => setVerTest(false)} />
+      )}
 
       {/* KPIs */}
       <div className="ops-kpis">

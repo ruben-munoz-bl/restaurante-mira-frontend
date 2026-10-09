@@ -2,7 +2,7 @@
  * Model — reservas vía API (intermediario mira-api).
  * SLOTS alineados con el backend (11 franjas cada 30 min).
  */
-import { api } from './httpClient.js';
+import { api, apiFetch } from './httpClient.js';
 import { track, conAuditoria } from './auditoria.js';
 
 /** Franjas fijas de reserva (comida + cena, 30 min). */
@@ -32,8 +32,12 @@ function hoyISO() {
   return `${h.getFullYear()}-${p(h.getMonth() + 1)}-${p(h.getDate())}`;
 }
 
-function validarReserva({ fecha, hora, comensales, comentarios }) {
-  if (!fecha || fecha < hoyISO()) throw new Error('La fecha debe ser hoy o futura (YYYY-MM-DD).');
+function validarReserva({ fecha, hora, comensales, comentarios, permitirPasado = false }) {
+  if (!fecha) throw new Error('Falta la fecha de la reserva (YYYY-MM-DD).');
+  // El flujo normal nunca reserva en el pasado; el data test puede activarlo
+  // (`permitirPasado`) para rellenar paneles históricos. Si el backend también
+  // lo rechaza, el error llegará desde mira-api.
+  if (!permitirPasado && fecha < hoyISO()) throw new Error('La fecha debe ser hoy o futura (YYYY-MM-DD).');
   if (!SLOTS.includes(hora)) throw new Error('Hora no válida: elige una de las franjas.');
   const n = Number(comensales);
   if (!Number.isInteger(n) || n < 1 || n > 10) throw new Error('Comensales: entre 1 y 10.');
@@ -56,13 +60,17 @@ export async function getDisponibilidad(restaurante, fecha, hora) {
   }
 }
 
-export async function crearReserva({ restaurante, usuario, fecha, hora, comensales, comentarios = '' }) {
+/**
+ * Crea la reserva. Con `token` (data test) se envía el Bearer explícito del
+ * usuario de prueba; sin token se usa la sesión actual, como siempre.
+ */
+export async function crearReserva({ restaurante, usuario, fecha, hora, comensales, comentarios = '', token = null, permitirPasado = false }) {
   if (!usuario?.uid) throw new Error('Debes iniciar sesión para reservar.');
-  validarReserva({ fecha, hora, comensales, comentarios });
+  validarReserva({ fecha, hora, comensales, comentarios, permitirPasado });
   const restaurantId = String(restaurante.id);
   const ent = { entidadTipo: 'restaurante', entidadId: restaurantId, entidadNombre: restaurante.nombre };
   track('reserva_iniciada', ent);
-  const d = await conAuditoria('reserva_creada', { ...ent, datos: { comensales: Number(comensales), franja: Number(String(hora).slice(0, 2)) < 17 ? 'comida' : 'cena' } }, api.post('/v1/reservations', {
+  const body = {
     restaurantId,
     restauranteId: restaurantId,
     fecha,
@@ -72,7 +80,19 @@ export async function crearReserva({ restaurante, usuario, fecha, hora, comensal
     nombreRestaurante: restaurante.nombre || '',
     usuarioNombre: usuario.displayName || usuario.nombre || usuario.email || '',
     usuarioEmail: usuario.email || '',
-  }));
+  };
+  const d = await conAuditoria(
+    'reserva_creada',
+    { ...ent, datos: { comensales: Number(comensales), franja: Number(String(hora).slice(0, 2)) < 17 ? 'comida' : 'cena' } },
+    token
+      ? apiFetch('/v1/reservations', {
+          method: 'POST',
+          body,
+          auth: false,
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      : api.post('/v1/reservations', body),
+  );
   return {
     id: d.id,
     codigo: d.codigo,

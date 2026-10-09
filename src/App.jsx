@@ -27,6 +27,7 @@ import Reservas from './components/Reservas.jsx';
 import Admin from './components/Admin.jsx';
 import OpsPanel from './components/ops/OpsPanel.jsx';
 import DemoPaneles from './components/ops/DemoPaneles.jsx';
+import TestReservas from './components/TestReservas.jsx';
 import Negocio from './components/Negocio.jsx';
 import Favoritos from './components/Favoritos.jsx';
 import Mensajes from './components/Mensajes.jsx';
@@ -78,6 +79,7 @@ function rutaActual() {
   if (h === '#/reservas') return 'reservas';
   if (h === '#/admin') return 'admin';
   if (h === '#/demo-paneles') return 'demoPaneles';
+  if (h === '#/test-reservas') return 'testReservas';
   if (h === '#/negocio') return 'negocio';
   if (h === '#/favoritos') return 'favoritos';
   if (h === '#/mensajes') return 'mensajes';
@@ -402,6 +404,13 @@ function AppContent({ auth, tema, setTema }) {
         {ruta === 'contacto' && <Contacto usuario={usuario} onEnviar={enviarContacto} />}
         {ruta === 'reservas' && <Reservas usuario={usuario} esAdmin={esAdmin} />}
         {ruta === 'demoPaneles' && <DemoPaneles />}
+        {ruta === 'testReservas' && (
+          <div className="ops-shell">
+            <div className="ops-content" style={{ maxWidth: 960 }}>
+              <TestReservas esAdmin={esAdmin} todos={todos} />
+            </div>
+          </div>
+        )}
         {ruta === 'admin' && <OpsPanel usuario={usuario} esAdmin={esAdmin} perfil={perfil} tema={tema} onCambiarTema={() => setTema((v) => (v === 'oscuro' ? 'claro' : 'oscuro'))} todos={todos} />}
         {ruta === 'dashboard' && <Dashboard usuario={usuario} esAdmin={esAdmin} perfil={perfil} />}
         {ruta === 'negocio' && <Negocio usuario={usuario} perfil={perfil} onProponer={proponerNegocio} />}
