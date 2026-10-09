@@ -10,6 +10,7 @@ import es from "../../i18n/es.js";
 import ca from "../../i18n/ca.js";
 import en from "../../i18n/en.js";
 import DocumentoFiscal from "../fiscal/DocumentoFiscal.jsx";
+import { facturaReal, reporteFiscalReal, fechaDeTicket } from "../fiscal/fiscalReal.js";
 import "./dashboard.css";
 
 const TRADS = { es, ca, en };
@@ -44,6 +45,7 @@ function DashboardRestaurante({ usuario, perfil, esAdmin }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [documento, setDocumento] = useState(null);
+  const [docReal, setDocReal] = useState(null);
   const [noRestaurant, setNoRestaurant] = useState(false);
   const [pendingNegocio, setPendingNegocio] = useState(null);
   const [editing, setEditing] = useState(false);
@@ -77,7 +79,35 @@ const restDropdownRef = useRef(null);
     const next = !datosSimulados;
     setDatosSimulados(next);
     try { localStorage.setItem(CLAVE_DATOS_SIM, next ? 'si' : 'no'); } catch { /* ignore */ }
-    if (!next) setDocumento(null);
+    setDocumento(null); setDocReal(null);
+  }
+
+  /** Tickets del periodo seleccionado en la cabecera (para la factura real). */
+  function ticketsDelPeriodo(lista) {
+    if (selectedMonth === '90d') {
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 90);
+      return lista.filter(t => { const f = fechaDeTicket(t); return !f || new Date(f) >= cutoff; });
+    }
+    if (selectedMonth === 'anio') {
+      const y = new Date().getFullYear();
+      return lista.filter(t => { const f = fechaDeTicket(t); return !f || Number(f.slice(0, 4)) === y; });
+    }
+    const m = new Date().toISOString().slice(0, 7);
+    return lista.filter(t => { const f = fechaDeTicket(t); return !f || f.startsWith(m); });
+  }
+
+  /** Abre la factura / el reporte fiscal: simulado (demo) o con datos reales del panel. */
+  function abrirDocumento(tipo) {
+    setDocReal(null);
+    if (datosSimulados) { setDocumento(tipo); return; }
+    const rest = data?.restaurante || {};
+    const pct = Number(rest.comisionPct) || 8;
+    setDocReal(
+      tipo === 'factura'
+        ? facturaReal({ restaurante: rest, comisionPct: pct, tickets: ticketsDelPeriodo(data?.ticketsRecientes || []) })
+        : reporteFiscalReal({ restaurante: rest, comisionPct: pct, ingresosPorMes: data?.ingresosPorMes || {} }),
+    );
+    setDocumento(tipo);
   }
 
   async function refreshRestList(currentId) {
@@ -481,12 +511,8 @@ const restDropdownRef = useRef(null);
             </div>
             <div className="op-topbar-actions">
               <button className="op-btn-primary" onClick={abrirModalTickets}><span className="material-symbols-outlined" style={{fontSize:16}}>cloud_upload</span> {t("dashboard.cargarTicketsFacturacion")}</button>
-              {datosSimulados && (
-                <>
-                  <button className="op-btn-ghost" onClick={()=> setDocumento('factura')}><span className="material-symbols-outlined" style={{fontSize:16}}>receipt_long</span> {t("dashboard.botonFactura")}</button>
-                  <button className="op-btn-ghost" onClick={()=> setDocumento('fiscal')}><span className="material-symbols-outlined" style={{fontSize:16}}>file_present</span> {t("dashboard.botonReporteFiscal")}</button>
-                </>
-              )}
+              <button className="op-btn-ghost" onClick={()=> abrirDocumento('factura')} title={datosSimulados ? t("dashboard.datosSimulados") : t("dashboard.datosReales")}><span className="material-symbols-outlined" style={{fontSize:16}}>receipt_long</span> {t("dashboard.botonFactura")}</button>
+              <button className="op-btn-ghost" onClick={()=> abrirDocumento('fiscal')} title={datosSimulados ? t("dashboard.datosSimulados") : t("dashboard.datosReales")}><span className="material-symbols-outlined" style={{fontSize:16}}>file_present</span> {t("dashboard.botonReporteFiscal")}</button>
               <button className="op-btn-ghost" onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:16}}>download</span> {t("dashboard.exportarLiquidacion")}</button>
               <button className="op-btn-ghost" onClick={()=> setShowFicha(v=>!v)}><span className="material-symbols-outlined" style={{fontSize:16}}>storefront</span> {t("dashboard.ficha")}</button>
               <button type="button" role="switch" aria-checked={datosSimulados} className={`op-sim-switch ${datosSimulados ? 'on' : ''}`} onClick={toggleDatosSimulados} title={t("dashboard.datosSimuladosDesc")}>
@@ -850,8 +876,8 @@ const restDropdownRef = useRef(null);
         </div>
       )}
 
-      {datosSimulados && documento && (
-        <DocumentoFiscal tipo={documento} restaurante={data?.restaurante} comisionPct={comisionPct} onClose={()=> setDocumento(null)} />
+      {documento && (
+        <DocumentoFiscal tipo={documento} restaurante={data?.restaurante} comisionPct={comisionPct} documento={docReal} simulado={datosSimulados} onClose={()=> { setDocumento(null); setDocReal(null); }} />
       )}
 
       {showHistorial && (

@@ -36,6 +36,7 @@
   color: #fff; background: rgba(255,255,255,0.14); border: 1px solid rgba(255,255,255,0.25);
   padding: 5px 10px; border-radius: 999px;
 }
+.fx-sim.real { color: #00321f; background: rgba(163,255,197,0.92); border-color: rgba(0,81,52,0.35); }
 .fx-barra-acciones { display: flex; gap: 8px; }
 .fx-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -96,6 +97,7 @@
 .fx-tabla .tenue { color: var(--fx-gris); }
 .fx-tabla .fuerte { font-weight: 700; }
 .fx-tabla .verde { color: var(--fx-verde); }
+.fx-tabla .fx-vacio { text-align: center; color: var(--fx-gris); padding: 28px 14px; font-size: 12.5px; font-weight: 600; }
 .fx-tabla tfoot td { font-weight: 800; background: var(--fx-tinta); color: #fff; border: 0; }
 .fx-sub { display: block; font-size: 11.5px; color: var(--fx-gris); }
 .fx-barrita { display: block; height: 4px; width: 120px; margin-top: 6px; border-radius: 999px; background: var(--fx-linea); overflow: hidden; }

@@ -1,7 +1,8 @@
 /**
- * Modal que muestra una factura o un reporte fiscal SIMULADO como un documento
- * de presentación: cabecera, tabla con desglose y totales. Se puede imprimir
- * (o guardar como PDF desde el diálogo del navegador) y exportar a CSV.
+ * Modal que muestra una factura o un reporte fiscal: cabecera, tabla con
+ * desglose y totales. Si recibe `documento` (datos reales del panel) lo pinta
+ * tal cual; si no, lo genera simulado (modo demo). Se puede imprimir (o guardar
+ * como PDF desde el diálogo del navegador) y exportar a CSV.
  */
 import { useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -10,12 +11,12 @@ import { descargarCSV } from '../ops/opsData.js';
 import './fiscal.css';
 
 const eur = (n) => `${Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2, useGrouping: 'always' })} €`;
-const fecha = (iso) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+const fecha = (iso) => (iso ? new Date(`${String(iso).slice(0, 10)}T00:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }) : '—');
 
-export default function DocumentoFiscal({ tipo = 'factura', restaurante = null, comisionPct = 10, onClose }) {
+export default function DocumentoFiscal({ tipo = 'factura', restaurante = null, comisionPct = 10, documento = null, simulado = true, onClose }) {
   const doc = useMemo(
-    () => (tipo === 'factura' ? generarFactura({ restaurante: restaurante || {}, comisionPct }) : generarReporteFiscal({ restaurante, comisionPct })),
-    [tipo, restaurante, comisionPct],
+    () => documento || (tipo === 'factura' ? generarFactura({ restaurante: restaurante || {}, comisionPct }) : generarReporteFiscal({ restaurante, comisionPct })),
+    [documento, tipo, restaurante, comisionPct],
   );
 
   useEffect(() => {
@@ -31,7 +32,7 @@ export default function DocumentoFiscal({ tipo = 'factura', restaurante = null, 
     <div className="fx-overlay" onClick={onClose} role="presentation">
       <div className="fx-hoja" role="dialog" aria-modal="true" aria-label={doc.tipo === 'factura' ? 'Factura' : 'Reporte fiscal'} onClick={(e) => e.stopPropagation()}>
         <div className="fx-barra">
-          <span className="fx-sim">Documento simulado · demo</span>
+          <span className={`fx-sim ${simulado ? '' : 'real'}`}>{simulado ? 'Documento simulado · demo' : 'Datos reales del panel'}</span>
           <div className="fx-barra-acciones">
             <button type="button" className="fx-btn" onClick={exportar}><span className="material-symbols-outlined">table_chart</span>CSV</button>
             <button type="button" className="fx-btn primario" onClick={() => window.print()}><span className="material-symbols-outlined">print</span>Imprimir / PDF</button>
@@ -56,7 +57,7 @@ export default function DocumentoFiscal({ tipo = 'factura', restaurante = null, 
 
           <footer className="fx-pie">
             <span>Documento generado automáticamente por MIRA Operator Hub.</span>
-            <span>Datos simulados con fines de demostración · sin validez fiscal.</span>
+            <span>{simulado ? 'Datos simulados con fines de demostración · sin validez fiscal.' : 'Generado con los datos reales registrados en tu panel.'}</span>
           </footer>
         </div>
       </div>
@@ -81,7 +82,9 @@ function Factura({ doc }) {
             <tr><th>Fecha</th><th>Reserva</th><th>Cliente</th><th>Servicio</th><th className="n">Pax</th><th className="n">Ticket</th><th className="n">Comisión</th></tr>
           </thead>
           <tbody>
-            {doc.lineas.map((l, i) => (
+            {doc.lineas.length === 0 ? (
+              <tr><td colSpan={7} className="fx-vacio">Sin tickets registrados en el periodo seleccionado</td></tr>
+            ) : doc.lineas.map((l, i) => (
               <tr key={l.id} style={{ '--i': i }}>
                 <td className="mono">{fecha(l.fecha)}</td>
                 <td className="mono tenue">{l.codigo}</td>
@@ -113,7 +116,7 @@ function Factura({ doc }) {
 
 function Fiscal({ doc }) {
   const t = doc.totales;
-  const max = Math.max(...doc.filas.map((f) => f.ventas));
+  const max = Math.max(1, ...doc.filas.map((f) => f.ventas));
   return (
     <>
       <div className="fx-resumen">
