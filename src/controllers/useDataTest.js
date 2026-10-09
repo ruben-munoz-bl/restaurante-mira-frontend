@@ -13,6 +13,10 @@
  * - Todo ocurre en la app secundaria `mira-data-test` (otra instancia de
  *   Firebase): la sesión de la persona que ejecuta el test NO se toca ni se
  *   cierra. Las llamadas a la API llevan el Bearer de cada usuario de prueba.
+ * - Reservas en fechas PASADAS: se cierran con un ticket de importe aleatorio
+ *   pero lógico (según el tramo € del restaurante y los comensales), subido
+ *   con la sesión de quien ejecuta el test (admin/empresa). Así los paneles
+ *   históricos muestran facturación y comisiones.
  * Las Views reciben todo por props.
  */
 import { useState, useRef } from 'react';
@@ -26,6 +30,8 @@ import {
 import { getFirebaseAppDataTest } from '../services/firebase.js';
 import { guardarPerfil } from '../services/perfilApi.js';
 import { crearReserva, SLOTS } from '../services/reservaApi.js';
+import { dashboardApi } from '../services/api.js';
+import { listaDias, barajar, slotDe, esPasada, importeTicket } from './dataTestPlan.js';
 import { ALERGIAS } from '../models/restaurantModel.js';
 
 export const TOTAL_USUARIOS = 10; // valor por defecto; el número de usuarios es configurable
@@ -71,16 +77,6 @@ function nuevaIdentidad(usados) {
   };
 }
 
-/** Fisher–Yates: mezcla una copia de la lista. */
-function barajar(lista) {
-  const a = [...lista];
-  for (let k = a.length - 1; k > 0; k -= 1) {
-    const j = Math.floor(Math.random() * (k + 1));
-    [a[k], a[j]] = [a[j], a[k]];
-  }
-  return a;
-}
-
 /** Preferencias determinísticas por índice: el informe las grafica. */
 function preferenciasDe(i) {
   return {
@@ -88,67 +84,6 @@ function preferenciasDe(i) {
     vegetariano: i % 4 === 1,
     sinGluten: i % 5 === 0,
     alergias: i % 3 === 0 ? [ALERGIAS[i % ALERGIAS.length]] : [],
-  };
-}
-
-function isoLocal(d) {
-  const p = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
-}
-
-/** Todos los días (inclusive) entre dos fechas YYYY-MM-DD; si estáninvertidas, se ordenan. Máx. 366. */
-function listaDias(desdeISO, hastaISO) {
-  const a = new Date(`${desdeISO}T00:00:00`);
-  const b = new Date(`${hastaISO}T00:00:00`);
-  if (Number.isNaN(a.getTime()) || Number.isNaN(b.getTime())) return [];
-  let ini = a;
-  let fin = b;
-  if (fin < ini) { ini = b; fin = a; }
-  const dias = [];
-  const cur = new Date(ini);
-  while (cur <= fin && dias.length < 366) {
-    dias.push(isoLocal(cur));
-    cur.setDate(cur.getDate() + 1);
-  }
-  return dias;
-}
-
-/**
- * Slot por día y hora: reparte por días y franjas para no saturar un hueco
- * (aforo).
- * `fechaElegida` admite:
- *   null              → se reparten en hoy, +1 y +2 días;
- *   'YYYY-MM-DD'      → todas las reservas van a ese día;
- *   { desde, hasta }  → rango: `plan` trae los días y las franjas MEZCLADOS
- *                       (aleatorios, sin orden); sin plan, se usa el rango en
- *                       orden secuencial (reserva de seguridad).
- */
-function slotDe(i, fechaElegida = null, plan = null) {
-  const idx = i - 1;
-  let fecha;
-  let hora;
-  if (typeof fechaElegida === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fechaElegida)) {
-    fecha = fechaElegida;
-    hora = SLOTS[idx % SLOTS.length];
-  } else if (fechaElegida?.desde && fechaElegida?.hasta) {
-    const dias = plan?.dias?.length ? plan.dias : listaDias(fechaElegida.desde, fechaElegida.hasta);
-    const horas = plan?.horas?.length ? plan.horas : SLOTS;
-    if (dias.length) {
-      // Días y franjas al azar: ni el día ni la hora siguen un orden fijo.
-      fecha = dias[idx % dias.length];
-      hora = horas[idx % horas.length];
-    }
-  }
-  if (!fecha) {
-    const dia = new Date();
-    dia.setDate(dia.getDate() + (i % 3));
-    fecha = isoLocal(dia);
-    hora = SLOTS[idx % SLOTS.length];
-  }
-  return {
-    fecha,
-    hora,
-    comensales: 1 + (i % 4),
   };
 }
 
@@ -257,9 +192,20 @@ export function useDataTest() {
           permitirPasado: true,
         });
         reservas += 1;
+        // Una reserva pasada ya se ha comido: se cierra con su ticket.
+        let ticket = '';
+        if (esPasada(fecha)) {
+          const importe = importeTicket(restaurante, comensales, hora);
+          await dashboardApi.subirTicket(r.id, {
+            totalPagado: importe,
+            asistio: true,
+            tipoDocumento: 'Ticket TPV (data test)',
+          });
+          ticket = ` · ticket ${importe.toFixed(2)} €`;
+        }
         anotar({
           ok: true,
-          texto: `[${i}/${n}] ${email} · reserva ${r.codigo} · ${fecha} ${hora} · ${comensales} pax ✓`,
+          texto: `[${i}/${n}] ${email} · reserva ${r.codigo} · ${fecha} ${hora} · ${comensales} pax${ticket} ✓`,
         });
         guardar();
         await pausa(PAUSA_MS);

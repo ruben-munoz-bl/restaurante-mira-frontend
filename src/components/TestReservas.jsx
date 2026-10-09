@@ -263,7 +263,9 @@ export default function TestReservas({ esAdmin, todos = [], onOcultar = null }) 
         preferencias, y se crea 1 reserva por usuario en mira-api sobre el restaurante seleccionado:
         repartidas en 3 días por defecto, en la fecha concreta que elijas —<strong> también
         pasadas</strong>, para rellenar paneles históricos— o en <strong>días al azar</strong> de un
-        rango («Rango de… a…»), sin chocar en franjas.
+        rango («Rango de… a…»), sin chocar en franjas. Las reservas en fechas pasadas se cierran
+        con un <strong>ticket de importe aleatorio</strong> acorde al tramo de precio del restaurante y
+        a los comensales, así se ven ingresos y comisiones en el panel.
         El test usa una instancia de Firebase aparte:
         <strong> tu sesión no se toca</strong> y puedes seguir en el panel cuando termine.
       </p>
