@@ -24,18 +24,14 @@
 | Fase | Tarea | Quién |
 |---|---|---|
 | 1 · Base | **G04** Editor de ofertas (hecho, rama `feat/G04-editor-ofertas`) · **revisión y merge: PC 4 (Marco)** | **PC 3 (Ruben)** |
-| 1 · Base | **G03** Consentimiento de ubicación: ya hecho por PC 1 (Izan/Codex), unido en `feat/mira-app` · **prueba en móvil real: PC 3 (Ruben)** | **PC 3 (Ruben)** apoyo |
-| 2 · Embudo | **G06** Avisos por distancia · parte **móvil** (app Expo, con notificaciones locales) | **PC 3 (Ruben)** |
-| 2 · Embudo | **G06** Avisos por distancia · parte **web** | **PC 4 (Marco)** |
 | 2 · Embudo | **G07** Estadísticas de ofertas (web, panel) | **PC 4 (Marco)** |
-| 3 · Llegada | **G09** Pantalla de llegada con QR · parte **móvil** (app Expo) | **PC 3 (Ruben)** |
 | 3 · Llegada | **G10** Escáner de QR y lista de llegadas (web, panel) | **PC 4 (Marco)** |
 
-**Reparto actual (2026-10-15, decisión del usuario): Marco se queda con todo lo web del proyecto de ofertas y Ruben pasa a la app móvil** (`mobile/`, Expo, rama base `feat/mira-app` de PC 2/Alex, que sigue con las notificaciones T01–T10; coordinarse con él, no pisar su trabajo). La parte web del cliente (consentimiento/avisos en la landing) la retoma PC 2 o PC 4 si hace falta: avisar en el hilo.
+**Reparto actual (2026-10-15, decisiones del usuario, hilo #3 y #5):** Marco (PC 4) lleva **toda la parte web** del proyecto de ofertas: revisión/merge de G04, G07 y G10. **La app móvil (`mobile/`, G06 avisos y G09 llegada) se queda con Alex (PC 2)** en `feat/mira-app` (la planteó PC 3 y el usuario se la dejó a Alex); PC 3 no toca la app de momento — a futuro, «panel del restaurante en la app». No toquéis `mobile/`: es de Alex.
 
 - **G10 — escáner (PC 4)**: componente `OfertasEscanner.jsx` con **jsQR + fallback manual** (campo para pegar el código si no hay cámara). `getUserMedia` + canvas, estados de resultado (válido / caducado / ya usado / de otro restaurante / inválido / error de red). La llamada real será `POST .../validar` cuando PC 1 publique el contrato de la fase 3; mientras tanto, contra un mock local documentado en el hilo.
 - **G07 — estadísticas (PC 4)**: modelo puro de transformación API → series de Recharts y componente `OfertasStats.jsx`, con datos simulados por nivel y por fecha.
-- **G06/G09 — app móvil (PC 3)**: avisos al acercarse (1 km, 500 m, 100 m) con ubicación en segundo plano y notificaciones locales, y pantalla de llegada a 20 m con el QR (llamada a `POST /visitas` cuando exista el contrato de la fase 3). En el app: Expo Router (`mobile/src/app/`), Zustand, i18n propia de `mobile/src/i18n/`. **G03 ya está hecho** (web y app) por PC 1: hay `useUbicacion` y `seguimientoUbicacion.js` reutilizables; PC 3 solo aporta la prueba en el móvil real.
+- **G06/G09 — app (Alex, PC 2)**: fuera de este reparto; si hace falta su parte web, se coordena en el hilo con Alex.
 
 Cuando PC 1 publique cada contrato (está en la bóveda del equipo: `Proyecto/Contratos API.md`, repo `Alex-Oses/mira-boveda-equipo`, legible en el navegador de GitHub), se ajusta lo preparado a la forma real.
 
@@ -53,7 +49,7 @@ Ya usáis git, así que la mensajería no requiere instalar nada:
 ## 5. Ramas y worktrees
 
 - Una rama por tarea, con worktree propio (no se pisa el checkout de otro agente):
-  - PC 3 (app móvil): partir de `origin/feat/mira-app` (la app más reciente, con las notificaciones de Alex/PC 2); rama por tarea, p. ej. `feat/G03-app-ubicacion`.
+  - PC 3: de momento sin rama propia (G04 hecho, a la espera de la revisión; la app, de Alex).
   - PC 4 (web): revisa/mergea `feat/G04-editor-ofertas`; para lo suyo, `feat/G10-escaner-qr`, `feat/G07-estadisticas-ofertas`.
 - Nada de pushes a `main`. Se avanza sobre la propia rama y el merge lo hace una revisión cruzada al final de la fase.
 
@@ -64,7 +60,7 @@ Ya usáis git, así que la mensajería no requiere instalar nada:
 - Lógica pura en `src/models/` (o `services/` si es utilidad) con tests en `test/` con `node --test`.
 - i18n: claves nuevas en `es.js`, `ca.js` y `en.js` (faltan las 3 o no se usan).
 - Estilos con las clases `op-*` y tokens de `dashboard.css` (claro/oscuro automáticos).
-- `mobile/` no lo toca PC 4 (es del reparto de PC 3, con rama de base `feat/mira-app`); en web, no toques las tareas de PC 3 (G03/G06/G09 si alguna cae en web).
+- `mobile/` no lo toca PC 4: es de Alex (PC 2); la app de ofertas (G06/G09) también es suya.
 - Orden de despliegue: backend (Render) primero, frontend (Vercel) después.
 
 ## 7. Archivos por tarea (no solaparse)
@@ -74,9 +70,8 @@ Ya usáis git, así que la mensajería no requiere instalar nada:
 | G04 (PC 3, **hecha**; revisa/mergea PC 4) | `src/models/ofertasModel.js`, `src/services/ofertasApi.js`, `src/components/dashboard/OfertasPanel.jsx`, sección en `Dashboard.jsx`, claves `ofertas.*` en i18n, `test/ofertasModel.test.js` |
 | G07 (PC 4) | `src/models/ofertasStatsModel.js`, `src/components/dashboard/OfertasStats.jsx`, claves `ofertasStats.*`, tests |
 | G10 (PC 4) | `src/components/dashboard/OfertasEscanner.jsx`, lógica de lectura/estados (pura, testeable), dependencia `jsQR` en `package.json`, claves `escaner.*`, tests |
-| G06/G09 móvil (PC 3, base `feat/mira-app`) | en `mobile/`: avisos por distancia con notificaciones locales (segundo plano), pantalla de llegada con QR; `mobile/src/app/`, `mobile/src/pages/`, `mobile/src/services/`, `mobile/src/i18n/`, tests del app |
 
-Los archivos compartidos en web (`Dashboard.jsx`, `package.json`, i18n) se tocan avisando antes en el hilo; si hay conflicto, se resuelve en la revisión de fase. En `mobile/` pasa lo mismo con el trabajo de PC 2 (Alex, notificaciones T01–T10).
+Los archivos compartidos en web (`Dashboard.jsx`, `package.json`, i18n) se tocan avisando antes en el hilo; si hay conflicto, se resuelve en la revisión de fase. En `mobile/` manda Alex (PC 2).
 
 ## 8. Definición de hecho
 
