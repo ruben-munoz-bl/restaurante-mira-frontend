@@ -1754,6 +1754,32 @@ export default {
     "vegana": "Vegana",
     "copas": "Copas",
     "fusión": "Fusión"
+  },
+  "ubicacion": {
+    "titulo": "Ubicación para ofertas cercanas",
+    "descripcion": "Si la activas, MIRA puede avisarte de ofertas de restaurantes cuando estás cerca.",
+    "estadoActiva": "Ubicación activada",
+    "estadoInactiva": "Ubicación desactivada",
+    "buscando": "Buscando tu posición…",
+    "posicionActual": "Posición actual: {{lat}}, {{lng}}",
+    "precision": "precisión ±{{m}} m",
+    "noSeEnvia": "Solo la ve tu navegador; no se envía ni se guarda.",
+    "activar": "Activar ubicación",
+    "desactivar": "Desactivar ubicación",
+    "rechazadaNota": "La rechazaste. Puedes activarla cuando quieras.",
+    "modalTitulo": "¿Usamos tu ubicación?",
+    "modalIntro": "La usamos solo para enseñarte ofertas de restaurantes cercanos.",
+    "puntoUso": "Calculamos a qué distancia estás de los restaurantes con oferta.",
+    "puntoRecorrido": "No guardamos tu posición ni tu recorrido.",
+    "puntoAbierta": "En la web solo se usa con la página abierta.",
+    "puntoDesactivar": "Puedes desactivarla en cualquier momento desde Mi cuenta.",
+    "aceptar": "Aceptar y activar",
+    "ahoraNo": "Ahora no",
+    "errorPermiso": "Has bloqueado la ubicación en el navegador. Actívala en los ajustes del sitio para usar esta función.",
+    "errorNoDisponible": "No se puede obtener tu posición ahora mismo.",
+    "errorTiempo": "Tu posición está tardando demasiado. Lo volvemos a intentar.",
+    "errorNoSoportado": "Este navegador no permite usar la ubicación.",
+    "errorDesconocido": "No se ha podido obtener tu posición."
   }
 ,
   "ofertas": {

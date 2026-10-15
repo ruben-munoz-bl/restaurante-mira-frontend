@@ -11,6 +11,7 @@ import { COOKIE_CATEGORIAS, COOKIE_DEFAULT, leerCookies, guardarCookies, tieneCo
 import { useI18n } from '../i18n/index.jsx';
 import useInviteStore from '../stores/useInviteStore.js';
 import usePointsStore from '../stores/usePointsStore.js';
+import UbicacionCuenta from './UbicacionCuenta.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
@@ -332,6 +333,9 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
             </>
           )}
         </div>
+
+        {/* --- UBICACIÓN (G03) --- */}
+        <UbicacionCuenta />
 
         {/* --- COOKIES --- */}
         <h2 className="cuenta-sub">{t('cuenta.preferenciasCookies')}</h2>

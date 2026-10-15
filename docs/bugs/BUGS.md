@@ -89,6 +89,23 @@ Reparto por archivos: Claude se queda con todo lo de `App.jsx` (card, JAM, filtr
 | [BUG-121](BUG-121.md) | Incidencias del admin: resolución y gráficos | admin/incidencias | codex | hecho | fix/codex-tanda4 |
 
 
+## Tanda 4b — revisión visual (Claude)
+
+Segunda pasada de hallazgos del usuario (colores y modo oscuro). Rama: `fix/claude-tanda4`.
+
+| ID | Título | Zona | Asignado | Estado | Rama |
+|----|--------|------|----------|--------|------|
+| [BUG-123](BUG-123.md) | Botón en modo oscuro no se oscurece al pasar el cursor | tema | claude | en revisión | fix/claude-tanda4 |
+| [BUG-124](BUG-124.md) | La mascota de MiraClub se ve transparente en modo oscuro | tema/miraclub | claude | pendiente | |
+| [BUG-125](BUG-125.md) | Texto de «reclamar MiraClub» ilegible en modo oscuro | tema/miraclub | claude | pendiente | |
+| [BUG-126](BUG-126.md) | Avatar de MiraAI: cuadrado blanco en el círculo en modo oscuro | mira/tema | claude | en revisión | fix/claude-tanda4 |
+| [BUG-127](BUG-127.md) | Desaparece la opción de ver cómo piensa MiraAI | mira | claude | pendiente | |
+| [BUG-128](BUG-128.md) | Los iconos de admin tardan en cargar | admin | claude | pendiente | |
+| [BUG-129](BUG-129.md) | Botones rojos de eliminar demasiado claros en modo oscuro | tema | claude | en revisión | fix/claude-tanda4 |
+| [BUG-130](BUG-130.md) | Los modales se centran en la página y no en la pantalla | ui-global | claude | pendiente | |
+| [BUG-131](BUG-131.md) | Ayuda visual de primera vez en Admin para el menú lateral | admin/ux | claude | pendiente | |
+| [BUG-132](BUG-132.md) | El menú desplegable izquierdo de Admin baja de más | admin | claude | pendiente | |
+
 ## Seguimiento de la prueba real de invitaciones
 
 | ID | Título | Zona | Asignado | Estado | Rama |

@@ -33,7 +33,13 @@
       "expo-font",
       "expo-image",
       "expo-sharing",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "MIRA usa tu ubicación, solo con la app abierta, para mostrarte ofertas de restaurantes cercanos. No guardamos tu recorrido."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": false

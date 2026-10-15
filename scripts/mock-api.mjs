@@ -113,6 +113,20 @@ function ofertasCerca(pos) {
   }).filter(Boolean).sort((a, b) => a.distanciaM - b.distanciaM);
 }
 
+// Estadísticas (contrato fase 3, para G07): contadores por restaurante y día.
+// Se generan 14 días de ejemplo para el restaurante 1 y se suman los avisos reales.
+const stats = new Map();
+function filaStats(rid, fecha) {
+  const k = `${rid}_${fecha}`;
+  if (!stats.has(k)) stats.set(k, { fecha, avisos: { 1000: 0, 500: 0, 100: 0, 20: 0 }, visitas: 0, confirmadas: 0 });
+  return stats.get(k);
+}
+for (let i = 13; i >= 0; i--) {
+  const f = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10);
+  const base = 20 + ((i * 7) % 11);
+  Object.assign(filaStats('1', f), { avisos: { 1000: base * 3, 500: base * 2, 100: base, 20: Math.round(base / 2) }, visitas: Math.round(base / 3), confirmadas: Math.round(base / 4) });
+}
+
 function otraActiva(restauranteId, id) { return ofertas.some((o) => o.restauranteId === restauranteId && o.activa && o.id !== id); }
 
 function enviar(res, status, body) {
@@ -162,6 +176,22 @@ http
         return enviar(res, 400, { error: 'VALIDATION_ERROR', details: { lat: ['Entre -90 y 90'], lng: ['Entre -180 y 180'] } });
       }
       return enviar(res, 200, { data: ofertasCerca({ lat, lng }) });
+    }
+    if (p === '/v1/ofertas/estadisticas' && req.method === 'GET') {
+      const rid = url.searchParams.get('restauranteId'); const desde = url.searchParams.get('desde'); const hasta = url.searchParams.get('hasta');
+      if (!rid || !/^\d{4}-\d{2}-\d{2}$/.test(desde || '') || !/^\d{4}-\d{2}-\d{2}$/.test(hasta || '') || desde > hasta) {
+        return enviar(res, 400, { error: 'VALIDATION_ERROR', details: { hasta: ['restauranteId, desde y hasta (AAAA-MM-DD, desde <= hasta)'] } });
+      }
+      const data = [...stats.entries()].filter(([k, v]) => k.startsWith(`${rid}_`) && v.fecha >= desde && v.fecha <= hasta).map(([, v]) => v).sort((a, b) => a.fecha.localeCompare(b.fecha));
+      return enviar(res, 200, { data });
+    }
+    const aviso = p.match(/^\/v1\/ofertas\/([^/]+)\/avisos$/);
+    if (aviso && req.method === 'POST') {
+      const o = ofertas.find((x) => x.id === decodeURIComponent(aviso[1]));
+      if (![1000, 500, 100, 20].includes(datos.nivel)) return enviar(res, 400, { error: 'VALIDATION_ERROR', details: { nivel: ['1000, 500, 100 o 20'] } });
+      if (!o || !vigente(o)) return enviar(res, 404, { error: 'NOT_FOUND' });
+      filaStats(o.restauranteId, hoy()).avisos[datos.nivel] += 1;
+      res.writeHead(204, { 'Access-Control-Allow-Origin': '*' }); return res.end();
     }
     if (p === '/v1/ofertas' || p === '/v1/ofertas/mias') {
       const rid = url.searchParams.get('restauranteId');

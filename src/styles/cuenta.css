@@ -362,3 +362,7 @@
 
 .invite-item { flex-wrap: wrap; }
 .invite-item__email-error { flex-basis: 100%; margin: 0.3rem 0; color: var(--rojo); font-size: 0.85rem; }
+
+/* G03: consentimiento de ubicación */
+.ubicacion-modal { max-width: 520px; }
+.ubicacion-puntos { margin: 0.6rem 0 1rem; padding-left: 1.2rem; display: grid; gap: 0.35rem; color: var(--tinta); }

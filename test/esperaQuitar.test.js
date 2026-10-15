@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 // Ejecuta el manejador real de Reservas.jsx con dobles de la API y del estado.
-const fuente = fs.readFileSync(new URL('../src/components/Reservas.jsx', import.meta.url), 'utf8');
+const fuente = fs.readFileSync(new URL('../src/components/Reservas.jsx', import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const cuerpo = fuente.match(/async function handleSalirEspera\(e\) \{([\s\S]*?)\n {2}\}\n/)[1];
 const handleSalirEspera = new Function('esperaApi', 'setEnEspera', 'setError', `return async (e) => {${cuerpo}}`);
 

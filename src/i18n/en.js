@@ -1754,6 +1754,32 @@ export default {
     "vegana": "Vegan",
     "copas": "Drinks",
     "fusión": "Fusion"
+  },
+  "ubicacion": {
+    "titulo": "Location for nearby offers",
+    "descripcion": "If you turn it on, MIRA can let you know about restaurant offers when you're nearby.",
+    "estadoActiva": "Location on",
+    "estadoInactiva": "Location off",
+    "buscando": "Finding your position…",
+    "posicionActual": "Current position: {{lat}}, {{lng}}",
+    "precision": "accuracy ±{{m}} m",
+    "noSeEnvia": "Only your browser sees it; it isn't sent or stored.",
+    "activar": "Turn on location",
+    "desactivar": "Turn off location",
+    "rechazadaNota": "You declined it. You can turn it on whenever you like.",
+    "modalTitulo": "Can we use your location?",
+    "modalIntro": "We only use it to show you offers from nearby restaurants.",
+    "puntoUso": "We work out how far you are from restaurants with offers.",
+    "puntoRecorrido": "We don't store your position or your route.",
+    "puntoAbierta": "On the web it's only used while the page is open.",
+    "puntoDesactivar": "You can turn it off at any time from My account.",
+    "aceptar": "Accept and turn on",
+    "ahoraNo": "Not now",
+    "errorPermiso": "You've blocked location in your browser. Allow it in the site settings to use this feature.",
+    "errorNoDisponible": "Your position can't be obtained right now.",
+    "errorTiempo": "Your position is taking too long. We'll try again.",
+    "errorNoSoportado": "This browser doesn't support location.",
+    "errorDesconocido": "Your position couldn't be obtained."
   }
 ,
   "ofertas": {

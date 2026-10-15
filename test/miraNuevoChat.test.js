@@ -6,6 +6,7 @@ import { create } from 'zustand';
 // Carga el store real de MIRA con dobles de sus dependencias (misma técnica que docs/bugs/reproducciones/usuario.mjs).
 function cargarStore(enviarTurno) {
   const fuente = fs.readFileSync(new URL('../src/stores/useMiraStore.js', import.meta.url), 'utf8')
+    .replace(/\r\n/g, '\n')
     .replace(/import[\s\S]*?from ['"][^'"]+['"];\n/g, '')
     .replace('export const useMiraStore', 'const useMiraStore')
     .replace('export default useMiraStore;', 'return useMiraStore;');

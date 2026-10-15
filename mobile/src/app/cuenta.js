@@ -26,6 +26,7 @@ import {
   normalizarAccesibilidad,
 } from '../models/restaurantModel.js';
 import EmblemaAvatar from '../components/EmblemaAvatar.jsx';
+import UbicacionCuenta from '../components/UbicacionCuenta.jsx';
 import CheckCasilla from '../components/ui/CheckCasilla';
 import Chip, { ChipGrid } from '../components/ui/Chip';
 import { AuthPagina, AuthTarjeta, AuthError } from '../components/ui/Auth';
@@ -573,6 +574,10 @@ export default function Cuenta() {
               </>
             )}
           </View>
+
+          {/* --- Ubicación (G03) --- */}
+          <Sub>{t('ubicacion.titulo')}</Sub>
+          <UbicacionCuenta />
 
           {/* --- Cookies --- */}
           <Sub>{t('cuenta.preferenciasCookies')}</Sub>

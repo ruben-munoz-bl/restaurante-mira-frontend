@@ -184,6 +184,7 @@
 .ops-btn.soft { background: var(--ops-surface-low); color: var(--ops-on-surface); }
 .ops-btn.soft:hover { background: var(--ops-surface-container); }
 .ops-btn.danger { background: var(--ops-error); color: #fff; }
+[data-theme='dark'] .ops-btn.danger { background: #ba1a1a; }
 .ops-btn.sm { padding: 6px 12px; font-size: 12px; }
 .ops-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
