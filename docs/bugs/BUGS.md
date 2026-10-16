@@ -120,3 +120,4 @@ Segunda pasada de hallazgos del usuario (colores y modo oscuro). Rama: `fix/clau
 | [BUG-134](BUG-134.md) | APK: el menú lateral del panel admin no se despliega | admin/ops (app) | claude | en revisión | fix/claude-bugs-133-136 |
 | [BUG-135](BUG-135.md) | Carta (web): el scroll se traba en la última página | carta | claude | en revisión | fix/claude-bugs-133-136 |
 | [BUG-136](BUG-136.md) | Al volver a entrar en una sección, el scroll no empieza arriba | general (web y app) | claude | en revisión | fix/claude-bugs-133-136 |
+| [BUG-137](BUG-137.md) | Verificar el correo lleva a restablecer contraseña | auth (web) | — | pendiente | — |
