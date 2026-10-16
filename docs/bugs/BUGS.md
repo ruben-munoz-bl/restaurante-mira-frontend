@@ -111,3 +111,12 @@ Segunda pasada de hallazgos del usuario (colores y modo oscuro). Rama: `fix/clau
 | ID | Título | Zona | Asignado | Estado | Rama |
 |----|--------|------|----------|--------|------|
 | [BUG-122](BUG-122.md) | Brevo acepta el envío pero el error posterior no cambia el estado | invitaciones/backend | codex | hecho | fix/BUG-122-brevo-error |
+
+## Bugs de Izan (octubre 2026)
+
+| ID | Título | Zona | Asignado | Estado | Rama |
+|----|--------|------|----------|--------|------|
+| [BUG-133](BUG-133.md) | Incidencias & Soporte: «Resueltas» no se actualiza al resolver | admin/ops (web y app) | claude | en revisión | fix/claude-bugs-133-136 |
+| [BUG-134](BUG-134.md) | APK: el menú lateral del panel admin no se despliega | admin/ops (app) | claude | en revisión | fix/claude-bugs-133-136 |
+| [BUG-135](BUG-135.md) | Carta (web): el scroll se traba en la última página | carta | claude | en revisión | fix/claude-bugs-133-136 |
+| [BUG-136](BUG-136.md) | Al volver a entrar en una sección, el scroll no empieza arriba | general (web y app) | claude | en revisión | fix/claude-bugs-133-136 |

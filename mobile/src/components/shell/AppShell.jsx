@@ -7,7 +7,7 @@
  */
 import { createContext, useContext, useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { View, ScrollView, Text, Pressable, StyleSheet } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { useRouter, usePathname, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../theme/ThemeContext';
 import { useAuthContext } from '../../context/AuthContext';
 import { useBreakpoint } from '../../theme/responsive';
@@ -47,6 +47,15 @@ export function AppShell({
   useEffect(() => {
     cercaRefCb.current = onCercaFinal;
   }, [onCercaFinal]);
+  // Al volver a una sección (atrás o desde el menú) el Stack conserva la pantalla
+  // montada con su scroll: cada vez que recibe el foco empieza arriba (BUG-136).
+  useFocusEffect(
+    useCallback(() => {
+      scrollRef.current?.scrollTo({ y: 0, animated: false });
+      ultimoY.current = 0;
+      setOculto(false);
+    }, []),
+  );
 
   const ruta = rutaDesdePath(pathname);
   const mostrarAviso =

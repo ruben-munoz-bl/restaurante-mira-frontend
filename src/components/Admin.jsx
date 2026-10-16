@@ -1,6 +1,6 @@
 /** View pura: panel admin — incidencias + locales propuestos. */
 import { useEffect, useState } from 'react';
-import { listarPendientes, listarResueltas, resolverIncidencia } from '../services/incidenciaApi.js';
+import { listarPendientes, listarResueltas, resolverIncidencia, EVENTO_INCIDENCIAS } from '../services/incidenciaApi.js';
 import { listarNegociosPendientes, aprobarNegocio, rechazarNegocio } from '../services/negocioApi.js';
 import { useT } from '../i18n/index.jsx';
 import es from '../i18n/es.js';
@@ -47,8 +47,15 @@ export default function Admin({ usuario, esAdmin }) {
           setCargando(false);
         }
       });
+    // Tras resolver se vuelven a pedir las listas a la API (BUG-133).
+    const recargar = () => {
+      listarPendientes().then((l) => vivo && setLista(l)).catch(() => {});
+      listarResueltas().then((r) => vivo && setResueltas(r)).catch(() => {});
+    };
+    window.addEventListener(EVENTO_INCIDENCIAS, recargar);
     return () => {
       vivo = false;
+      window.removeEventListener(EVENTO_INCIDENCIAS, recargar);
     };
   }, [usuario, esAdmin]);
 

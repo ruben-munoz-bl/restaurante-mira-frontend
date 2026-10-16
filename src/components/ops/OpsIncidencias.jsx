@@ -1,6 +1,6 @@
 /** OpsIncidencias — contactos pendientes (resolver) + negocios propuestos (aprobar/rechazar). */
 import { useEffect, useState } from 'react';
-import { listarPendientes, listarResueltas, resolverIncidencia } from '../../services/incidenciaApi.js';
+import { listarPendientes, listarResueltas, resolverIncidencia, EVENTO_INCIDENCIAS } from '../../services/incidenciaApi.js';
 import { listarNegociosPendientes, aprobarNegocio, rechazarNegocio } from '../../services/negocioApi.js';
 import { useT } from '../../i18n/index.jsx';
 import es from '../../i18n/es.js';
@@ -28,7 +28,15 @@ export default function OpsIncidencias() {
     Promise.all([listarPendientes().catch(() => []), listarNegociosPendientes().catch(() => []), listarResueltas().catch(() => [])])
       .then(([c, n, r]) => { if (vivo) { setResueltas(r); setContactos(c); setNegocios(n); setCargando(false); } })
       .catch((e) => { if (vivo) { setError(e.message); setCargando(false); } });
-    return () => { vivo = false; };
+    // Al resolver (aquí, en el dashboard o desde otra pestaña de este panel) se
+    // vuelven a pedir pendientes y resueltas a la API (BUG-133). Si falla, se
+    // conserva lo que ya había.
+    const recargar = () => {
+      listarPendientes().then((c) => vivo && setContactos(c)).catch(() => {});
+      listarResueltas().then((r) => vivo && setResueltas(r)).catch(() => {});
+    };
+    window.addEventListener(EVENTO_INCIDENCIAS, recargar);
+    return () => { vivo = false; window.removeEventListener(EVENTO_INCIDENCIAS, recargar); };
   }, []);
 
   async function accionar(fn, id, quitarDe) {

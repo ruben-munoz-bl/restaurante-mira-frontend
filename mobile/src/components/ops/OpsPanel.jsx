@@ -5,7 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import { View, Text, Pressable, ScrollView } from 'react-native';
-import { listarPendientes } from '../../services/incidenciaApi.js';
+import { listarPendientes, alResolverIncidencia } from '../../services/incidenciaApi.js';
 import OpsDashboard from './OpsDashboard.jsx';
 import OpsReservas from './OpsReservas.jsx';
 import OpsIncidencias from './OpsIncidencias.jsx';
@@ -37,15 +37,20 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
   useEffect(() => {
     if (!esAdmin) return undefined;
     let vivo = true;
-    listarPendientes()
-      .then((l) => {
-        if (vivo) {
-          setCriticas(l.filter((p) => /no-show|cargo|disputa|cobro/i.test(`${p.motivo || ''} ${p.mensaje || ''}`)).length);
-        }
-      })
-      .catch(() => {});
+    const cargar = () =>
+      listarPendientes()
+        .then((l) => {
+          if (vivo) {
+            setCriticas(l.filter((p) => /no-show|cargo|disputa|cobro/i.test(`${p.motivo || ''} ${p.mensaje || ''}`)).length);
+          }
+        })
+        .catch(() => {});
+    cargar();
+    // Se recalcula al resolver una incidencia (BUG-133).
+    const quitar = alResolverIncidencia(cargar);
     return () => {
       vivo = false;
+      quitar();
     };
   }, [esAdmin]);
 
@@ -82,7 +87,51 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
 
   return (
     <View style={s.shell}>
-      {/* Drawer lateral (equivalente a sidebar hover en web) */}
+      <View style={{ flex: 1 }}>
+        {/* Header barra */}
+        <View style={s.header}>
+          <Pressable style={s.iconBtn} onPress={() => setDrawer((v) => !v)} accessibilityLabel="Abrir menú">
+            <Simbolo name="menu" size={20} color={op.onSurface} />
+          </Pressable>
+          <View style={s.searchCaja}>
+            <Simbolo name="search" size={16} style={s.searchIcon} color={op.outline} />
+            <OpsInput
+              value={busqueda}
+              onChangeText={setBusqueda}
+              onSubmit={() => busqueda.trim() && setSeccion('reservas')}
+              placeholder="Buscar restaurante, reserva #ID, comensal…"
+              style={s.searchInput}
+            />
+          </View>
+          <View style={s.headerSpacer} />
+          <Pressable style={s.iconBtn} onPress={() => ir('incidencias')} accessibilityLabel="Notificaciones">
+            <Simbolo name="notifications" size={20} color={op.onSurface} />
+            {criticas > 0 ? <View style={s.pingDot} /> : null}
+          </Pressable>
+          <View style={s.profile}>
+            <OpsAvatar txt={inicial} />
+            <View>
+              <Text style={s.profileNombre} numberOfLines={1}>
+                {nombre}
+              </Text>
+              <Text style={s.profileRol}>Master Operator</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Contenido de la sección */}
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.contenido} keyboardShouldPersistTaps="handled">
+          {seccion === 'dashboard' ? <OpsDashboard /> : null}
+          {seccion === 'restaurantes' ? <OpsRestaurantes /> : null}
+          {seccion === 'reservas' ? <OpsReservas busquedaInicial={busqueda} /> : null}
+          {seccion === 'finanzas' ? <OpsFinanzas /> : null}
+          {seccion === 'incidencias' ? <OpsIncidencias /> : null}
+          {seccion === 'usuarios' ? <OpsUsuarios /> : null}
+          {seccion === 'ajustes' ? <OpsAjustes usuario={usuario} tema={tema} onCambiarTema={onCambiarTema} /> : null}
+        </ScrollView>
+      </View>
+      {/* Drawer lateral (equivalente a sidebar hover en web). Va al final y con
+          elevation: en Android el contenido, pintado después, lo tapaba (BUG-134). */}
       {drawer ? (
         <Pressable style={s.drawerOverlay} onPress={() => setDrawer(false)}>
           <View style={s.drawer} onStartShouldSetResponder={() => true}>
@@ -153,49 +202,6 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
         </Pressable>
       ) : null}
 
-      <View style={{ flex: 1 }}>
-        {/* Header barra */}
-        <View style={s.header}>
-          <Pressable style={s.iconBtn} onPress={() => setDrawer((v) => !v)} accessibilityLabel="Abrir menú">
-            <Simbolo name="menu" size={20} color={op.onSurface} />
-          </Pressable>
-          <View style={s.searchCaja}>
-            <Simbolo name="search" size={16} style={s.searchIcon} color={op.outline} />
-            <OpsInput
-              value={busqueda}
-              onChangeText={setBusqueda}
-              onSubmit={() => busqueda.trim() && setSeccion('reservas')}
-              placeholder="Buscar restaurante, reserva #ID, comensal…"
-              style={s.searchInput}
-            />
-          </View>
-          <View style={s.headerSpacer} />
-          <Pressable style={s.iconBtn} onPress={() => ir('incidencias')} accessibilityLabel="Notificaciones">
-            <Simbolo name="notifications" size={20} color={op.onSurface} />
-            {criticas > 0 ? <View style={s.pingDot} /> : null}
-          </Pressable>
-          <View style={s.profile}>
-            <OpsAvatar txt={inicial} />
-            <View>
-              <Text style={s.profileNombre} numberOfLines={1}>
-                {nombre}
-              </Text>
-              <Text style={s.profileRol}>Master Operator</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Contenido de la sección */}
-        <ScrollView style={{ flex: 1 }} contentContainerStyle={s.contenido} keyboardShouldPersistTaps="handled">
-          {seccion === 'dashboard' ? <OpsDashboard /> : null}
-          {seccion === 'restaurantes' ? <OpsRestaurantes /> : null}
-          {seccion === 'reservas' ? <OpsReservas busquedaInicial={busqueda} /> : null}
-          {seccion === 'finanzas' ? <OpsFinanzas /> : null}
-          {seccion === 'incidencias' ? <OpsIncidencias /> : null}
-          {seccion === 'usuarios' ? <OpsUsuarios /> : null}
-          {seccion === 'ajustes' ? <OpsAjustes usuario={usuario} tema={tema} onCambiarTema={onCambiarTema} /> : null}
-        </ScrollView>
-      </View>
     </View>
   );
 }

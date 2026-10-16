@@ -166,7 +166,7 @@ export function useOpsStyles() {
       },
 
       // — Drawer / sidebar —
-      drawerOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(17,28,45,0.55)' },
+      drawerOverlay: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: 'rgba(17,28,45,0.55)', zIndex: 70, elevation: 70 },
       drawer: {
         position: 'absolute',
         top: 0,

@@ -69,7 +69,9 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
     if (!esAdmin) return;
     if (simulado) { setCriticas(demo.kpis.criticas); return; }
     let vivo = true;
-    import('../../services/incidenciaApi.js').then(({ listarPendientes }) =>
+    // Se recarga al resolver una incidencia en cualquier sección (BUG-133): antes
+    // el contador de críticas y el punto de la campana solo se cargaban al abrir.
+    const cargar = () => import('../../services/incidenciaApi.js').then(({ listarPendientes }) =>
       listarPendientes()
         .then((l) => {
           if (!vivo) return;
@@ -77,7 +79,9 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
         })
         .catch(() => {}),
     );
-    return () => { vivo = false; };
+    cargar();
+    window.addEventListener('mira:incidencias', cargar);
+    return () => { vivo = false; window.removeEventListener('mira:incidencias', cargar); };
   }, [esAdmin, simulado, demo]);
 
   useEffect(() => {
@@ -117,6 +121,8 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
     setSeccion(id);
     setMenuMovil(false);
     window.history.replaceState(null, '', id === 'dashboard' ? '#/admin' : `#/admin?seccion=${id}`);
+    // replaceState no dispara hashchange: cada sección empieza arriba (BUG-136).
+    window.scrollTo(0, 0);
   }
 
   return (

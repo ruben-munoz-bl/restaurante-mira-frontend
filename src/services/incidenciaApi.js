@@ -29,8 +29,13 @@ export async function listarResueltas() {
   return Array.isArray(d) ? d : d.data || [];
 }
 
+/** Se emite tras resolver: el menú lateral y las listas vuelven a pedir los datos (BUG-133). */
+export const EVENTO_INCIDENCIAS = 'mira:incidencias';
+
 export async function resolverIncidencia(id, datos) {
   const resolucion = validarResolucion(datos);
-  return await conAuditoria('incidencia_resuelta', { entidadTipo: 'incidencia', entidadId: String(id), cambios: [{ campo: 'estado', antes: 'pendiente', despues: 'resuelta' }] },
+  const r = await conAuditoria('incidencia_resuelta', { entidadTipo: 'incidencia', entidadId: String(id), cambios: [{ campo: 'estado', antes: 'pendiente', despues: 'resuelta' }] },
     api.put(`/v1/contactos/${encodeURIComponent(id)}/resolve`, resolucion), { panel: true });
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(EVENTO_INCIDENCIAS));
+  return r;
 }

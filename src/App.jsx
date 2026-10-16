@@ -351,6 +351,9 @@ function AppContent({ auth, tema, setTema }) {
   }, [obtenerRestaurante, abrirDetalle, abrirSugerencia]);
 
   useEffect(() => {
+    // Sin esto, al volver atrás el navegador restaura el scroll anterior por encima
+    // del scrollTo(0, 0): cada sección debe empezar arriba (BUG-136).
+    if ('scrollRestoration' in window.history) window.history.scrollRestoration = 'manual';
     function alCambiarHash() {
       setRuta(rutaActual());
       window.scrollTo(0, 0);

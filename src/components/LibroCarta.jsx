@@ -20,6 +20,7 @@ import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
 import '../styles/carta.css';
+import { esPaseDePagina } from '../services/gestoCarta.js';
 
 const TRADS = { es, ca, en };
 const GIRO_MS = 850;
@@ -266,12 +267,16 @@ export default function LibroCarta({ restaurant, dieta, onClose }) {
         aria-modal="true"
         aria-label={t('libro.cartaDe', { nombre: restaurant.nombre })}
         style={{ '--carta-papel': tema.fondo, '--carta-tinta': tema.tinta, '--carta-acento': tema.acento }}
-        onTouchStart={(e) => { touch.current = e.changedTouches[0].clientX; }}
+        onTouchStart={(e) => { const p = e.changedTouches[0]; touch.current = { x: p.clientX, y: p.clientY }; }}
         onTouchEnd={(e) => {
           if (touch.current == null) return;
-          const d = touch.current - e.changedTouches[0].clientX;
+          const p = e.changedTouches[0];
+          const d = touch.current.x - p.clientX;
+          const dy = touch.current.y - p.clientY;
           touch.current = null;
-          if (Math.abs(d) > 45) ir(d > 0 ? 1 : -1);
+          // Solo pasa página un deslizamiento claramente horizontal: al hacer scroll
+          // vertical en la última página, la deriva lateral la devolvía atrás (BUG-135).
+          if (esPaseDePagina(d, dy)) ir(d > 0 ? 1 : -1);
         }}
       >
         <button ref={cerrarRef} type="button" className="carta-cerrar" onClick={onClose} aria-label={t('libro.cerrarCarta')}>
