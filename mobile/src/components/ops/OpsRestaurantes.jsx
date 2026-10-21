@@ -333,7 +333,7 @@ export default function OpsRestaurantes() {
           <OpsBtn tipo="primary" sm onPress={enviarAlDueno} disabled={guardando || !mensaje.trim()}>
             {guardando ? 'Enviando…' : 'Enviar'}
           </OpsBtn>
-          <OpsBtn sm onPress={cerrarModal} disabled={guardando}>
+          <OpsBtn tipo="danger" sm onPress={cerrarModal} disabled={guardando}>
             Cancelar
           </OpsBtn>
         </View>
@@ -361,7 +361,7 @@ export default function OpsRestaurantes() {
           <OpsBtn tipo="primary" sm onPress={guardarEdicion} disabled={guardando}>
             {guardando ? 'Guardando…' : 'Guardar cambios'}
           </OpsBtn>
-          <OpsBtn sm onPress={cerrarModal} disabled={guardando}>
+          <OpsBtn tipo="danger" sm onPress={cerrarModal} disabled={guardando}>
             Cancelar
           </OpsBtn>
         </View>
@@ -379,7 +379,7 @@ export default function OpsRestaurantes() {
           <OpsBtn tipo="danger" sm onPress={confirmarEliminar} disabled={guardando}>
             {guardando ? 'Eliminando…' : 'Sí, eliminar'}
           </OpsBtn>
-          <OpsBtn sm onPress={cerrarModal} disabled={guardando}>
+          <OpsBtn tipo="danger" sm onPress={cerrarModal} disabled={guardando}>
             Cancelar
           </OpsBtn>
         </View>

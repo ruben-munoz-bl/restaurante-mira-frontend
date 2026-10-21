@@ -47,6 +47,10 @@ export const CLARO = {
   sombraFlotanteRgb: [11, 37, 29],
   sombraFlotanteOpacidad: 0.16,
 
+  // Insignia «Recomendado» (BUG-153): verde con contraste AA
+  recomendadoFondo: '#1e6b45',
+  recomendadoTinta: '#ffffff',
+
   colorScheme: 'light',
 };
 
@@ -87,13 +91,16 @@ export const OSCURO = {
   sombraFlotanteRgb: [0, 0, 0],
   sombraFlotanteOpacidad: 0.5,
 
+  recomendadoFondo: '#a8d5ba',
+  recomendadoTinta: '#0b251d',
+
   colorScheme: 'dark',
 };
 
 export const TEMAS = { claro: CLARO, oscuro: OSCURO };
 
 /** Border radius (--radio, --radio-peq, --radio-xl) */
-export const RADIO = { peq: 8, md: 12, xl: 24 };
+export const RADIO = { peq: 6, md: 2, xl: 14 }; // BUG-157: igual que el web
 
 /** Layout (--ancho-max, --gutter) */
 export const ANCHO_MAX = 1320;

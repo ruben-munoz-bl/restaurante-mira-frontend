@@ -582,7 +582,7 @@ export default function Dashboard({ usuario }) {
                   <OpBtnPrimary onPress={handleCreateRestaurant} disabled={creating}>
                     {creating ? t('otros.cargando') : 'Crear restaurante'}
                   </OpBtnPrimary>
-                  <OpBtnGhost
+                  <OpBtnGhost peligro
                     onPress={() => {
                       setShowCreateForm(false);
                       setError('');
@@ -856,7 +856,7 @@ export default function Dashboard({ usuario }) {
                   <OpBtnPrimary onPress={handleSave} disabled={saving}>
                     {saving ? t('otros.cargando') : 'Guardar'}
                   </OpBtnPrimary>
-                  <OpBtnGhost
+                  <OpBtnGhost peligro
                     onPress={() => {
                       setEditing(false);
                       setFormData(restaurante);
@@ -1842,7 +1842,7 @@ export default function Dashboard({ usuario }) {
             Nuevo: <Text style={{ fontWeight: '800' }}>{aforoLimit}</Text>
           </Text>
           <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 6.4 }}>
-            <OpBtnGhost onPress={() => setShowAforoModal(false)}>Cancelar</OpBtnGhost>
+            <OpBtnGhost peligro onPress={() => setShowAforoModal(false)}>Cancelar</OpBtnGhost>
             <OpBtnPrimary onPress={handleSaveAforo} disabled={saving}>
               {saving ? 'Guardando…' : 'Guardar aforo'}
             </OpBtnPrimary>

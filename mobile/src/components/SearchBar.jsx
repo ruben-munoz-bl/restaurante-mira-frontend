@@ -48,6 +48,10 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
     };
     return map[f.label] || f.label;
   }
+  // Etiquetas por valor estable: el texto de los modelos va en español.
+  const CLAVES_DISTANCIA = { '': 'cualquierDistancia', 1: 'menos1km', 3: 'menos3km', 5: 'menos5km', 10: 'menos10km' };
+  const CLAVES_ORDEN = { Relevancia: 'relevancia', 'Valoración': 'valoracion', Distancia: 'distanciaOrden', Precio: 'precioOrden' };
+  const CLAVES_DIA = { Lunes: 'lunes', Martes: 'martes', 'Miércoles': 'miercoles', Jueves: 'jueves', Viernes: 'viernes', 'Sábado': 'sabado', Domingo: 'domingo' };
 
   const gutter = width <= 640 ? GUTTER_MOVIL : GUTTER;
   const seccionW = Math.min(width, ANCHO_MAX) - gutter * 2;
@@ -90,7 +94,7 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
         label={t('busqueda.distancia')}
         value={filtros.distanciaMax}
         placeholder={t('busqueda.cualquierDistancia')}
-        opciones={DISTANCIAS}
+        opciones={DISTANCIAS.map((d) => ({ valor: d.value, etiqueta: CLAVES_DISTANCIA[d.value] ? t(`busqueda.${CLAVES_DISTANCIA[d.value]}`) : d.label }))}
         onChange={(v) => onChange('distanciaMax', v)}
         style={{ width: anchoCampo }}
       />
@@ -98,7 +102,7 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
         label={t('busqueda.dia')}
         value={filtros.dia}
         placeholder={t('busqueda.cualquierDia')}
-        opciones={DIAS.filter(Boolean).map((d) => ({ valor: d, etiqueta: d }))}
+        opciones={DIAS.filter(Boolean).map((d) => ({ valor: d, etiqueta: CLAVES_DIA[d] ? t(`modelos.${CLAVES_DIA[d]}`) : d }))}
         onChange={(v) => onChange('dia', v)}
         style={{ width: anchoCampo }}
       />
@@ -120,7 +124,7 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
       <SelectCampo
         label={t('busqueda.ordenarPor')}
         value={filtros.orden}
-        opciones={opciones.ordenes.map((o) => ({ valor: o, etiqueta: o }))}
+        opciones={opciones.ordenes.map((o) => ({ valor: o, etiqueta: CLAVES_ORDEN[o] ? t(`busqueda.${CLAVES_ORDEN[o]}`) : o }))}
         onChange={(v) => onChange('orden', v)}
         style={{ width: anchoCampo }}
       />

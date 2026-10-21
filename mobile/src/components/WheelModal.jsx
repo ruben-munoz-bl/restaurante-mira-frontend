@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     maxHeight: '92%',
     backgroundColor: '#FCFBF8',
-    borderRadius: 32,
+    borderRadius: 24,
     borderWidth: 4,
     borderColor: 'rgba(251, 191, 36, 0.2)',
     overflow: 'hidden',

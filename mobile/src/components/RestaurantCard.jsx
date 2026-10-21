@@ -92,8 +92,8 @@ export default function RestaurantCard({
         <View style={[styles.media, { height: Math.min(altoMedia, 190), backgroundColor: colores.fondoSuave }]}>
           <Image source={{ uri }} style={styles.foto} resizeMode="cover" onError={() => uri !== fallback && setUri(fallback)} />
           {destacado && (
-            <View style={[styles.top, { backgroundColor: colores.tertiaryContainer }]}>
-              <Text style={styles.topTxt}>{t('card.recomendado')}</Text>
+            <View style={[styles.top, { backgroundColor: colores.recomendadoFondo }]}>
+              <Text style={[styles.topTxt, { color: colores.recomendadoTinta }]}>{t('card.recomendado')}</Text>
             </View>
           )}
           {promoActiva && <PromoBadge promoActiva={promoActiva} style={styles.promo} />}
@@ -153,8 +153,8 @@ export default function RestaurantCard({
           }}
         />
         {destacado && (
-          <View style={[styles.top, { backgroundColor: colores.tertiaryContainer }]}>
-            <Text style={styles.topTxt}>{t('card.recomendado')}</Text>
+          <View style={[styles.top, { backgroundColor: colores.recomendadoFondo }]}>
+            <Text style={[styles.topTxt, { color: colores.recomendadoTinta }]}>{t('card.recomendado')}</Text>
           </View>
         )}
         <View style={[styles.precioBadge, { backgroundColor: colores.badgeBg, borderColor: colores.glassBorder }]}>
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 9.6,
     left: 9.6,
-    borderRadius: 6,
+    borderRadius: 8,
     paddingVertical: 4,
     paddingHorizontal: 11.2,
   },
