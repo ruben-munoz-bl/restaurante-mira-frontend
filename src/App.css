@@ -3064,7 +3064,7 @@ button.btn-texto {
   position: relative;
   width: 64px;
   height: 64px;
-  border-radius: 6px;
+  border-radius: 16px;
   background: linear-gradient(135deg, #FEF3C7, #FDE68A);
   border: 2px solid #F59E0B;
   display: flex;
@@ -4261,7 +4261,7 @@ button.btn-texto {
 
 .streak-modal {
   background: var(--papel);
-  border-radius: 22px;
+  border-radius: 24px;
   max-width: 720px;
   width: 100%;
   max-height: 92vh;
@@ -4294,7 +4294,7 @@ button.btn-texto {
 .streak-modal__brand-icon {
   width: 36px;
   height: 36px;
-  border-radius: 0;
+  border-radius: 10px;
   background: var(--primary-container);
   display: flex;
   align-items: center;
@@ -4401,7 +4401,7 @@ button.btn-texto {
   right: -40px;
   background: var(--papel);
   border: 2px solid #F59E0B;
-  border-radius: 6px;
+  border-radius: 16px;
   padding: 6px 14px;
   display: flex;
   align-items: center;
@@ -4532,7 +4532,7 @@ button.btn-texto {
   background: var(--recompensa-fondo);
   border: 1px solid #FDE68A;
   padding: 3px 10px;
-  border-radius: 0;
+  border-radius: 999px;
 }
 
 .streak-grid {
@@ -4545,7 +4545,7 @@ button.btn-texto {
 .streak-day {
   background: var(--fondo-suave);
   border: 2px solid var(--borde);
-  border-radius: 6px;
+  border-radius: 18px;
   padding: 8px 2px;
   display: flex;
   flex-direction: column;
@@ -4649,7 +4649,7 @@ button.btn-texto {
   font-size: 0.5rem;
   font-weight: 900;
   padding: 1px 6px;
-  border-radius: 0 0 0 0;
+  border-radius: 999px;
   text-transform: uppercase;
 }
 
@@ -4675,7 +4675,7 @@ button.btn-texto {
   gap: 10px;
   background: rgba(0,0,0,0.03);
   border: 1px solid rgba(0,0,0,0.06);
-  border-radius: 6px;
+  border-radius: 16px;
   padding: 10px 14px;
   flex: 1;
   min-width: 200px;
@@ -4683,7 +4683,7 @@ button.btn-texto {
 .streak-modal__balance-icon {
   width: 40px;
   height: 40px;
-  border-radius: 0;
+  border-radius: 10px;
   background: rgba(251, 191, 36, 0.15);
   border: 1px solid rgba(251, 191, 36, 0.3);
   display: flex;
@@ -4752,7 +4752,7 @@ button.btn-texto {
   background: var(--primary-container);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 999px;
   padding: 14px 28px;
   font-size: 0.92rem;
   font-weight: 900;
@@ -4812,7 +4812,7 @@ button.btn-texto {
   color: #fff;
   border: 1px solid rgba(255,255,255,0.1);
   padding: 12px 20px;
-  border-radius: 6px;
+  border-radius: 999px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -4891,7 +4891,7 @@ button.btn-texto {
 
 .wheel-modal {
   background: var(--papel);
-  border-radius: 22px;
+  border-radius: 24px;
   max-width: 520px;
   width: 100%;
   max-height: 92vh;
@@ -4921,7 +4921,7 @@ button.btn-texto {
 .wheel-modal__brand-icon {
   width: 36px;
   height: 36px;
-  border-radius: 0;
+  border-radius: 10px;
   background: var(--primary-container);
   display: flex;
   align-items: center;
@@ -5026,7 +5026,7 @@ button.btn-texto {
   background: linear-gradient(180deg, #FBBF24, #F59E0B);
   color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 999px;
   padding: 14px 36px;
   font-size: 1rem;
   font-weight: 900;
@@ -5106,7 +5106,7 @@ button.btn-texto {
   .streak-modal__speech { right: -20px; font-size: 0.65rem; padding: 4px 10px; }
   .streak-modal__calendar { padding: 0 1rem; }
   .streak-grid { gap: 4px; }
-  .streak-day { padding: 6px 1px; border-radius: 2px; }
+  .streak-day { padding: 6px 1px; border-radius: 14px; }
   .streak-day__icon { width: 28px; height: 28px; }
   .streak-day__check { width: 28px; height: 28px; font-size: 0.75rem; }
   .streak-day__coin, .streak-day__wheel-icon { width: 26px; height: 26px; }
@@ -5122,7 +5122,7 @@ button.btn-texto {
 
 @media (max-width: 380px) {
   .streak-grid { gap: 3px; }
-  .streak-day { padding: 5px 0; border-radius: 0; }
+  .streak-day { padding: 5px 0; border-radius: 12px; }
   .streak-day__icon { width: 24px; height: 24px; }
   .streak-modal__title { font-size: 1.2rem; }
 }
@@ -5152,7 +5152,7 @@ button.btn-texto {
   .streak-modal__subtitle { font-size: 0.8rem; line-height: 1.35; }
   .streak-modal__calendar { margin: 0.45rem 0; padding: 0 1.4rem; }
   .streak-modal__calendar-header { margin-bottom: 6px; }
-  .streak-day { padding: 5px 2px; border-radius: 2px; }
+  .streak-day { padding: 5px 2px; border-radius: 14px; }
   .streak-day__icon { width: 28px; height: 28px; margin: 3px 0; }
   .streak-day__check { width: 28px; height: 28px; font-size: 0.8rem; }
   .streak-day__coin, .streak-day__wheel-icon { width: 26px; height: 26px; }
@@ -5193,7 +5193,7 @@ button.btn-texto {
   .balance-card__details { grid-template-columns: repeat(2, 1fr); gap: 0.8rem; }
 
   .streak-badge { padding: 1rem; }
-  .streak-badge__fire-img-wrap { width: 52px; height: 52px; border-radius: 4px; }
+  .streak-badge__fire-img-wrap { width: 52px; height: 52px; border-radius: 14px; }
   .streak-badge__fire-img { width: 36px; height: 36px; }
   .streak-badge__fire-title { font-size: 0.88rem; }
   .streak-badge__fire-sub { font-size: 0.72rem; }

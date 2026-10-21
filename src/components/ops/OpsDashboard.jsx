@@ -282,7 +282,7 @@ export default function OpsDashboard({ demo = null, esAdmin = false, todos = [] 
             <span className="material-symbols-outlined" style={{ color: 'var(--ops-outline)' }}>devices</span>
           </div>
           <OpsDonut segmentos={estadosDonut} centro={kpis.reservasTotal} centroSub="reservas" />
-          <div style={{ background: 'var(--ops-surface-low)', borderRadius: 0, padding: '12px 14px', marginTop: 12 }}>
+          <div style={{ background: 'var(--ops-surface-low)', borderRadius: 10, padding: '12px 14px', marginTop: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, fontWeight: 700 }}>
               <span style={{ color: 'var(--ops-on-variant)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('ops.ocupacionServicio')}</span>
               <span style={{ color: 'var(--ops-primary)' }}>{t('ops.capacidadSala')}</span>

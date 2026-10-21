@@ -8,7 +8,7 @@
 .aud-rango { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ops-on-variant); }
 .aud-rango .ops-input { width: 140px; }
 .aud-leyenda { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ops-on-variant); margin-left: auto; font-variant-numeric: tabular-nums; }
-.aud-leyenda i { width: 10px; height: 10px; border-radius: 0; }
+.aud-leyenda i { width: 10px; height: 10px; border-radius: 3px; }
 .aud-leyenda i.real { background: #0e6b47; }
 .aud-leyenda i.sim { background: #c9a227; }
 .aud-quitar { border: 0; cursor: pointer; font-family: inherit; }
@@ -32,7 +32,7 @@
 .aud-barras { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .aud-barras button {
   width: 100%; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; text-align: left;
-  border: 0; background: none; color: inherit; font: inherit; padding: 6px 8px; border-radius: 0; cursor: pointer;
+  border: 0; background: none; color: inherit; font: inherit; padding: 6px 8px; border-radius: 10px; cursor: pointer;
   transition: background-color 150ms ease;
 }
 .aud-barras button:disabled { cursor: default; }
@@ -47,7 +47,7 @@
 .aud-dims .aud-h3 { margin-top: 0; }
 
 .aud-calor { display: grid; grid-template-columns: 22px repeat(24, 1fr); gap: 3px; align-items: center; }
-.aud-calor i { display: block; aspect-ratio: 1; border-radius: 0; background: var(--ops-primary-container); }
+.aud-calor i { display: block; aspect-ratio: 1; border-radius: 3px; background: var(--ops-primary-container); }
 .aud-calor-h { font-size: 9px; color: var(--ops-outline); text-align: center; }
 .aud-calor-d { font-size: 11px; font-weight: 700; color: var(--ops-on-variant); }
 
@@ -87,23 +87,23 @@
 .aud-dl dd { margin: 0; font-size: 13px; overflow-wrap: anywhere; }
 
 .aud-export { display: flex; flex-direction: column; gap: 8px; }
-.aud-export-fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 0; background: var(--ops-surface-low); }
+.aud-export-fila { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 14px; border-radius: 12px; background: var(--ops-surface-low); }
 .aud-export-fila strong { flex: 1 1 160px; }
 
 .aud-sim-totales { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 6px 0 14px; }
-.aud-sim-totales div { background: var(--ops-surface-low); border-radius: 0; padding: 12px; }
+.aud-sim-totales div { background: var(--ops-surface-low); border-radius: 12px; padding: 12px; }
 .aud-sim-totales strong { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
 .aud-sim-totales span { font-size: 11px; color: var(--ops-on-variant); text-transform: uppercase; letter-spacing: 0.05em; }
 .aud-progreso { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
 .aud-progreso .aud-barras-pista { height: 10px; }
 
-.aud-estado { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 16px; text-align: center; color: var(--ops-on-variant); background: var(--ops-surface-lowest); border-radius: 2px; }
+.aud-estado { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 40px 16px; text-align: center; color: var(--ops-on-variant); background: var(--ops-surface-lowest); border-radius: 14px; }
 .aud-estado .material-symbols-outlined { font-size: 36px; opacity: 0.6; }
 .aud-estado.error { color: var(--ops-error); }
 .aud-estado small { display: block; opacity: 0.8; }
 
 .aud-esqueleto { display: flex; flex-direction: column; gap: 10px; padding: 16px 0; }
-.aud-esqueleto span { height: 14px; border-radius: 0; background: linear-gradient(90deg, var(--ops-surface-low), var(--ops-surface-high), var(--ops-surface-low)); background-size: 200% 100%; animation: aud-brillo 1.2s ease-in-out infinite; }
+.aud-esqueleto span { height: 14px; border-radius: 8px; background: linear-gradient(90deg, var(--ops-surface-low), var(--ops-surface-high), var(--ops-surface-low)); background-size: 200% 100%; animation: aud-brillo 1.2s ease-in-out infinite; }
 @keyframes aud-brillo { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
 @media (max-width: 1200px) {

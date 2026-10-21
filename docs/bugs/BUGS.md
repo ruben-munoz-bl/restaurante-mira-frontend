@@ -170,3 +170,5 @@ ni la app móvil.
 | [BUG-158](BUG-158.md) | Ajuste fino de la redondez (personas, filtros, puntos) | detalle/buscador/puntos | claude | hecho | fix/ui-153-155 |
 | [BUG-159](BUG-159.md) | Rediseño de la página de perfil | cuenta | claude | hecho | fix/ui-153-155 |
 | [BUG-160](BUG-160.md) | Scrolls independientes y modo oscuro del perfil | cuenta | claude | hecho | fix/ui-153-155 |
+| [BUG-161](BUG-161.md) | Racha y panel de administración demasiado cuadrados | puntos/admin | claude | en revisión | fix/BUG-161-redondez-racha-admin |
+| [BUG-162](BUG-162.md) | Imagen del asistente IA sin fondo | asistente IA | claude | en revisión | fix/BUG-161-redondez-racha-admin |
