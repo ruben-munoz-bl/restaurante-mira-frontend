@@ -124,3 +124,35 @@ npm run qa:regresion  # exit 3 por los 38 fallos preexistentes del frontend
 - Validar el workflow en Actions (necesita push de la rama).
 - Todo lo de `ESTADO.md`: flujos autenticados, 38 unitarios, opcionales.
 
+---
+
+## 2026-10-21 — Tanda 4: paneles de admin y restaurante
+
+### Hecho
+- `qa/tests/test_flujo_paneles.py` (6 tests) contra `#/demo-paneles`, que monta
+  los dos paneles con datos simulados y sin sesión: KPIs de admin, métricas de
+  finanzas, los tres gráficos del panel del restaurante, la factura de comisiones
+  y los dos guards.
+- Guards reales: `#/admin` y `#/dashboard` sin sesión mandan a `#/login`.
+
+### Dos bugs de redirección que destaparon los tests
+1. `OpsPanel` cambiaba `window.location.hash` **durante el render**. El
+   `hashchange` se disparaba antes de que `App` estuviera suscrito, así que la
+   ruta se quedaba en `admin` y el `<main>` salía vacío: pantalla en blanco sin
+   header ni login. Se movió a un `useEffect` (mismo patrón que ya documentaba
+   `Dashboard.jsx`).
+2. `#/dashboard` sin sesión se quedaba en «Cargando…» para siempre. Ahora
+   redirige al login cuando la sesión ya está resuelta y no hay usuario; `App`
+   pasa `cargandoSesion` al panel.
+
+### Resultados
+| Suite | Resultado |
+|---|---|
+| E2E Selenium (27) | verde |
+| `npm run build` | verde |
+
+### Pendiente
+- Primer run de CI (#1) en rojo: el job `e2e` falló y no hay log a mano
+  (la API pide token). `unit-frontend` falla como estaba previsto.
+- Sesión real de admin/restaurante: sigue bloqueada por credenciales.
+

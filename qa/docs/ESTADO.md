@@ -6,7 +6,7 @@
 ## TL;DR
 
 - Rama: `test/qa-continuacion` (local, sale de `test/qa-selenium-taurus`).
-- Suite E2E de navegador real: **21 tests, verde**.
+- Suite E2E de navegador real: **27 tests, verde**.
 - Monkey reproducible por seed: **verde**, 0 incidencias.
 - Regresión: el backend está verde (210/210), pero el frontend arrastra
   **38 fallos preexistentes** ajenos a esta suite; por eso `qa:regresion` sale
@@ -22,6 +22,7 @@
 | Arranque automático de mock API + Vite | verde |
 | 16 flujos públicos (landing, buscador, ficha, favoritos, rutas) | verde |
 | 5 flujos de auth sin credenciales (validación, opciones, guard de reserva) | verde |
+| 6 flujos de paneles (demo admin/restaurante + guards de `#/admin` y `#/dashboard`) | verde |
 | Monkey 40/80 acciones con seed | verde, 0 incidencias |
 | Perfiles Taurus con `passfail` (exit 3 si falla) | verde |
 | `npm test` backend (210 tests) | verde |
@@ -30,7 +31,7 @@
 Comandos rápidos (desde la raíz del frontend):
 
 ```powershell
-npm run qa:flujo       # 21 E2E, ~12 min (cada test abre navegador)
+npm run qa:flujo       # 27 E2E, ~4 min (cada test abre navegador)
 npm run qa:monkey      # 80 acciones
 npm run qa:regresion   # unitarias + E2E; rojo por el frontend
 ```
@@ -58,6 +59,9 @@ Para iterar un solo fichero:
 - `element.text` sale vacío en tarjetas/modales con animación: usa
   `helpers.texto()` (innerText por JS).
 - `clear()` de Selenium no dispara `onChange` de React: borra con teclado.
+- Cambiar `window.location.hash` **durante el render** de un componente no siempre
+  llega a App (el `hashchange` se dispara antes de que se suscriba): la ruta se
+  queda clavada y el `main` sale vacío. Las redirecciones van en un `useEffect`.
 
 ## Qué queda (en orden sugerido)
 
@@ -90,6 +94,12 @@ Ya cubierto sin credenciales en `test_flujo_auth.py`: correo inválido,
 contraseña corta, opciones Google/recuperar/registro, validación nativa de
 recuperar y redirección a login al reservar como invitado.
 
+Los **paneles** se recorren sin sesión por `#/demo-paneles` (datos simulados):
+ver `test_flujo_paneles.py`. Cubre KPIs de admin, métricas de finanzas, los tres
+gráficos del panel de restaurante, la factura fiscal y los dos guards. Lo que
+sigue faltando es el camino con sesión real (datos de verdad, acciones admin,
+reservas del restaurante).
+
 ### 3. Fallos unitarios del frontend (preexistentes)
 
 38 de 309. Afectan a `verifyEmail`/reset y a `mobile/src`; el arnés hace
@@ -119,7 +129,7 @@ que la regla no puede desviarse sin romper el test. `registro` sigue en 8
 | `qa/conftest.py` | Fixtures `driver`/`servidores`, opciones CLI, capturas al fallar |
 | `qa/servers.py` | Ciclo de vida de mock API + Vite (también portable a Linux) |
 | `qa/helpers.py` | `abrir`, `ir_hash`, `click_js`, `texto`, errores de consola |
-| `qa/tests/test_flujo_*.py` | Flujos con aserciones |
+| `qa/tests/test_flujo_paneles.py` | Paneles admin/restaurante (demo) y guards de sesión |
 | `qa/tests/test_monkey.py` | Monkey dentro de pytest |
 | `qa/tests/test_regresion_unitaria.py` | Envoltorio de `npm test` (solo con `--unitarias`) |
 | `qa/monkey/monkey_web.py` | Monkey CLI (`--acciones`, `--seed`, `--visible`, `--json`) |
