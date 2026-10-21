@@ -71,4 +71,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm test
+      # El script `npm test` cita el glob y Node 20 no lo expande: en Linux falla
+      # con "Could not find test/*.test.js". Aquí lo expande bash.
+      - run: node --test test/*.test.js

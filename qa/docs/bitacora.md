@@ -156,3 +156,20 @@ npm run qa:regresion  # exit 3 por los 38 fallos preexistentes del frontend
   (la API pide token). `unit-frontend` falla como estaba previsto.
 - Sesión real de admin/restaurante: sigue bloqueada por credenciales.
 
+---
+
+## 2026-10-21 — Tanda 5: los dos primeros runs del CI
+
+Runs #1 y #2 en rojo, con un fallo cada uno y **ninguno de la app**:
+
+1. `test_ruta_renderiza[#/descubrir]`: en el runner el ranking aún no había
+   montado el título «Los mejor valorados» cuando se leía `main.text` (0,4 s tras
+   el cambio de hash). Ahora se espera al texto y se lee con `helpers.texto()`
+   (innerText), que además no se pierde con nodos animados.
+2. `unit-frontend`: `npm test` ejecuta `node --test "test/*.test.js"`; con Node
+   20 sobre Linux el glob entrecomillado no se expande y Node responde
+   «Could not find …/test/*.test.js». El job llama a `node --test test/*.test.js`
+   sin comillas y deja que lo expanda bash.
+
+`monkey` no se ejecuta en push: por diseño (`schedule` o `workflow_dispatch`).
+
