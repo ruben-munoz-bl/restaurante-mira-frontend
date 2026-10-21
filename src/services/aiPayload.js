@@ -430,3 +430,23 @@ export function normalizarRespuesta(d) {
     model: typeof d.model === 'string' ? d.model : null,
   };
 }
+// ── Confirmación escrita ────────────────────────────────────────────────
+
+const AFIRMACIONES = new Set([
+  'si', 'sí', 'vale', 'ok', 'okay', 'confirmo', 'confirmar', 'adelante', 'claro', 'perfecto', 'de acuerdo',
+  'hazlo', 'resérvalo', 'reservalo', 'sí confirmo', 'si confirmo', 'sí por favor', 'si por favor',
+  "d'acord", 'endavant', 'confirma', 'yes', 'yep', 'sure', 'confirm', 'go ahead', 'do it',
+]);
+
+/**
+ * ¿El usuario ha respondido «sí» por escrito a una confirmación pendiente?
+ * Solo respuestas cortas y claras: «sí, pero a las 22:00» NO cuenta.
+ */
+export function esAfirmacion(texto) {
+  const limpio = String(texto ?? '')
+    .toLowerCase()
+    .replace(/[¡!¿?.,;:]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return AFIRMACIONES.has(limpio);
+}

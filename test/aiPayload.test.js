@@ -261,3 +261,13 @@ test('idiomaWeb: usa el idioma guardado y si no, el del navegador', () => {
     globalThis.localStorage = ls;
   }
 });
+
+test('esAfirmacion: un «sí» escrito confirma; matices o dudas no', async () => {
+  const { esAfirmacion } = await import('../src/services/aiPayload.js');
+  for (const t of ['Sí', 'si', '¡Vale!', 'ok', 'Confirmo.', 'sí, confirmo', "D'acord", 'Yes', 'go ahead']) {
+    assert.equal(esAfirmacion(t), true, t);
+  }
+  for (const t of ['', 'no', 'sí, pero a las 22:00', 'cambia la hora', 'mejor mañana', null]) {
+    assert.equal(esAfirmacion(t), false, String(t));
+  }
+});

@@ -14,6 +14,7 @@ import {
   buildHistory,
   nuevaIdempotencyKey,
   normalizarRespuesta,
+  esAfirmacion,
   MAX_MENSAJE,
 } from '../services/aiPayload.js';
 import { desdeError } from '../services/aiErrors.js';
@@ -126,6 +127,13 @@ export const useMiraStore = create((set, get) => ({
   enviar: async (texto, opts = {}) => {
     const limpio = String(texto ?? '').trim().slice(0, MAX_MENSAJE);
     if (!limpio || get().enviando) return null;
+    // «Sí» escrito con una reserva/acción pendiente = pulsar Confirmar: sin el
+    // confirmId el backend no ejecuta nada y la tarjeta se pierde.
+    const pendiente = get().confirmPendiente;
+    if (!opts.confirmId && pendiente && esAfirmacion(limpio)) {
+      opts = { ...opts, confirmId: pendiente.confirmId };
+      set({ confirmPendiente: null });
+    }
     // Solo longitud y si es confirmación: el texto del usuario no se guarda en la auditoría.
     track('mira_mensaje', { meta: { cantidad: limpio.length }, datos: { confirmacion: Boolean(opts.confirmId) } });
 
