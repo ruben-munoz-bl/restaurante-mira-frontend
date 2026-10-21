@@ -3,11 +3,11 @@
  * datos, panel, MIRA Points, dieta, accesibilidad, idioma, verificación,
  * cookies, negocio, próximas reservas, incidencias y reseñas.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { AppShell } from '../components/shell/AppShell';
+import { AppShell, useShell } from '../components/shell/AppShell';
 import { useAuthContext } from '../context/AuthContext';
 import { listarMisReservas } from '../services/reservaApi.js';
 import { obtenerEmblemasUsuario } from '../services/emblemasApi.js';
@@ -76,6 +76,17 @@ export default function Cuenta() {
   const auth = useAuthContext();
   const { colores, tema, esOscuro } = useTheme();
   const { saldoActual, rachaLogin, rachaReservas, fetchBalance } = usePointsStore();
+
+  const { scrollRef, headerH } = useShell();
+  const secciones = useRef({});
+  const bloque = [styles.bloque, { backgroundColor: colores.papel, borderColor: colores.borde }];
+
+  function irA(id) {
+    const nodo = secciones.current[id];
+    const sv = scrollRef.current;
+    if (!nodo || !sv) return;
+    nodo.measureLayout(sv.getInnerViewRef?.() ?? sv, (_x, y) => sv.scrollTo({ y: Math.max(0, y - headerH - 8), animated: true }));
+  }
 
   const usuario = auth.usuario;
   const esAdmin = auth.esAdmin;
@@ -277,18 +288,23 @@ export default function Cuenta() {
   return (
     <AppShell>
       <AuthPagina>
-        <AuthTarjeta>
-          {/* --- Progreso emblema --- */}
+        <AuthTarjeta style={styles.layout}>
+          {/* --- Ficha de perfil (BUG-159): franja de marca que envuelve el emblema --- */}
+          <View style={[bloque, styles.perfil]}>
           <View style={styles.progreso} accessibilityLiveRegion="polite">
+            <LinearGradient
+              colors={esOscuro ? ['#24463a', '#1c3a30'] : [colores.primaryContainer, colores.primaryContainer]}
+              style={styles.franja}
+            >
             <View style={styles.progresoLabelFila}>
-              <View style={[styles.linea, { backgroundColor: colores.borde }]} />
-              <Text style={[styles.progresoLabel, { color: colores.gris }]}>
+              <View style={[styles.linea, styles.lineaFranja]} />
+              <Text style={[styles.progresoLabel, { color: '#fff' }]}>
                 {t('emblemas.tituloProgreso')}
               </Text>
-              <View style={[styles.linea, { backgroundColor: colores.borde }]} />
+              <View style={[styles.linea, styles.lineaFranja]} />
             </View>
             <View style={{ alignItems: 'center' }}>
-              <Text style={[styles.progresoTitulo, { color: colores.tinta }]}>
+              <Text style={[styles.progresoTitulo, { color: '#fff' }]}>
                 {emblema ? t('emblemas.tituloNivel', { nombre: nombreEmblema }) : ' '}
               </Text>
               {emblema && (
@@ -301,6 +317,7 @@ export default function Cuenta() {
               )}
             </View>
             <EmblemaAvatar inicial={inicial} emblema={emblema} size="lg" />
+            </LinearGradient>
             <Text style={[styles.progresoTexto, { color: colores.gris }]}>{textoProgreso}</Text>
             <View
               style={[
@@ -359,6 +376,24 @@ export default function Cuenta() {
             </Pressable>
           </View>
 
+          {/* Rejilla de secciones (no scroll horizontal: «Actividad» quedaba oculta) */}
+          <View style={[styles.nav, { borderTopColor: colores.borde }]} accessibilityLabel={t('cuenta.navLabel')}>
+            {[['puntos', 'navPuntos'], ['preferencias', 'navPreferencias'], ['ajustes', 'navAjustes'], ['actividad', 'navActividad']].map(([id, clave]) => (
+              <Pressable
+                key={id}
+                onPress={() => irA(id)}
+                accessibilityRole="button"
+                style={({ pressed }) => [
+                  styles.navItem,
+                  { borderColor: colores.borde, backgroundColor: pressed ? colores.verdeSuave : 'transparent' },
+                ]}
+              >
+                <Text style={[styles.navTxt, { color: colores.tinta }]}>{t(`cuenta.${clave}`)}</Text>
+              </Pressable>
+            ))}
+          </View>
+          </View>
+
           {/* --- Panel (admin / empresa) --- */}
           {(esAdmin || perfil?.tipo === 'empresa') && (
             <View
@@ -386,6 +421,7 @@ export default function Cuenta() {
             </View>
           )}
 
+          <View ref={(r) => (secciones.current.puntos = r)} collapsable={false} style={bloque}>
           {/* --- MIRA POINTS --- */}
           <Sub>{t('points.title')}</Sub>
           <LinearGradient
@@ -435,7 +471,9 @@ export default function Cuenta() {
               </Text>
             </View>
           </LinearGradient>
+          </View>
 
+          <View ref={(r) => (secciones.current.preferencias = r)} collapsable={false} style={bloque}>
           {/* --- Dieta --- */}
           <Sub>{t('cuenta.miDieta')}</Sub>
           <View style={[styles.form, styles.card, { backgroundColor: colores.verdeSuave, borderColor: colores.glassBorder }]}>
@@ -536,6 +574,8 @@ export default function Cuenta() {
             })}
           </View>
 
+          </View>
+          <View ref={(r) => (secciones.current.ajustes = r)} collapsable={false} style={bloque}>
           {/* --- Verificación de email --- */}
           <Sub>{t('cuenta.verificacionCorreo')}</Sub>
           <View style={styles.form}>
@@ -617,9 +657,10 @@ export default function Cuenta() {
             ) : null}
           </View>
 
+          </View>
           {/* --- Negocio --- */}
           {(perfil?.tipo === 'empresa' || esAdmin) && (
-            <>
+            <View style={bloque}>
               <Sub>{t('cuenta.miNegocio')}</Sub>
               {perfil?.tipo === 'empresa' && (
                 <Pressable
@@ -663,9 +704,10 @@ export default function Cuenta() {
                   ))}
                 </View>
               )}
-            </>
+            </View>
           )}
 
+          <View ref={(r) => (secciones.current.actividad = r)} collapsable={false} style={bloque}>
           {/* --- Reservas --- */}
           <Sub>{t('cuenta.proximasReservas')}</Sub>
           {cargando && <Text style={[styles.vacio, { color: colores.gris }]}>{t('otros.cargando')}</Text>}
@@ -741,6 +783,7 @@ export default function Cuenta() {
               ))}
             </View>
           )}
+          </View>
         </AuthTarjeta>
       </AuthPagina>
     </AppShell>
@@ -748,6 +791,63 @@ export default function Cuenta() {
 }
 
 const styles = StyleSheet.create({
+  // BUG-159: la tarjeta auth pasa a ser solo contenedor; cada bloque es su propia tarjeta.
+  layout: {
+    maxWidth: 640,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    paddingVertical: 0,
+    paddingHorizontal: 0,
+    gap: 20,
+    elevation: 0,
+    shadowOpacity: 0,
+  },
+  bloque: {
+    borderWidth: 1,
+    borderRadius: RADIO.peq,
+    paddingHorizontal: 16,
+    paddingTop: 6.4,
+    paddingBottom: 22.4,
+  },
+  perfil: {
+    paddingTop: 0,
+    overflow: 'hidden',
+    gap: 14.4,
+  },
+  franja: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    gap: 8.8,
+    marginHorizontal: -16,
+    paddingTop: 24,
+    paddingHorizontal: 16,
+    paddingBottom: 30.4,
+  },
+  lineaFranja: {
+    backgroundColor: 'rgba(255, 255, 255, 0.35)',
+  },
+  nav: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6.4,
+    paddingTop: 12.8,
+    borderTopWidth: 1,
+  },
+  navItem: {
+    flexGrow: 1,
+    flexBasis: 120,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14.4,
+    borderWidth: 1,
+    borderRadius: 999,
+  },
+  navTxt: {
+    fontSize: 15.2,
+    fontWeight: '600',
+    fontFamily: FUENTES.textoSemi,
+  },
   progreso: {
     alignItems: 'center',
     gap: 8.8,

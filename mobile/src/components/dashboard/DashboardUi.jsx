@@ -7,6 +7,7 @@ import { View, Text, Pressable, TextInput, Modal, Animated, ScrollView } from 'r
 import { useOpStyles } from './OpTokens';
 import { Simbolo } from '../shell/Simbolo';
 import { FUENTES } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
 
 /** Punto con animación opPulse (opacity 1 → 0.4). */
 export function PuntoPulso({ color, size = 6, periodo = 1600, style }) {
@@ -49,8 +50,10 @@ export function OpBtnPrimary({ children, onPress, disabled, small, light, style,
   );
 }
 
-export function OpBtnGhost({ children, onPress, disabled, small, light, style, txtStyle }) {
+/** `peligro`: acción de cancelar en rojo (BUG-154). */
+export function OpBtnGhost({ children, onPress, disabled, small, light, peligro, style, txtStyle }) {
   const { s } = useOpStyles();
+  const { colores } = useTheme();
   return (
     <Pressable
       onPress={onPress}
@@ -60,11 +63,12 @@ export function OpBtnGhost({ children, onPress, disabled, small, light, style, t
         s.btnGhost,
         small && s.btnGhostSmall,
         light && s.btnGhostLight,
+        peligro && { borderWidth: 1, borderColor: colores.rojo },
         { opacity: pressed ? 0.8 : 1 },
         style,
       ]}
     >
-      <Text style={[s.btnGhostTxt, small && s.btnGhostSmallTxt, txtStyle]}>{children}</Text>
+      <Text style={[s.btnGhostTxt, small && s.btnGhostSmallTxt, peligro && { color: colores.rojo }, txtStyle]}>{children}</Text>
     </Pressable>
   );
 }

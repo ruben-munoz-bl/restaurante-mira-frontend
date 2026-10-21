@@ -151,7 +151,7 @@ export default function OpsReservas({ busquedaInicial = '' }) {
                   <OpsBtn sm disabled={actuando === r.id} onPress={() => cambiar(r.id, 'no_show')}>
                     No-show
                   </OpsBtn>
-                  <OpsBtn sm disabled={actuando === r.id} onPress={() => cambiar(r.id, 'cancelada')}>
+                  <OpsBtn tipo="danger" sm disabled={actuando === r.id} onPress={() => cambiar(r.id, 'cancelada')}>
                     Cancelar
                   </OpsBtn>
                 </View>

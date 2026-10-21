@@ -121,7 +121,7 @@ export default function ReservationActions({ reserva, onStatusChange, t, comisio
             <OpBtnGhost small disabled={loading} onPress={() => handleAction('no_show')}>
               {tt('dashboard.marcarNoShow', 'No-show')}
             </OpBtnGhost>
-            <OpBtnGhost small disabled={loading} onPress={() => handleAction('cancelar')} txtStyle={{ color: '#b44d3e' }}>
+            <OpBtnGhost small disabled={loading} peligro onPress={() => handleAction('cancelar')}>
               {tt('dashboard.cancelarReserva', 'Cancelar')}
             </OpBtnGhost>
           </>

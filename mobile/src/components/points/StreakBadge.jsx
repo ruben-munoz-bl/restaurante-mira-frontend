@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
   fireWrap: {
     width: 64,
     height: 64,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 2,
     alignItems: 'center',
     justifyContent: 'center',

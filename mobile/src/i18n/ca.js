@@ -74,6 +74,7 @@ export default {
     "menos1km": "A menys de 1 km del centre",
     "menos3km": "A menys de 3 km del centre",
     "menos5km": "A menys de 5 km del centre",
+    "menos10km": "A menys de 10 km del centre",
     "mas5km": "A més de 5 km del centre",
     "cualquierHora": "Qualsevol hora",
     "desayuno": "Esmorzar (09:00-12:00)",
@@ -189,6 +190,11 @@ export default {
     "googleContinuar": "Continuar amb Google"
   },
   "cuenta": {
+    "navLabel": "Seccions del meu compte",
+    "navPuntos": "Punts",
+    "navPreferencias": "Preferències",
+    "navAjustes": "Ajustos",
+    "navActividad": "Activitat",
     "miCuenta": "El meu compte",
     "correo": "Correu",
     "verificado": "Verificat",

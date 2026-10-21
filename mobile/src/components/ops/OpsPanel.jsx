@@ -156,7 +156,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
       <View style={{ flex: 1 }}>
         {/* Header barra */}
         <View style={s.header}>
-          <Pressable style={s.iconBtn} onPress={() => setDrawer((v) => !v)} accessibilityLabel="Abrir menú">
+          <Pressable style={s.iconBtn} onPress={() => setDrawer((v) => !v)} accessibilityRole="button" accessibilityLabel="Abrir menú" accessibilityState={{ expanded: !!drawer }}>
             <Simbolo name="menu" size={20} color={op.onSurface} />
           </Pressable>
           <View style={s.searchCaja}>
