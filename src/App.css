@@ -1528,6 +1528,12 @@ button.btn-texto {
   --avatar-size: 5.5rem;
 }
 
+/* El círculo sigue el tamaño del wrapper para que el marco del emblema encaje. */
+.avatar-wrapper .cuenta-avatar {
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+}
+
 .avatar-wrapper--lg .cuenta-avatar {
   font-size: 2.4rem;
 }

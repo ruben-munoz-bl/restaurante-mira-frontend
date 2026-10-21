@@ -22,9 +22,25 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
   const [qLocal, setQLocal] = useState(filtros.q);
   const [plegado, setPlegado] = useState(() => window.innerWidth < 768);
 
+  // Etiquetas por valor estable: el texto de los modelos va en español.
+  const CLAVES_FRANJA = { '': 'cualquierHora', desayuno: 'desayuno', comida: 'comida', cena: 'cena' };
+  const CLAVES_DISTANCIA = { '': 'cualquierDistancia', 1: 'menos1km', 3: 'menos3km', 5: 'menos5km', 10: 'menos10km' };
+  const CLAVES_ORDEN = { Relevancia: 'relevancia', 'Valoración': 'valoracion', Distancia: 'distanciaOrden', Precio: 'precioOrden' };
+  const CLAVES_DIA = { Lunes: 'lunes', Martes: 'martes', 'Miércoles': 'miercoles', Jueves: 'jueves', Viernes: 'viernes', 'Sábado': 'sabado', Domingo: 'domingo' };
+
   function traducirFranja(f) {
-    const map = { 'Cualquier hora': t('busqueda.cualquierHora'), 'Desayuno (09:00-12:00)': t('busqueda.desayuno'), 'Comida (13:00-16:00)': t('busqueda.comida'), 'Cena (20:00-23:30)': t('busqueda.cena') };
-    return map[f.label] || f.label;
+    const clave = CLAVES_FRANJA[f.value];
+    return clave ? t(`busqueda.${clave}`) : f.label;
+  }
+  function traducirDistancia(d) {
+    const clave = CLAVES_DISTANCIA[d.value];
+    return clave ? t(`busqueda.${clave}`) : d.label;
+  }
+  function traducirOrden(o) {
+    return CLAVES_ORDEN[o] ? t(`busqueda.${CLAVES_ORDEN[o]}`) : o;
+  }
+  function traducirDia(d) {
+    return CLAVES_DIA[d] ? t(`modelos.${CLAVES_DIA[d]}`) : d;
   }
   useEffect(() => setQLocal(filtros.q), [filtros.q]);
 
@@ -112,7 +128,7 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
             onChange={(e) => onChange('distanciaMax', e.target.value)}
           >
             {opciones.distancias.map((d) => (
-              <option key={String(d.value)} value={d.value}>{d.label}</option>
+              <option key={String(d.value)} value={d.value}>{traducirDistancia(d)}</option>
             ))}
           </select>
         </div>
@@ -121,7 +137,7 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
           <label htmlFor="f-dia">{t('busqueda.dia')}</label>
           <select id="f-dia" name="dia" value={filtros.dia} onChange={(e) => onChange('dia', e.target.value)}>
             <option value="">{t('busqueda.cualquierDia')}</option>
-            {DIAS.filter(Boolean).map(d => <option key={d} value={d}>{d}</option>)}
+            {DIAS.filter(Boolean).map(d => <option key={d} value={d}>{traducirDia(d)}</option>)}
           </select>
         </div>
 
@@ -141,7 +157,7 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
           <label htmlFor="f-orden">{t('busqueda.ordenarPor')}</label>
           <select id="f-orden" name="orden" value={filtros.orden} onChange={(e) => onChange('orden', e.target.value)}>
             {opciones.ordenes.map((o) => (
-              <option key={o} value={o}>{o}</option>
+              <option key={o} value={o}>{traducirOrden(o)}</option>
             ))}
           </select>
         </div>

@@ -59,6 +59,7 @@ export default {
     "menos1km": "A menos de 1 km del centro",
     "menos3km": "A menos de 3 km del centro",
     "menos5km": "A menos de 5 km del centro",
+    "menos10km": "A menos de 10 km del centro",
     "mas5km": "A más de 5 km del centro",
     "cualquierHora": "Cualquier hora",
     "desayuno": "Desayuno (09:00-12:00)",

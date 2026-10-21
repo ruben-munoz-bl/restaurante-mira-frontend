@@ -59,6 +59,7 @@ export default {
     "menos1km": "Within 1 km of centre",
     "menos3km": "Within 3 km of centre",
     "menos5km": "Within 5 km of centre",
+    "menos10km": "Within 10 km of centre",
     "mas5km": "Over 5 km from centre",
     "cualquierHora": "Any time",
     "desayuno": "Breakfast (09:00-12:00)",
