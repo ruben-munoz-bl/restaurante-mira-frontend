@@ -133,3 +133,31 @@ npm run qa:regresion  # exit 3 por los 38 fallos preexistentes del frontend
    estaba documentada en `ESTADO.md`).
 
 | Suite completa (`pytest qa`, Chrome) | 22 verde, 2 omitidos (unitarias) |
+
+---
+
+## 2026-10-21 — Tanda 7: paneles y CI (ya dentro de `main`)
+
+Se retoma encima de `main` (49 commits después) y se traen solo los tests y los
+tres arreglos que necesitan:
+
+1. **Paneles** (`qa/tests/test_flujo_paneles.py`, 6 tests): KPIs de admin,
+   métricas de finanzas, los tres gráficos del restaurante, factura fiscal y los
+   dos guards de sesión (`#/admin`, `#/dashboard` sin sesión → login). Sin
+   credenciales se recorren por `#/demo-paneles` (datos simulados).
+2. **Dos bugs de redirección** que encontraron esos tests: `OpsPanel` cambiaba
+   el hash durante el render (con `hashchange` disparado antes de que App se
+   suscriba la ruta se quedaba clavada) y `#/dashboard` sin sesión se quedaba en
+   «Cargando…» para siempre. Los dos van ahora en un `useEffect`.
+3. **Contraseña**: mensajes de es/en/ca alineados con la validación real (6), y
+   `test_login_valida_contrasena_corta` exige que el mensaje diga «6».
+4. **«Descubrir» sin animaciones**: Edge en CI arranca con
+   `prefers-reduced-motion: reduce` y monta `VueloEstatico`, que no tenía
+   cabecera: la página se quedaba **sin `<h1>`**. Se le añade la del vuelo
+   animado.
+
+CI (`.github/workflows/qa.yml`): `e2e` y `unit-frontend` en push, `monkey` solo
+lunes o a mano. Dos fallos del primer run, los dos del entorno, ya arreglados:
+la aserción de navegación leía una sola vez (ahora espera al texto con
+`helpers.texto()`) y el glob de `npm test` no se expandía con Node 20 en Linux
+(el job llama a `node --test test/*.test.js` sin comillas).

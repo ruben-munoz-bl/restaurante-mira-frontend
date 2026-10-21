@@ -105,7 +105,7 @@ function rutaActual() {
 }
 
 export default function App() {
-  const { usuario, crearCuenta, iniciarSesion, iniciarSesionGoogle, cerrarSesion, esAdmin, perfil, recargarPerfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, favoritos, toggleFavorito, noLeidos, recargarMensajes, enviarVerificacionEmail, recargarEmailVerified } = useAuth();
+  const { usuario, crearCuenta, iniciarSesion, iniciarSesionGoogle, cerrarSesion, esAdmin, perfil, recargarPerfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, favoritos, toggleFavorito, noLeidos, recargarMensajes, enviarVerificacionEmail, recargarEmailVerified, cargandoSesion } = useAuth();
   const [tema, setTema] = useState(() => {
     try {
       const guardado = localStorage.getItem('mira:tema');
@@ -133,7 +133,7 @@ export default function App() {
 
   return (
     <I18nProvider onLangChange={perfil?.guardarLang}>
-      <AppContent auth={{ usuario, crearCuenta, iniciarSesion, iniciarSesionGoogle, cerrarSesion, esAdmin, perfil, recargarPerfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, favoritos, toggleFavorito, noLeidos, recargarMensajes, enviarVerificacion: enviarVerificacionEmail, enviarVerificacionEmail, recargarEmailVerified, guardarLang: perfil?.guardarLang }} tema={tema} setTema={setTema} />
+      <AppContent auth={{ usuario, crearCuenta, iniciarSesion, iniciarSesionGoogle, cerrarSesion, esAdmin, perfil, recargarPerfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, favoritos, toggleFavorito, noLeidos, recargarMensajes, enviarVerificacion: enviarVerificacionEmail, enviarVerificacionEmail, recargarEmailVerified, guardarLang: perfil?.guardarLang, cargandoSesion }} tema={tema} setTema={setTema} />
     </I18nProvider>
   );
 }
@@ -142,7 +142,7 @@ function AppContent({ auth, tema, setTema }) {
   const TRADS = useMemo(() => ({ es, ca, en }), []);
   const t = useT(TRADS);
   const { lang, setLang } = useI18n();
-  const { usuario, crearCuenta, iniciarSesion, iniciarSesionGoogle, cerrarSesion, esAdmin, perfil, recargarPerfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, favoritos, toggleFavorito, noLeidos, recargarMensajes, enviarVerificacion, enviarVerificacionEmail, recargarEmailVerified, guardarLang } = auth;
+  const { usuario, crearCuenta, iniciarSesion, iniciarSesionGoogle, cerrarSesion, esAdmin, perfil, recargarPerfil, dieta, guardarDieta, accesibilidad, guardarAccesibilidad, favoritos, toggleFavorito, noLeidos, recargarMensajes, enviarVerificacion, enviarVerificacionEmail, recargarEmailVerified, guardarLang, cargandoSesion } = auth;
   const syncBalance = usePointsStore((s) => s.fetchBalance);
   // Fuente única del saldo: la store zustand. Así toda mutación (descuento,
   // canje, #/puntos, cuenta, racha…) llega al header sin recargar la página.
@@ -457,7 +457,7 @@ function AppContent({ auth, tema, setTema }) {
           </div>
         )}
         {ruta === 'admin' && <OpsPanel usuario={usuario} esAdmin={esAdmin} perfil={perfil} tema={tema} onCambiarTema={() => setTema((v) => (v === 'oscuro' ? 'claro' : 'oscuro'))} todos={todos} />}
-        {ruta === 'dashboard' && <Dashboard usuario={usuario} esAdmin={esAdmin} perfil={perfil} />}
+        {ruta === 'dashboard' && <Dashboard usuario={usuario} esAdmin={esAdmin} perfil={perfil} cargandoSesion={cargandoSesion} />}
         {ruta === 'jam' && <Jam usuario={usuario} perfil={perfil} />}
         {ruta === 'negocio' && <Negocio usuario={usuario} perfil={perfil} onProponer={proponerNegocio} />}
         {ruta === 'favoritos' && (

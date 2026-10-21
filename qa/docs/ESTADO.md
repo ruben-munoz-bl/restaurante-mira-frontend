@@ -1,18 +1,19 @@
 # Estado y handoff de QA
 
-> Última actualización: **2026-10-20**. Si retomas esto, lee primero este
+> Última actualización: **2026-10-21**. Si retomas esto, lee primero este
 > fichero; el detalle cronológico está en `bitacora.md`.
 
 ## TL;DR
 
 - Rama: `test/qa-selenium-taurus` (remota, pusheada).
-- Suite E2E de navegador real: **21 tests, verde**.
+- Suite E2E de navegador real: **27 tests, verde** (incluye los paneles de
+  admin/restaurante vía `#/demo-paneles` y los dos guards de sesión).
 - Monkey reproducible por seed: **verde**, 0 incidencias. Ahora con varias
   semillas, modo móvil, formularios y ráfagas de clics (ver bitácora 2026-10-20 b).
 - Regresión: el backend está verde (210/210), pero el frontend arrastra
   **38 fallos preexistentes** ajenos a esta suite; por eso `qa:regresion` sale
   en rojo (exit 3) y es correcto.
-- **No hay CI todavía**: está planificado abajo.
+- **CI en GitHub Actions, en verde** (`.github/workflows/qa.yml`).
 - **No hay flujos autenticados reales**: falta un usuario de Firebase de prueba
   o un mock de Auth.
 
@@ -23,6 +24,8 @@
 | Arranque automático de mock API + Vite | verde |
 | 16 flujos públicos (landing, buscador, ficha, favoritos, rutas) | verde |
 | 5 flujos de auth sin credenciales (validación, opciones, guard de reserva) | verde |
+| Paneles admin/restaurante (`#/demo-paneles`) y guards de sesión | verde |
+| CI en GitHub Actions (3 jobs) | verde |
 | Monkey 40/80 acciones con seed | verde, 0 incidencias |
 | Monkey multisemilla (1,2,3 escritorio · 4,5 móvil), Chrome en Linux | verde, 0 incidencias |
 | Perfiles Taurus con `passfail` (exit 3 si falla) | verde |
@@ -32,7 +35,7 @@
 Comandos rápidos (desde la raíz del frontend):
 
 ```powershell
-npm run qa:flujo       # 21 E2E, ~12 min (cada test abre navegador)
+npm run qa:flujo       # 27 E2E, ~4-6 min (cada test abre navegador)
 npm run qa:monkey      # 80 acciones
 npm run qa:regresion   # unitarias + E2E; rojo por el frontend
 ```
@@ -60,24 +63,26 @@ Para iterar un solo fichero:
   flujo se vuelve frágil, lo correcto es añadir `data-testid` al componente.
 - `element.text` sale vacío en tarjetas/modales con animación: usa
   `helpers.texto()` (innerText por JS).
+- Edge headless arranca con `prefers-reduced-motion: reduce` (en CI y con
+  `QA_REDUCED_MOTION=1` en local): la app monta entonces las variantes sin
+  animación. Un test que busque textos del vuelo de «Descubrir» debe valer para
+  las dos.
 - `clear()` de Selenium no dispara `onChange` de React: borra con teclado.
 
 ## Qué queda (en orden sugerido)
 
-### 1. CI en GitHub Actions
+### 1. CI en GitHub Actions — **hecho (2026-10-21)**
 
-No existe `.github/workflows/`. Plan probado a mano, pendiente de escribir y
-validar en Actions:
+`.github/workflows/qa.yml`, tres jobs:
 
-- Job `e2e` en `windows-latest` (Edge preinstalado):
-  `checkout` → `setup-node 20` → `npm ci` → `setup-python 3.12` →
-  `pip install pytest selenium` → `python -m pytest qa -k "not monkey and not suite_"`.
-- Subir `qa/artifacts/` como artifact siempre (`if: always()`).
-- Job `unit-frontend` en `ubuntu-latest` con `continue-on-error: true` y un
-  comentario que explique los 38 fallos preexistentes; quitarlo cuando estén
-  arreglados.
-- Job `monkey` solo `schedule`/`workflow_dispatch` (80 acciones, seed fija).
-- Timeout 30 min; los tests son lentos (~30-35 s por test).
+- `e2e` en `windows-latest` (Edge preinstalado): `npm ci` → `setup-python 3.12`
+  → `pip install pytest selenium` → `python -m pytest qa -k "not monkey and not
+  suite_"`. Sube `qa/artifacts/` siempre.
+- `unit-frontend` en `ubuntu-latest`, Node 20, `continue-on-error: true` por los
+  38 fallos preexistentes. Llama a `node --test test/*.test.js` **sin comillas**:
+  `npm test` lo cita y Node 20 sobre Linux no expande el glob.
+- `monkey` solo `schedule` (lunes 04:00 UTC) o `workflow_dispatch`; en push sale
+  como *skipped* y es lo correcto. A mano: Actions → *QA* → *Run workflow*.
 
 ### 2. Flujos autenticados (login + reserva completa)
 
@@ -101,12 +106,13 @@ recuperar y redirección a login al reservar como invitado.
 Node **v24.21** (el proyecto declara `>=18`). No lo causa la suite E2E.
 Decidir: actualizar el arnés, fijar Node 20 en CI o mover esos tests a Vitest.
 
-### 4. Bug candidato de contraseña
+### 4. Bug de contraseña — **resuelto (2026-10-21)**
 
-`src/components/Login.jsx` rechaza `< 6` caracteres, pero
-`src/i18n/es.js` (`auth.contrasenaCorta`) dice "al menos 8". Hay que decidir la
-regla, alinear ambos y añadir un test que la fije. No se tocó porque no estaba
-pedido.
+Regla decidida: **mínimo 6** (lo que ya validaban `Login.jsx` y
+`Restablecer.jsx`). Se alinearon `auth.contrasenaCorta` y `restablecer.errorCorto`
+en es/en/ca, y `test_login_valida_contrasena_corta` exige que el mensaje diga
+«6», así que la regla no puede desviarse sin romper el test. `registro` sigue en
+8 (mensaje y validación ya coincidían).
 
 ### 5. Opcionales
 
@@ -122,6 +128,7 @@ pedido.
 | `qa/servers.py` | Ciclo de vida de mock API + Vite (también portable a Linux) |
 | `qa/helpers.py` | `abrir`, `ir_hash`, `click_js`, `texto`, errores de consola |
 | `qa/tests/test_flujo_*.py` | Flujos con aserciones |
+| `qa/tests/test_flujo_paneles.py` | Paneles admin/restaurante (demo) y guards de sesión |
 | `qa/tests/test_monkey.py` | Monkey dentro de pytest |
 | `qa/tests/test_regresion_unitaria.py` | Envoltorio de `npm test` (solo con `--unitarias`) |
 | `qa/monkey/monkey_web.py` | Monkey CLI (`--acciones`, `--seed`, `--visible`, `--json`) |

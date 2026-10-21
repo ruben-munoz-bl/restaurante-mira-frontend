@@ -31,6 +31,8 @@ def crear_driver(headless: bool = True, ancho: int = 1400, alto: int = 1000):
     opts.add_argument("--disable-gpu")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--lang=es-ES")
+    if os.environ.get("QA_REDUCED_MOTION"):
+        opts.add_argument("--force-prefers-reduced-motion")
     opts.set_capability("goog:loggingPrefs", {"browser": "ALL"})
 
     if NAVEGADOR == "chrome":
