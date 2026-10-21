@@ -11,7 +11,7 @@
 - Regresión: el backend está verde (210/210), pero el frontend arrastra
   **38 fallos preexistentes** ajenos a esta suite; por eso `qa:regresion` sale
   en rojo (exit 3) y es correcto.
-- **CI escrito, sin validar**: `.github/workflows/qa.yml` (ver abajo).
+- **CI en verde**: `.github/workflows/qa.yml` (run #4, `6687e58`; ver abajo).
 - **No hay flujos autenticados reales**: falta un usuario de Firebase de prueba
   o un mock de Auth.
 
@@ -59,25 +59,34 @@ Para iterar un solo fichero:
 - `element.text` sale vacío en tarjetas/modales con animación: usa
   `helpers.texto()` (innerText por JS).
 - `clear()` de Selenium no dispara `onChange` de React: borra con teclado.
+- **Edge headless arranca con `prefers-reduced-motion: reduce`** (en CI y con
+  `--force-prefers-reduced-motion` en local): la app monta entonces la variante
+  sin animaciones. Un test que busque el título del vuelo de «Descubrir» debe
+  valer para las dos. Para reproducirlo: `QA_REDUCED_MOTION=1`.
 - Cambiar `window.location.hash` **durante el render** de un componente no siempre
   llega a App (el `hashchange` se dispara antes de que se suscriba): la ruta se
   queda clavada y el `main` sale vacío. Las redirecciones van en un `useEffect`.
 
 ## Qué queda (en orden sugerido)
 
-### 1. CI en GitHub Actions
+### 1. CI en GitHub Actions — **hecho y en verde (run #4)**
 
-Escrito en `.github/workflows/qa.yml`; **falta verlo correr en Actions**:
+`.github/workflows/qa.yml`, tres jobs:
 
-- Job `e2e` en `windows-latest` (Edge preinstalado):
-  `checkout` → `setup-node 20` → `npm ci` → `setup-python 3.12` →
-  `pip install pytest selenium` → `python -m pytest qa -k "not monkey and not suite_"`.
-- Subir `qa/artifacts/` como artifact siempre (`if: always()`).
-- Job `unit-frontend` en `ubuntu-latest` con `continue-on-error: true` y un
-  comentario que explique los 38 fallos preexistentes; quitarlo cuando estén
-  arreglados.
-- Job `monkey` solo `schedule`/`workflow_dispatch` (80 acciones, seed fija).
-- Timeout 30 min; la suite E2E tarda ~3,5 min en local (21 tests).
+- `e2e` en `windows-latest` (Edge preinstalado): `npm ci` → `setup-python 3.12`
+  → `pip install pytest selenium` → `python -m pytest qa -k "not monkey and not
+  suite_"` (27 tests, ~3,5-4 min). Sube `qa/artifacts/` siempre.
+- `unit-frontend` en `ubuntu-latest`, Node 20, `continue-on-error: true` por los
+  38 fallos preexistentes (ver punto 3). El job llama a
+  `node --test test/*.test.js` **sin comillas**: `npm test` lo cita y Node 20
+  sobre Linux no expande el glob («Could not find …/test/*.test.js»).
+- `monkey` solo `schedule` (lunes 04:00 UTC) o `workflow_dispatch`; en push no
+  aparece como ejecutado y es lo correcto. Para lanzarlo a mano:
+  Actions → *QA* → *Run workflow* (ese disparo corre también `e2e`).
+
+Los dos fallos que encontró el primer CI eran reales y ya están arreglados: el
+`<h1>` que faltaba en la variante sin animaciones de «Descubrir» y el glob del
+job de unitarias.
 
 ### 2. Flujos autenticados (login + reserva completa)
 
