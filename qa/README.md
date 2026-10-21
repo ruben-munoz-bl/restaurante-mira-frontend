@@ -160,8 +160,9 @@ El monkey destapó dos cosas que no eran bugs de la app sino del mock:
   Auth. Hoy `#/reservas` se prueba como ruta protegida, no el flujo autenticado.
 - **Reserva completa, puntos, panel admin, empresa**: requieren sesión.
 - **CI**: no hay workflow todavía; el plan está en `docs/ESTADO.md`.
-- **Bug candidato**: `Login.jsx` rechaza contraseñas de menos de 6 caracteres,
-  pero el mensaje dice "al menos 8". Ver `docs/bitacora.md`.
+- **Bug de contraseña (resuelto el 2026-10-21)**: la regla es 6 caracteres en
+  login y restablecer; los mensajes es/en/ca ya lo dicen y un test lo fija.
+  `registro` pide 8, que es lo que valida.
 - **Visual regression** (comparación de imágenes): Selenium saca capturas, pero
   no hay diff contra una baseline. Se puede añadir con `pytest-playwright` o
   `percy`/`backstop`.

@@ -44,6 +44,8 @@ def test_login_valida_contrasena_corta(login):
 
     error = WebDriverWait(login, 5).until(lambda d: _error(d) or False)
     assert "contrase" in error.lower(), error
+    # La regla es 6 (la misma que aplica Login.jsx); el mensaje no debe desviarse.
+    assert "6" in error, error
     assert "#/login" in login.current_url
 
 
@@ -86,7 +88,7 @@ def test_reserva_sin_sesion_manda_al_login(driver, servidores):
 
     # Aviso de que hace falta sesión, con enlace al login.
     nota = modal.find_element(By.CSS_SELECTOR, ".det-nota-login")
-    assert "sesión" in nota.text.lower() or "sesion" in nota.text.lower()
+    assert "sesión" in h.texto(nota).lower() or "sesion" in h.texto(nota).lower()
 
     h.click_js(driver, modal.find_element(By.CSS_SELECTOR, ".det-reservar"))
     WebDriverWait(driver, 5).until(lambda d: "#/login" in d.current_url)

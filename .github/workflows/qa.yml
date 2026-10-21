@@ -1,0 +1,74 @@
+name: QA
+
+on:
+  push:
+    branches: [main, "test/**"]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1" # monkey semanal (lunes 04:00 UTC)
+
+jobs:
+  e2e:
+    # windows-latest trae Edge, que es el único navegador que resuelve Selenium Manager
+    if: github.event_name != 'schedule'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: pip install pytest selenium
+      # sin monkey (job aparte) y sin las unitarias (job aparte)
+      - run: python -m pytest qa -v -k "not monkey and not suite_"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-artifacts-e2e
+          path: qa/artifacts/
+          retention-days: 7
+
+  monkey:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: npm ci
+      - run: pip install pytest selenium
+      - run: python -m pytest qa/tests/test_monkey.py -v --monkey-acciones 80 --monkey-seed 20261020
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qa-artifacts-monkey
+          path: qa/artifacts/
+          retention-days: 7
+
+  unit-frontend:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # 38 fallos preexistentes (arnés vm.runInContext vs Node 20/24): no bloquea.
+    # Quitar continue-on-error cuando estén arreglados.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm test

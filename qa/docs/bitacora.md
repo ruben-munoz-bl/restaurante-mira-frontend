@@ -95,3 +95,32 @@ npm run qa:flujo      # 21 E2E, exit 0
 npm run qa:monkey     # 80 acciones, exit 0
 npm run qa:regresion  # exit 3 por los 38 fallos preexistentes del frontend
 ```
+
+---
+
+## 2026-10-21 — Tanda 3: CI escrito, flaky del modal y bug de contraseña
+
+### Hecho
+- `.github/workflows/qa.yml`: tres jobs (`e2e` en `windows-latest`,
+  `unit-frontend` en `ubuntu-latest` con `continue-on-error`, `monkey` solo
+  `schedule`/`workflow_dispatch`), artefactos con `if: always()`, timeout 30 min.
+  YAML validado en local; **sin ejecutar en Actions**.
+- `test_reserva_sin_sesion_manda_al_login` falló una vez en la primera pasada:
+  leía `nota.text` (vacío en nodos ya animados) en vez de `helpers.texto()`.
+  Era el fallo documentado en la tanda 1, aplicado al propio test.
+- Regla de contraseña = **6** (la que ya validaban `Login.jsx` y
+  `Restablecer.jsx`): mensajes `auth.contrasenaCorta` y `restablecer.errorCorto`
+  alineados en es/en/ca. `test_login_valida_contrasena_corta` exige ahora que el
+  mensaje diga "6". `registro` sigue en 8, que es lo que valida.
+
+### Resultados
+| Suite | Resultado |
+|---|---|
+| E2E Selenium (21) | verde |
+| `test/i18n*.test.js` | 4/4 verde |
+| `npm run build` | verde |
+
+### Pendiente
+- Validar el workflow en Actions (necesita push de la rama).
+- Todo lo de `ESTADO.md`: flujos autenticados, 38 unitarios, opcionales.
+

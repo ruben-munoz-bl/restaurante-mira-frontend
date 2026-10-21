@@ -1,17 +1,17 @@
 # Estado y handoff de QA
 
-> Última actualización: **2026-10-20**. Si retomas esto, lee primero este
+> Última actualización: **2026-10-21**. Si retomas esto, lee primero este
 > fichero; el detalle cronológico está en `bitacora.md`.
 
 ## TL;DR
 
-- Rama: `test/qa-selenium-taurus` (remota, pusheada).
+- Rama: `test/qa-continuacion` (local, sale de `test/qa-selenium-taurus`).
 - Suite E2E de navegador real: **21 tests, verde**.
 - Monkey reproducible por seed: **verde**, 0 incidencias.
 - Regresión: el backend está verde (210/210), pero el frontend arrastra
   **38 fallos preexistentes** ajenos a esta suite; por eso `qa:regresion` sale
   en rojo (exit 3) y es correcto.
-- **No hay CI todavía**: está planificado abajo.
+- **CI escrito, sin validar**: `.github/workflows/qa.yml` (ver abajo).
 - **No hay flujos autenticados reales**: falta un usuario de Firebase de prueba
   o un mock de Auth.
 
@@ -63,8 +63,7 @@ Para iterar un solo fichero:
 
 ### 1. CI en GitHub Actions
 
-No existe `.github/workflows/`. Plan probado a mano, pendiente de escribir y
-validar en Actions:
+Escrito en `.github/workflows/qa.yml`; **falta verlo correr en Actions**:
 
 - Job `e2e` en `windows-latest` (Edge preinstalado):
   `checkout` → `setup-node 20` → `npm ci` → `setup-python 3.12` →
@@ -74,7 +73,7 @@ validar en Actions:
   comentario que explique los 38 fallos preexistentes; quitarlo cuando estén
   arreglados.
 - Job `monkey` solo `schedule`/`workflow_dispatch` (80 acciones, seed fija).
-- Timeout 30 min; los tests son lentos (~30-35 s por test).
+- Timeout 30 min; la suite E2E tarda ~3,5 min en local (21 tests).
 
 ### 2. Flujos autenticados (login + reserva completa)
 
@@ -98,12 +97,14 @@ recuperar y redirección a login al reservar como invitado.
 Node **v24.21** (el proyecto declara `>=18`). No lo causa la suite E2E.
 Decidir: actualizar el arnés, fijar Node 20 en CI o mover esos tests a Vitest.
 
-### 4. Bug candidato de contraseña
+### 4. Bug de contraseña — **resuelto (2026-10-21)**
 
-`src/components/Login.jsx` rechaza `< 6` caracteres, pero
-`src/i18n/es.js` (`auth.contrasenaCorta`) dice "al menos 8". Hay que decidir la
-regla, alinear ambos y añadir un test que la fije. No se tocó porque no estaba
-pedido.
+Regla decidida: **mínimo 6** (lo que ya aplicaban `Login.jsx` y
+`Restablecer.jsx`, y lo que admite Firebase por defecto). Se alinearon los
+mensajes de `auth.contrasenaCorta` y `restablecer.errorCorto` en es/en/ca, y
+`test_login_valida_contrasena_corta` ahora exige que el mensaje diga "6", así
+que la regla no puede desviarse sin romper el test. `registro` sigue en 8
+(mensaje y validación ya coincidían).
 
 ### 5. Opcionales
 
