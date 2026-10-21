@@ -644,7 +644,7 @@
   color: var(--recomendado-tinta);
   font-size: 0.7rem;
   font-weight: 700;
-  border-radius: 0;
+  border-radius: 8px;
   padding: 0.25rem 0.7rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -5203,6 +5203,37 @@ button.btn-texto {
   .streak-modal__footer { display: none; }
   .streak-modal__balance-icon { display: none; }
   .streak-modal__coin { display: none; }
+}
+
+/* ── BUG-163: reparto del popup de la racha ──
+   Jerarquía más clara: rejilla de 7 días con celdas de alto uniforme,
+   hueco arriba para la etiqueta «HOY», textos legibles en móvil (≥10px)
+   y sin escalados que desborden la rejilla. Radios de BUG-161 intactos. */
+.streak-modal__calendar-header { gap: 8px; flex-wrap: wrap; }
+.streak-grid { gap: 8px; padding-top: 8px; align-items: stretch; }
+.streak-day { justify-content: center; gap: 1px; min-width: 0; }
+.streak-day__name,
+.streak-day__points { white-space: nowrap; }
+.streak-day__points--wheel { font-size: 0.6rem; }
+.streak-day__unit { margin-top: 0; }
+.streak-day__tag { top: -9px; left: 50%; right: auto; transform: translateX(-50%); padding: 2px 8px; font-size: 0.55rem; letter-spacing: 0.04em; white-space: nowrap; box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35); }
+.streak-modal__actions { align-items: stretch; gap: 0.8rem; }
+.streak-claim-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; }
+.streak-modal__balance-amount { display: flex; align-items: baseline; gap: 4px; }
+
+@media (max-width: 560px) {
+  .streak-modal, .wheel-modal { border-radius: 24px; }
+  .streak-grid { gap: 5px; }
+  .streak-day--today, .streak-day--wheel { transform: translateY(-2px); }
+  .streak-day__name { font-size: 0.6rem; }
+  .streak-day__points { font-size: 0.62rem; }
+  .streak-day__points--wheel { font-size: 0.5rem; letter-spacing: -0.01em; }
+  .streak-day__unit { font-size: 0.5rem; }
+  .streak-modal__actions { gap: 0.6rem; }
+}
+@media (max-width: 380px) {
+  .streak-grid { gap: 4px; }
+  .streak-day__name { font-size: 0.56rem; }
 }
 
 /* ── Responsive: Mis Puntos ── */
