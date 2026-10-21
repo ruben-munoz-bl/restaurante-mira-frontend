@@ -292,17 +292,18 @@
     top: auto;
   }
 
+  /* Rejilla en vez de scroll horizontal: con scroll, «Actividad» quedaba oculta. */
   .cuenta-nav {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
     gap: 0.4rem;
-    overflow-x: auto;
-    scrollbar-width: none;
   }
 
   .cuenta-nav-item {
-    flex: none;
     border: 1px solid var(--borde);
     border-radius: 999px;
+    text-align: center;
+    justify-content: center;
   }
 }
 
