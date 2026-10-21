@@ -43,7 +43,7 @@ export default function Dashboard(props) {
   return <DashboardRestaurante {...props} />;
 }
 
-function DashboardRestaurante({ usuario, perfil, esAdmin }) {
+function DashboardRestaurante({ usuario, perfil, esAdmin, cargandoSesion }) {
   const t = useT(TRADS);
 
   const [data, setData] = useState(null);
@@ -165,6 +165,12 @@ const restDropdownRef = useRef(null);
   useEffect(() => {
     if (esAdmin) window.location.hash = '#/admin';
   }, [esAdmin]);
+
+  // Sin sesión no hay panel: se manda al login en vez de quedarse en "Cargando…"
+  // para siempre (mismo criterio que OpsPanel).
+  useEffect(() => {
+    if (!cargandoSesion && !usuario?.uid) window.location.hash = '#/login';
+  }, [cargandoSesion, usuario]);
 
   useEffect(() => {
     if (!showRestDropdown) return;

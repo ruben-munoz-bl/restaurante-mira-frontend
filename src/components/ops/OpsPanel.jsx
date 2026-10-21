@@ -125,10 +125,14 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
     if (esAdmin === false) track('admin_acceso_denegado', { resultado: 'error', codigoError: 'NO_ADMIN', entidadTipo: 'panel', entidadId: 'ops' });
   }, [usuario?.uid, esAdmin]);
 
-  if (!usuario?.uid) {
-    window.location.hash = '#/login';
-    return null;
-  }
+  // Sin sesión no hay panel. La redirección va en un effect y no en el render:
+  // cambiar el hash mientras se renderiza dispara `hashchange` antes de que App
+  // esté suscrito, y la ruta se queda clavada en 'admin' con el `main` vacío.
+  useEffect(() => {
+    if (!usuario?.uid) window.location.hash = '#/login';
+  }, [usuario?.uid]);
+
+  if (!usuario?.uid) return null;
   if (!esAdmin) {
     return (
       <div className="ops-shell">
