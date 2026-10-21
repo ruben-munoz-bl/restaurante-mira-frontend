@@ -98,14 +98,27 @@
   overflow: hidden;
 }
 
-/* Franja de marca tras el avatar */
-.cuenta-perfil::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 7.6rem;
+/* Franja de marca: envuelve etiqueta, nivel y avatar con su emblema, sea cual
+   sea el ancho. Con una altura fija el emblema quedaba partido entre el verde
+   y el blanco (y el aro plateado no se veía en claro). */
+.cuenta-perfil {
+  --perfil-pad-x: 1.3rem;
+  --perfil-pad-top: 1.5rem;
+}
+
+.cuenta-perfil .emblema-progreso {
+  margin-top: 0;
+}
+
+.cuenta-perfil .emblema-cabecera {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  margin: calc(-1 * var(--perfil-pad-top)) calc(-1 * var(--perfil-pad-x)) 0.3rem;
+  padding: var(--perfil-pad-top) var(--perfil-pad-x) 1.9rem;
   background: var(--primary-container);
-  z-index: 0;
 }
 
 .cuenta-perfil > * {
@@ -228,7 +241,7 @@
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
-[data-theme='dark'] .cuenta-perfil::before {
+[data-theme='dark'] .cuenta-perfil .emblema-cabecera {
   background: linear-gradient(180deg, #24463a, #1c3a30);
 }
 
@@ -317,6 +330,10 @@
   .cuenta-bloque {
     padding-left: 1rem;
     padding-right: 1rem;
+  }
+
+  .cuenta-perfil {
+    --perfil-pad-x: 1rem;
   }
 }
 

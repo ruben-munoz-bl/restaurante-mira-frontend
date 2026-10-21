@@ -188,11 +188,13 @@ export default function Cuenta({ usuario, esAdmin, perfil, dieta, guardarDieta, 
       <div className="cuenta-layout">
       <aside className="cuenta-perfil">
         <div className="emblema-progreso" aria-live="polite">
-          <p className="emblema-progreso-label">{t('emblemas.tituloProgreso')}</p>
-          <p className={`emblema-progreso-titulo${emblema ? ` emblema-progreso-titulo--activo emblema-progreso-titulo--${emblema.id}` : ''}`}>
-            {emblema ? t('emblemas.tituloNivel', { nombre: nombreEmblema }) : ' '}
-          </p>
-          <EmblemaAvatar inicial={inicial} emblema={emblema} size="lg" />
+          <div className="emblema-cabecera">
+            <p className="emblema-progreso-label">{t('emblemas.tituloProgreso')}</p>
+            <p className={`emblema-progreso-titulo${emblema ? ` emblema-progreso-titulo--activo emblema-progreso-titulo--${emblema.id}` : ''}`}>
+              {emblema ? t('emblemas.tituloNivel', { nombre: nombreEmblema }) : ' '}
+            </p>
+            <EmblemaAvatar inicial={inicial} emblema={emblema} size="lg" />
+          </div>
           <p className="emblema-progreso-texto">{textoProgreso}</p>
           <p className="emblema-progreso-racha" title={t('emblemas.multiplicador', { multi: multiTexto })}>
             <span className="emblema-progreso-racha-icono" aria-hidden="true">🔥</span>
