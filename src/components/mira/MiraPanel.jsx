@@ -101,7 +101,7 @@ export default function MiraPanel({ esAdmin, esEmpresa, haySesion, onAbrirFicha 
         aria-labelledby="mira-titulo"
       >
         <header className="mira-header">
-          <img src="/mochi.gif" alt="" className="mira-header-logo" />
+          <img src="/mochi-ia.png" alt="" className="mira-header-logo" />
           <div className="mira-header-txt">
             <span className="mira-header-nombre" id="mira-titulo">
               {t('mira.titulo')}

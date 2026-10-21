@@ -138,7 +138,7 @@ test('mochi es la imagen de la IA en los cuatro puntos de entrada', () => {
   ];
   for (const f of ficheros) {
     const src = readFileSync(new URL(f, import.meta.url), 'utf8');
-    const tieneMochi = src.includes('/mochi.gif');
+    const tieneMochi = src.includes('/mochi-ia.png');
     const tieneLogo = src.includes('mira_logo_3_circular_lente');
     assert.ok(tieneMochi, `${f} deberia usar mochi`);
     assert.ok(!tieneLogo, `${f} sigue usando el logo`);
