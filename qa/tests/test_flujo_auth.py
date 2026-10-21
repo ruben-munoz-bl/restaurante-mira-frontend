@@ -44,6 +44,8 @@ def test_login_valida_contrasena_corta(login):
 
     error = WebDriverWait(login, 5).until(lambda d: _error(d) or False)
     assert "contrase" in error.lower(), error
+    # La regla es 6 (la misma que aplica Login.jsx); el mensaje no debe desviarse.
+    assert "6" in error, error
     assert "#/login" in login.current_url
 
 

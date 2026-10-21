@@ -600,7 +600,7 @@ export default {
     "guardando": "Desant…",
     "cambiarPass": "Canviar contrasenya",
     "errorVacio": "Escriu una nova contrasenya.",
-    "errorCorto": "La contrasenya ha de tenir almenys 8 caràcters.",
+    "errorCorto": "La contrasenya ha de tenir almenys 6 caràcters.",
     "errorNoCoinciden": "Les contrasenyes no coincideixen.",
     "exito": "✓ Contrasenya canviada correctament.",
     "yaPuedes": "Ja pots iniciar sessió amb la teva nova contrasenya.",
