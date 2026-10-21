@@ -6,6 +6,7 @@ Variables de entorno: ver servers.py.
 from __future__ import annotations
 
 import sys
+import os
 import time
 import pathlib
 
@@ -46,6 +47,8 @@ def driver(request):
     opts.add_argument("--disable-gpu")
     opts.add_argument("--no-sandbox")
     opts.add_argument("--lang=es-ES")
+    if os.getenv("QA_REDUCED_MOTION"):
+        opts.add_argument("--force-prefers-reduced-motion")
     opts.set_capability("goog:loggingPrefs", {"browser": "ALL"})
 
     d = webdriver.Edge(options=opts)

@@ -162,14 +162,18 @@ npm run qa:regresion  # exit 3 por los 38 fallos preexistentes del frontend
 
 Runs #1 y #2 en rojo, con un fallo cada uno y **ninguno de la app**:
 
-1. `test_ruta_renderiza[#/descubrir]`: en el runner el ranking aún no había
-   montado el título «Los mejor valorados» cuando se leía `main.text` (0,4 s tras
-   el cambio de hash). Ahora se espera al texto y se lee con `helpers.texto()`
-   (innerText), que además no se pierde con nodos animados.
+1. `test_ruta_renderiza[#/descubrir]`: en el runner Edge arranca con
+   `prefers-reduced-motion: reduce`, así que la página montaba `VueloEstatico`…
+   y esa versión no tenía cabecera: **la página se quedaba sin `<h1>`** (fallo
+   real de accesibilidad, no del test). Se le añade la misma cabecera que en la
+   versión animada. El test además espera al texto y lo lee con
+   `helpers.texto()` (innerText) en vez de una lectura única de `.text`.
 2. `unit-frontend`: `npm test` ejecuta `node --test "test/*.test.js"`; con Node
    20 sobre Linux el glob entrecomillado no se expande y Node responde
    «Could not find …/test/*.test.js». El job llama a `node --test test/*.test.js`
    sin comillas y deja que lo expanda bash.
 
 `monkey` no se ejecuta en push: por diseño (`schedule` o `workflow_dispatch`).
+`QA_REDUCED_MOTION=1` en el entorno de pytest arranca Edge con
+`--force-prefers-reduced-motion`, para probar a mano la variante sin animaciones.
 

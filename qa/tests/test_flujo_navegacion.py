@@ -34,9 +34,9 @@ def test_ruta_renderiza(driver, servidores, ruta, esperado):
     h.ir_hash(driver, ruta)
 
     main = driver.find_element(By.CSS_SELECTOR, "main")
-    # La página carga sus datos después del cambio de hash: se espera al texto en
-    # vez de leer una sola vez (en CI el ranking aún no había montado el título).
-    # `texto()` usa innerText: `.text` omite los nodos que participan en animación.
+    # La página carga sus datos después del cambio de hash y en CI Edge arranca
+    # con movimiento reducido (otra versión del vuelo): se espera al texto en vez
+    # de leer una sola vez. `texto()` usa innerText: `.text` omite nodos animados.
     try:
         WebDriverWait(driver, 10).until(lambda d: esperado.lower() in h.texto(main).lower())
     except TimeoutException:

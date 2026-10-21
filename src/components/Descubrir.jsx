@@ -328,6 +328,14 @@ function VueloEstatico({ vuelo, t, onSelect }) {
     <section className="dsc-estatico" aria-label={t('descubrir.vueloAria')}>
       {vuelo.map((r, j) => (
         <article key={r.id} className="dsc-estatico-escena">
+          {/* Misma cabecera que la versión animada: sin ella la página se queda
+              sin <h1> para quien navega con movimiento reducido. */}
+          {j === 0 && (
+            <header className="dsc-cabecera">
+              <p className="dsc-eyebrow">{t('descubrir.eyebrowSeccion')}</p>
+              <h1 className="dsc-titulo">{t('descubrir.titulo')}</h1>
+            </header>
+          )}
           <Foto r={r} className="dsc-foto" />
           <div className="dsc-velo" />
           <div className="dsc-texto" style={{ opacity: 1, position: 'relative' }}>
