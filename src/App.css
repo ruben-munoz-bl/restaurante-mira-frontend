@@ -3635,6 +3635,14 @@ button.btn-texto {
   font-weight: 600;
 }
 
+/* Dentro de la tarjeta, sobre la foto (el resto de badges ya son absolutos). */
+.card-media > .promo-badge {
+  position: absolute;
+  left: 0.6rem;
+  bottom: 0.6rem;
+  z-index: 2;
+}
+
 .promo-badge__icon {
   font-size: 0.9rem;
 }
