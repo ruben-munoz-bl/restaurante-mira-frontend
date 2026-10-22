@@ -1595,6 +1595,8 @@ export default {
   "landing": {
     "promociones": "En promoció",
     "promocionesSub": "Campanyes actives ara mateix",
+    "anterior": "Anterior",
+    "siguiente": "Següent",
     "platos": "Plats que fan venir gana",
     "platosSub": "Fotos reals de les cartes",
     "reservados": "Els més reservats de la setmana",

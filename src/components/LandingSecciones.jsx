@@ -3,7 +3,7 @@
  * solo si tiene datos; si una carga falla, desaparece sin romper el resto ni
  * bloquear el Hero.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import RestaurantCard from './RestaurantCard.jsx';
 import { topBarcelona, nuevosRestaurantes } from '../models/landingModel.js';
 import { fetchRestaurants } from '../services/restaurantApi.js';
@@ -71,7 +71,11 @@ export default function LandingSecciones({ todos = [], onSelect, esFavorito, onT
     <div className="landing-secciones">
       {conPromo.length > 0 && (
         <Seccion id="landing-promociones" titulo={t('landing.promociones')} sub={t('landing.promocionesSub')}>
-          <ul className="landing-fila" aria-label={t('landing.promociones')}>
+          <Carrusel
+            etiqueta={t('landing.promociones')}
+            anterior={t('landing.anterior')}
+            siguiente={t('landing.siguiente')}
+          >
             {conPromo.map(({ promo, restaurante }) => (
               <li key={promo.id}>
                 <RestaurantCard
@@ -83,7 +87,7 @@ export default function LandingSecciones({ todos = [], onSelect, esFavorito, onT
                 />
               </li>
             ))}
-          </ul>
+          </Carrusel>
         </Seccion>
       )}
 
@@ -163,6 +167,30 @@ function Seccion({ id, titulo, sub, children }) {
       </header>
       {children}
     </section>
+  );
+}
+
+/** Carrusel con scroll nativo y flechas; en móvil basta con deslizar. */
+function Carrusel({ etiqueta, anterior, siguiente, children }) {
+  const pista = useRef(null);
+
+  function mover(dir) {
+    const el = pista.current;
+    const li = el?.querySelector('li');
+    if (!el || !li) return;
+    const paso = li.getBoundingClientRect().width + 20;
+    el.scrollBy({
+      left: dir * paso,
+      behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+    });
+  }
+
+  return (
+    <div className="landing-carrusel">
+      <ul ref={pista} className="landing-fila" aria-label={etiqueta}>{children}</ul>
+      <button type="button" className="landing-carrusel-btn anterior" onClick={() => mover(-1)} aria-label={anterior}>‹</button>
+      <button type="button" className="landing-carrusel-btn siguiente" onClick={() => mover(1)} aria-label={siguiente}>›</button>
+    </div>
   );
 }
 

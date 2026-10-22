@@ -35,7 +35,7 @@
 /* Fila horizontal: scroll nativo con snap; el padding deja respirar sombra y hover. */
 .landing-fila {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   margin: 0;
   padding: 0.4rem 0.2rem 1rem;
   list-style: none;
@@ -45,10 +45,19 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Mismo ancho de tarjeta que la rejilla de Descubrir. */
 .landing-fila > li {
-  flex: 0 0 clamp(220px, 78vw, 260px);
+  flex: 0 0 100%;
   min-width: 0;
   scroll-snap-align: start;
+}
+
+@media (min-width: 768px) {
+  .landing-fila > li { flex-basis: calc((100% - 1.25rem) / 2); }
+}
+
+@media (min-width: 1024px) {
+  .landing-fila > li { flex-basis: calc((100% - 2.5rem) / 3); }
 }
 
 .landing-fila::-webkit-scrollbar {
@@ -60,22 +69,45 @@
   border-radius: 999px;
 }
 
-/* Tarjeta de restaurante compacta, sin tocar RestaurantCard ni App.css. */
-.landing-fila .card .card-media {
-  flex: 0 0 140px;
-  min-height: 140px;
+/* Carrusel de promociones: flechas sobre la fila; en móvil se desliza. */
+.landing-carrusel {
+  position: relative;
 }
 
-.landing-fila .card .card-cuerpo {
-  padding: 0.8rem 0.9rem 0.9rem;
+.landing-carrusel-btn {
+  position: absolute;
+  top: calc(50% - 0.6rem);
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--papel);
+  color: var(--tinta);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--sombra-card);
 }
 
-.landing-fila .card .card-titulo {
-  font-size: 1.02rem;
+.landing-carrusel-btn.anterior { left: 0.35rem; }
+.landing-carrusel-btn.siguiente { right: 0.35rem; }
+
+.landing-carrusel-btn:hover {
+  border-color: rgba(22, 56, 44, 0.25);
 }
 
-.landing-fila .card .card-descripcion {
-  display: none;
+.landing-carrusel-btn:focus-visible {
+  outline: 2px solid var(--primary-container);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .landing-carrusel-btn { display: none; }
 }
 
 /* Tarjeta de plato: toda pulsable para abrir el restaurante. */
@@ -106,7 +138,7 @@
 .landing-plato img {
   display: block;
   width: 100%;
-  height: 150px;
+  height: 200px;
   object-fit: cover;
 }
 

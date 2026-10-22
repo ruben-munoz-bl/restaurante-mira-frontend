@@ -117,17 +117,6 @@ export default function Descubrir({
 
   return (
     <div className="descubrir">
-      <div className="dsc-buscador">
-        <SearchBar
-          filtros={filtros}
-          opciones={opciones}
-          hayFiltrosActivos={hayFiltrosActivos}
-          onChange={onChange}
-          onClear={onClear}
-          abiertoInicial={hayFiltrosActivos}
-        />
-      </div>
-
       {estado === 'error' && (
         <div className="dsc-aviso" role="alert">{t('descubrir.error')}</div>
       )}
@@ -145,6 +134,17 @@ export default function Descubrir({
         ) : (
           <Vuelo vuelo={vuelo} t={t} onSelect={onSelect} />
         ))}
+
+      <div className="dsc-buscador">
+        <SearchBar
+          filtros={filtros}
+          opciones={opciones}
+          hayFiltrosActivos={hayFiltrosActivos}
+          onChange={onChange}
+          onClear={onClear}
+          abiertoInicial={hayFiltrosActivos}
+        />
+      </div>
 
       {!hayFiltrosActivos && estadoVuelo === 'listo' && destacados.length > 0 && (
         <section className="dsc-destacados" aria-labelledby="dsc-destacados-titulo">

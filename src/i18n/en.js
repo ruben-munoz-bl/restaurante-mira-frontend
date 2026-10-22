@@ -1595,6 +1595,8 @@ export default {
   "landing": {
     "promociones": "On promotion",
     "promocionesSub": "Campaigns running right now",
+    "anterior": "Previous",
+    "siguiente": "Next",
     "platos": "Dishes you will love",
     "platosSub": "Real photos from the menus",
     "reservados": "Most booked this week",

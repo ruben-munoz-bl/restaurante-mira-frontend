@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { topBarcelona, nuevosRestaurantes } from '../src/models/landingModel.js';
+import { topBarcelona, nuevosRestaurantes, primerPlatoLocal } from '../src/models/landingModel.js';
 
 const r = (id, ciudad, valoracion, totalResenasYelp = 0, creado = null) => ({ id, ciudad, valoracion, totalResenasYelp, creado });
 
@@ -24,6 +24,13 @@ test('topBarcelona ordena por nota ponderada: muchas reseñas mandan', () => {
 test('topBarcelona respeta el límite', () => {
   const lista = [r('a', 'Barcelona', 4.4, 100), r('b', 'Barcelona', 4.6, 100)];
   assert.deepEqual(topBarcelona(lista, 1).map((x) => x.id), ['b']);
+});
+
+test('primerPlatoLocal: usa la carta simulada y aguanta restaurantes sin id', () => {
+  const plato = primerPlatoLocal({ id: 'abc123', nombre: 'Pizzeria Roma', precio: '??' });
+  assert.equal(typeof plato.nombre, 'string');
+  assert.equal(typeof plato.precio, 'number');
+  assert.equal(primerPlatoLocal({}), null);
 });
 
 test('nuevosRestaurantes: fechas válidas de más nuevo a más viejo, sin nulos', () => {

@@ -1595,6 +1595,8 @@ export default {
   "landing": {
     "promociones": "En promoción",
     "promocionesSub": "Campañas activas ahora mismo",
+    "anterior": "Anterior",
+    "siguiente": "Siguiente",
     "platos": "Platos que apetecen",
     "platosSub": "Fotos reales de las cartas",
     "reservados": "Los más reservados de la semana",
