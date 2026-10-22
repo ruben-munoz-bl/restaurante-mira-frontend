@@ -40,24 +40,25 @@ def test_home_carga_catalogo(home):
 
 
 def test_buscador_filtra_al_pulsar_enter(home):
-    """El buscador aplica el texto al enviar (Enter) y se limpia igual."""
-    total_inicial = len(h.tarjetas(home))
+    """Enviar en la landing lleva a Descubrir con el filtro; Limpiar lo retira."""
+    total_landing = len(h.tarjetas(home))
+    assert total_landing >= 10
 
     campo = home.find_element(By.ID, "f-q")
     campo.clear()
     campo.send_keys("paco")
     campo.send_keys(Keys.ENTER)
 
-    WebDriverWait(home, 10).until(lambda d: len(h.tarjetas(d)) < total_inicial)
+    WebDriverWait(home, 10).until(
+        lambda d: "#/descubrir" in d.current_url and "q=paco" in d.current_url
+    )
+    WebDriverWait(home, 10).until(lambda d: 0 < len(h.tarjetas(d)) < total_landing)
     filtradas = [h.titulo_tarjeta(home, t) for t in h.tarjetas(home)]
     assert filtradas, "el filtro dejó la lista vacía"
     assert all("paco" in t.lower() for t in filtradas), filtradas
 
-    campo = home.find_element(By.ID, "f-q")
-    campo.send_keys(Keys.CONTROL, "a")
-    campo.send_keys(Keys.BACKSPACE)
-    campo.send_keys(Keys.ENTER)
-    WebDriverWait(home, 10).until(lambda d: len(h.tarjetas(d)) == total_inicial)
+    home.find_element(By.CSS_SELECTOR, ".searchbar .btn-secundario").click()
+    WebDriverWait(home, 10).until(lambda d: len(h.tarjetas(d)) > len(filtradas))
 
 
 def test_detalle_abre_la_ficha_del_restaurante(home):

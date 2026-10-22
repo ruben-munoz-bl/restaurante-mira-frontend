@@ -182,6 +182,12 @@ http
       }));
       return enviar(res, 200, { items });
     }
+    // M12: ranking de reservas de los últimos días (la landing lo pide público).
+    if (p === '/v1/restaurants/mas-reservados') {
+      const limite = Math.min(Number(url.searchParams.get('limit')) || 8, 50);
+      const data = docs.slice(0, limite).map((d, i) => ({ id: d.id, reservas: 30 - i, nombre: d.nombre }));
+      return enviar(res, 200, { data });
+    }
     const porId = p.match(/^\/v1\/restaurants\/([^/]+)$/);
     if (porId) {
       const d = docs.find((x) => x.id === decodeURIComponent(porId[1]));
