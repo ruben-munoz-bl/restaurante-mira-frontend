@@ -46,7 +46,7 @@
   overflow-x: auto;
   overscroll-behavior-inline: contain;
   scroll-snap-type: x mandatory;
-  scrollbar-width: thin;
+  scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -66,12 +66,7 @@
 }
 
 .landing-fila::-webkit-scrollbar {
-  height: 6px;
-}
-
-.landing-fila::-webkit-scrollbar-thumb {
-  background: var(--borde);
-  border-radius: 999px;
+  display: none;
 }
 
 /* Carrusel a todo el ancho: la primera tarjeta alinea con el título y las

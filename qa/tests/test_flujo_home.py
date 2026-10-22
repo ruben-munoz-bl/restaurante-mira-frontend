@@ -72,6 +72,20 @@ def test_landing_todas_las_secciones_son_carruseles(home):
         )
 
 
+def test_landing_carrusel_avanza_solo(home):
+    """El carrusel se mueve sin pulsar nada y sin barra de scroll visible."""
+    seccion = home.find_element(
+        By.XPATH, "//h2[@id='landing-reservados']/ancestor::section[1]"
+    )
+    pista = seccion.find_element(By.CSS_SELECTOR, ".landing-fila")
+    assert pista.value_of_css_property("scrollbar-width") == "none"
+
+    antes = home.execute_script("return arguments[0].scrollLeft", pista)
+    WebDriverWait(home, 12).until(
+        lambda d: d.execute_script("return arguments[0].scrollLeft", pista) > antes
+    )
+
+
 def test_buscador_filtra_al_pulsar_enter(home):
     """Enviar en la landing lleva a Descubrir con el filtro; Limpiar lo retira."""
     total_landing = len(h.tarjetas(home))

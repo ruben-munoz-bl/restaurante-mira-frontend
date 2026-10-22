@@ -174,9 +174,10 @@ function Seccion({ id, titulo, sub, children }) {
   );
 }
 
-/** Carrusel con scroll nativo y flechas; en móvil basta con deslizar. */
+/** Carrusel con scroll nativo y flechas; avanza solo y se puede deslizar. */
 function Carrusel({ etiqueta, anterior, siguiente, children }) {
   const pista = useRef(null);
+  const [pausado, setPausado] = useState(false);
 
   function mover(dir) {
     const el = pista.current;
@@ -189,8 +190,33 @@ function Carrusel({ etiqueta, anterior, siguiente, children }) {
     });
   }
 
+  // Avance automático; se detiene al pasar el ratón o al enfocar con el teclado.
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return undefined;
+    const el = pista.current;
+    if (!el) return undefined;
+    const id = window.setInterval(() => {
+      if (pausado || document.hidden) return;
+      const li = el.querySelector('li');
+      if (!li || el.scrollWidth <= el.clientWidth + 4) return;
+      const paso = li.getBoundingClientRect().width + 20;
+      const fin = el.scrollWidth - el.clientWidth;
+      el.scrollTo({
+        left: el.scrollLeft >= fin - 2 ? 0 : Math.min(el.scrollLeft + paso, fin),
+        behavior: 'smooth',
+      });
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [pausado]);
+
   return (
-    <div className="landing-carrusel">
+    <div
+      className="landing-carrusel"
+      onMouseEnter={() => setPausado(true)}
+      onMouseLeave={() => setPausado(false)}
+      onFocusCapture={() => setPausado(true)}
+      onBlurCapture={() => setPausado(false)}
+    >
       <ul ref={pista} className="landing-fila" aria-label={etiqueta}>{children}</ul>
       <button type="button" className="landing-carrusel-btn anterior" onClick={() => mover(-1)} aria-label={anterior}>‹</button>
       <button type="button" className="landing-carrusel-btn siguiente" onClick={() => mover(1)} aria-label={siguiente}>›</button>
