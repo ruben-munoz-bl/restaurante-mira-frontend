@@ -27,7 +27,7 @@ test('lee mode y oobCode en search, hash y enlaces antiguos sin mode', () => {
 });
 
 const codigo = transformSync(readFileSync(new URL('../src/components/Restablecer.jsx', import.meta.url), 'utf8')
-  .replace(/^import .*;\n/gm, '').replace('export default function', 'function'), { loader: 'jsx' }).code;
+  .replace(/^import .*;\r?\n/gm, '').replace('export default function', 'function'), { loader: 'jsx' }).code;
 const tic = () => new Promise(r => setImmediate(r));
 function montar({ mode = 'verifyEmail', code = 'codigo', error, idioma = 'es' } = {}) {
   const estados = [], refs = [], efectos = [];
@@ -120,7 +120,7 @@ for (const plataforma of ['src', 'mobile/src']) {
       applyActionCode: async (a, c) => aplicados.push([a, c]),
     });
     const source = readFileSync(new URL(`../${plataforma}/services/authApi.js`, import.meta.url), 'utf8')
-      .replace(/^import[\s\S]*?;\n/gm, '').replace(/export /g, '');
+      .replace(/^import[\s\S]*?;\r?\n/gm, '').replace(/export /g, '');
     vm.runInContext(source, ctx);
     await ctx.crearCuenta({ nombre: 'Ana', email: usuario.email, password: 'prueba123' });
     await ctx.enviarVerificacionEmail('ca');

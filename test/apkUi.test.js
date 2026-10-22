@@ -15,7 +15,7 @@ const tic = () => new Promise(r => setImmediate(r));
 const traducir = (k, idioma = 'es') => k.split('.').reduce((v, p) => v?.[p], { es, ca, en }[idioma]);
 const fuente = path => readFileSync(new URL(`../mobile/src/${path}`, import.meta.url), 'utf8');
 function cargar(path, bindings = {}) {
-  const source = fuente(path).replace(/^import[\s\S]*?;\n/gm, '');
+  const source = fuente(path).replace(/^import[\s\S]*?;\r?\n/gm, '');
   const module = { exports: {} };
   const ctx = vm.createContext({ module, exports: module.exports, console, setTimeout, clearTimeout, AbortController, ...bindings });
   vm.runInContext(transformSync(source, { loader: 'jsx', format: 'cjs' }).code, ctx);
