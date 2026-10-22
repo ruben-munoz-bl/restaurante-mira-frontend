@@ -430,7 +430,7 @@ function AppContent({ auth, tema, setTema }) {
           bajar, así que el header del sitio no se monta (tampoco el BottomNav,
           cuyo z-index 150 taparía el pie de la sidebar ops). */}
       {ruta !== 'admin' && (
-        <Header usuario={usuario} esAdmin={esAdmin} perfil={perfil} numFavoritos={favoritos.length} noLeidos={noLeidos} puntosSaldo={puntosSaldo} tema={tema} onCambiarTema={() => setTema((t) => (t === 'oscuro' ? 'claro' : 'oscuro'))} onSalir={salir} onStreakClick={openStreakPopup} fetchStreakData={fetchStreakData} />
+        <Header usuario={usuario} esAdmin={esAdmin} perfil={perfil} numFavoritos={favoritos.length} noLeidos={noLeidos} tema={tema} onCambiarTema={() => setTema((t) => (t === 'oscuro' ? 'claro' : 'oscuro'))} onSalir={salir} />
       )}
       <main key={ruta} className="ruta">
         {usuario && !usuario.emailVerified && ruta !== 'login' && ruta !== 'registro' && ruta !== 'recuperar' && ruta !== 'restablecer' && (

@@ -11,13 +11,12 @@ import en from '../i18n/en.js';
 
 const TRADS = { es, ca, en };
 
-export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeidos, puntosSaldo, tema, onCambiarTema, onSalir, onStreakClick, fetchStreakData, onAbrirMira, miraOculta }) {
+export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeidos, tema, onCambiarTema, onSalir, onAbrirMira, miraOculta }) {
   const t = useT(TRADS);
   const { lang, cycleLang, available } = useI18n();
   const [abierto, setAbierto] = useState(false);
   const [oculto, setOculto] = useState(false);
   const [compacto, setCompacto] = useState(() => window.scrollY > 40);
-  const [loadingStreak, setLoadingStreak] = useState(false);
 
   useEffect(() => {
     if (!abierto) return undefined;
@@ -75,19 +74,6 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
 
   function cerrar() {
     setAbierto(false);
-  }
-
-  async function handleStreakTap() {
-    if (loadingStreak || !usuario) return;
-    setLoadingStreak(true);
-    try {
-      const data = await fetchStreakData?.();
-      onStreakClick?.(data || { racha: { dias: 0 }, puntos: 0, yaReclamado: false });
-    } catch {
-      onStreakClick?.({ racha: { dias: 0 }, puntos: 0, yaReclamado: false });
-    } finally {
-      setLoadingStreak(false);
-    }
   }
 
   // El enlace ya apunta a #/: si estás en la landing no hay cambio de ruta y no pasaba nada.
@@ -181,19 +167,9 @@ export default function Header({ usuario, esAdmin, perfil, numFavoritos, noLeido
           )}
           {usuario ? (
             <>
-              <a href="#/puntos" className="header-points-pill" title={t('points.title')}>
+              <a href="#/puntos" className="header-points-pill" title={t('points.title')} aria-label={t('points.title')}>
                 <img src="/moneda-mira.png" alt="" className="header-points-pill-coin" />
-                {puntosSaldo || 0}
               </a>
-              <button
-                type="button"
-                className={`header-streak-btn${loadingStreak ? ' header-streak-btn--loading' : ''}`}
-                onClick={handleStreakTap}
-                aria-label={t('nav.abrirRacha')}
-                title={t('ui.rachaDiaria')}
-              >
-                <img src="/racha-fuego.png" alt="" className="header-streak-btn-img" />
-              </button>
               <a href="#/favoritos" className="btn-texto btn-fav" aria-label={`${t('nav.favoritos')} (${numFavoritos})`}>
                 ♥{numFavoritos > 0 ? ` ${numFavoritos}` : ''}
               </a>
