@@ -60,6 +60,17 @@ const docs = restaurants.map((r, i) => {
 const resenasMira = {}; // creadas durante la sesión (en memoria)
 const dispositivos = new Map(); // push (T04): id -> { token, tipo, plataforma, idioma }
 
+// Campañas de ejemplo para que la landing pinte el carrusel en modo mock.
+const promociones = docs.slice(0, 5).map((d, i) => ({
+  id: `promo${i + 1}`,
+  restauranteId: d.id,
+  estado: 'activa',
+  prioridad: 3 - i,
+  fechaInicio: null,
+  fechaFin: null,
+  puntosExtraPorReserva: (i + 1) * 25,
+}));
+
 // Ofertas por geolocalización (contrato fase 1, bóveda: Proyecto/Contratos API.md).
 // En memoria: se pierden al reiniciar. El mock no comprueba dueños ni sesión.
 const DISTANCIAS = [1000, 500, 100, 20];
@@ -231,7 +242,10 @@ http
         return res.end();
       }
     }
-    if (p.startsWith('/v1/promotions')) return enviar(res, 200, { data: [] });
+    if (p.startsWith('/v1/promotions')) {
+      const estado = url.searchParams.get('estado');
+      return enviar(res, 200, { data: estado ? promociones.filter((x) => x.estado === estado) : promociones });
+    }
     // Agente MIRA: el contrato real vive en mira-api; aquí basta una respuesta fija
     // para que la UI del chat no rompa al pulsar una sugerencia.
     if (p === '/v1/ai/agent' && req.method === 'POST') {
