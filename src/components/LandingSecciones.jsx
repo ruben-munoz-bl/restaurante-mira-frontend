@@ -93,7 +93,11 @@ export default function LandingSecciones({ todos = [], onSelect, esFavorito, onT
 
       {platos.length > 0 && (
         <Seccion id="landing-platos" titulo={t('landing.platos')} sub={t('landing.platosSub')}>
-          <ul className="landing-fila" aria-label={t('landing.platos')}>
+          <Carrusel
+            etiqueta={t('landing.platos')}
+            anterior={t('landing.anterior')}
+            siguiente={t('landing.siguiente')}
+          >
             {platos.map(({ restaurante, plato }, i) => (
               <li key={`${restaurante.id}-${i}`}>
                 <button type="button" className="landing-plato" onClick={() => onSelect?.(restaurante)}>
@@ -106,7 +110,7 @@ export default function LandingSecciones({ todos = [], onSelect, esFavorito, onT
                 </button>
               </li>
             ))}
-          </ul>
+          </Carrusel>
         </Seccion>
       )}
 
@@ -195,8 +199,9 @@ function Carrusel({ etiqueta, anterior, siguiente, children }) {
 }
 
 function FilaRestaurantes({ restaurants, etiqueta, onSelect, esFavorito, onToggleFavorito, onVerCarta }) {
+  const t = useT(TRADS);
   return (
-    <ul className="landing-fila" aria-label={etiqueta}>
+    <Carrusel etiqueta={etiqueta} anterior={t('landing.anterior')} siguiente={t('landing.siguiente')}>
       {restaurants.map((r) => (
         <li key={r.id}>
           <RestaurantCard
@@ -208,6 +213,6 @@ function FilaRestaurantes({ restaurants, etiqueta, onSelect, esFavorito, onToggl
           />
         </li>
       ))}
-    </ul>
+    </Carrusel>
   );
 }

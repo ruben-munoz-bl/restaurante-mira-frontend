@@ -565,6 +565,15 @@
   align-items: end;
 }
 
+/* El CTA del buscador comparte fila con «Limpiar»: texto corto y sin partir. */
+.campo-acciones .btn-cta {
+  white-space: nowrap;
+}
+
+@media (min-width: 1024px) {
+  .campo-acciones { justify-content: flex-end; }
+}
+
 .contador {
   font-weight: 600;
   margin: 1.1rem 0 1rem;

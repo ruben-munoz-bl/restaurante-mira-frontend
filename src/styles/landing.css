@@ -1,15 +1,18 @@
 /* Landing (M07) — secciones compactas en fila deslizable. Reutiliza .card de App.css. */
 
 .landing-secciones {
-  max-width: var(--ancho-max);
-  margin: 0 auto;
-  padding: 2.5rem var(--gutter) 3rem;
+  --landing-gutter: var(--gutter);
+  padding: 2.5rem 0 3rem;
   display: grid;
   gap: 2.5rem;
 }
 
 .landing-cabecera {
-  margin-bottom: 0.9rem;
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin: 0 auto 0.9rem;
+  padding-inline: var(--landing-gutter);
+  box-sizing: border-box;
 }
 
 /* Sin esto, la fila horizontal (2600 px de tarjetas) estira el grid y la página. */
@@ -37,27 +40,29 @@
   display: flex;
   gap: 1.25rem;
   margin: 0;
-  padding: 0.4rem 0.2rem 1rem;
+  padding: 0.4rem var(--landing-gutter) 1rem var(--carrusel-inset, var(--landing-gutter));
+  scroll-padding-inline: var(--carrusel-inset, var(--landing-gutter));
   list-style: none;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
   scroll-snap-type: x mandatory;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
 }
 
-/* Mismo ancho de tarjeta que la rejilla de Descubrir. */
+/* Tarjetas de carrusel: dejan ver una parte de la siguiente. */
 .landing-fila > li {
-  flex: 0 0 100%;
+  flex: 0 0 82%;
   min-width: 0;
   scroll-snap-align: start;
 }
 
 @media (min-width: 768px) {
-  .landing-fila > li { flex-basis: calc((100% - 1.25rem) / 2); }
+  .landing-fila > li { flex-basis: 46%; }
 }
 
 @media (min-width: 1024px) {
-  .landing-fila > li { flex-basis: calc((100% - 2.5rem) / 3); }
+  .landing-fila > li { flex-basis: clamp(320px, 27vw, 370px); }
 }
 
 .landing-fila::-webkit-scrollbar {
@@ -69,9 +74,15 @@
   border-radius: 999px;
 }
 
-/* Carrusel de promociones: flechas sobre la fila; en móvil se desliza. */
+/* Carrusel a todo el ancho: la primera tarjeta alinea con el título y las
+   demás llegan hasta el borde de la ventana (sin franjas vacías). */
 .landing-carrusel {
+  --carrusel-inset: max(
+    var(--landing-gutter),
+    calc((100% - var(--ancho-max)) / 2 + var(--landing-gutter))
+  );
   position: relative;
+  width: 100%;
 }
 
 .landing-carrusel-btn {
@@ -94,8 +105,13 @@
   box-shadow: var(--sombra-card);
 }
 
-.landing-carrusel-btn.anterior { left: 0.35rem; }
-.landing-carrusel-btn.siguiente { right: 0.35rem; }
+.landing-carrusel-btn.anterior {
+  left: max(0.35rem, calc(var(--carrusel-inset) - 3rem));
+}
+
+.landing-carrusel-btn.siguiente {
+  right: calc(var(--landing-gutter) + 0.35rem);
+}
 
 .landing-carrusel-btn:hover {
   border-color: rgba(22, 56, 44, 0.25);
@@ -166,7 +182,11 @@
 
 /* Cierre: catálogo completo. */
 .landing-final {
-  padding: 2rem 1rem 0;
+  width: 100%;
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: 2rem var(--landing-gutter) 0;
+  box-sizing: border-box;
   border-top: 1px solid var(--borde);
   text-align: center;
 }
@@ -177,7 +197,8 @@
 
 @media (max-width: 600px) {
   .landing-secciones {
-    padding: 1.75rem var(--gutter-movil) 2.25rem;
+    --landing-gutter: var(--gutter-movil);
+    padding: 1.75rem 0 2.25rem;
     gap: 1.9rem;
   }
 }

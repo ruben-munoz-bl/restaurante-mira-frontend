@@ -51,6 +51,7 @@ export default {
     "hora": "Time",
     "ordenarPor": "Sort by",
     "limpiar": "Clear",
+    "buscar": "Search",
     "cualquiera": "Any",
     "todas": "All",
     "todaCataluna": "All of Catalonia",

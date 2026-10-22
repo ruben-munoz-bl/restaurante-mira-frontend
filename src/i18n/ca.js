@@ -51,6 +51,7 @@ export default {
     "hora": "Hora",
     "ordenarPor": "Ordenar per",
     "limpiar": "Netejar",
+    "buscar": "Cercar",
     "cualquiera": "Qualsevol",
     "todas": "Totes",
     "todaCataluna": "Tota Catalunya",

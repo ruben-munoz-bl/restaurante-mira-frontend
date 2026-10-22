@@ -39,21 +39,37 @@ def test_home_carga_catalogo(home):
     assert not errores, f"errores de consola al cargar: {errores}"
 
 
-def test_landing_promocionados_en_carrusel(home):
-    """La sección de promocionados pinta tarjetas y la flecha avanza la pista."""
-    seccion = home.find_element(
-        By.XPATH, "//h2[@id='landing-promociones']/ancestor::section[1]"
-    )
-    pista = seccion.find_element(By.CSS_SELECTOR, ".landing-fila")
-    assert len(seccion.find_elements(By.CSS_SELECTOR, ".landing-fila > li")) >= 4
+SECCIONES_CARRUSEL = (
+    "landing-promociones",
+    "landing-platos",
+    "landing-reservados",
+    "landing-top-barcelona",
+)
 
-    boton = seccion.find_element(By.CSS_SELECTOR, ".landing-carrusel-btn.siguiente")
-    assert boton.is_displayed()
-    antes = home.execute_script("return arguments[0].scrollLeft", pista)
-    h.click_js(home, boton)
-    WebDriverWait(home, 5).until(
-        lambda d: d.execute_script("return arguments[0].scrollLeft", pista) > antes
-    )
+
+def test_landing_todas_las_secciones_son_carruseles(home):
+    """Cada sección con datos usa carrusel y su flecha avanza la pista."""
+    for seccion_id in SECCIONES_CARRUSEL:
+        seccion = WebDriverWait(home, 15).until(
+            lambda d: d.find_element(
+                By.XPATH, f"//h2[@id='{seccion_id}']/ancestor::section[1]"
+            )
+        )
+        pista = seccion.find_element(By.CSS_SELECTOR, ".landing-fila")
+        WebDriverWait(home, 10).until(
+            lambda d: len(
+                seccion.find_elements(By.CSS_SELECTOR, ".landing-fila > li")
+            )
+            >= 4
+        )
+
+        boton = seccion.find_element(By.CSS_SELECTOR, ".landing-carrusel-btn.siguiente")
+        assert boton.is_displayed(), f"flecha oculta en {seccion_id}"
+        antes = home.execute_script("return arguments[0].scrollLeft", pista)
+        h.click_js(home, boton)
+        WebDriverWait(home, 5).until(
+            lambda d: d.execute_script("return arguments[0].scrollLeft", pista) > antes
+        )
 
 
 def test_buscador_filtra_al_pulsar_enter(home):
