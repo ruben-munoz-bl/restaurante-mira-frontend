@@ -30,8 +30,8 @@ export function filterRestaurants(list, { q = '', precio = '', cocina = '', zona
     if (zona && zonaPrincipal(r) !== zona) return false;
     if (maxKm != null && (r.distanciaKm == null || !(r.distanciaKm <= maxKm))) return false;
     if (query) {
-      const haystack = normalizeText(`${r.nombre} ${r.cocina} ${r.descripcion} ${r.ciudad ?? ''} ${r.zona ?? ''}`);
-      if (!haystack.includes(query)) return false;
+      // El texto busca solo por nombre del restaurante.
+      if (!normalizeText(r.nombre).includes(query)) return false;
     }
     // disponibilidad por día/hora/franja
     if (dia || franja || hora) {

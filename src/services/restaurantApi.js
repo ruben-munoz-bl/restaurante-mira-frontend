@@ -78,6 +78,8 @@ function mapearDocBase(id, d) {
     terraza: d.terraza ?? null,
     alergenos: d.alergenos || '',
     resenas,
+    // Fecha de alta en ISO (M13); los importados de Yelp vienen con null.
+    creado: d.creado ?? null,
     maxReservasPorHora: d.maxReservasPorHora ?? null,
   };
 }

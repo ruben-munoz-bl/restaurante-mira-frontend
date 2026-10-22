@@ -1586,7 +1586,25 @@ export default {
     "destacadosEyebrow": "Selecció MIRA",
     "destacadosTitulo": "Restaurants destacats",
     "destacadosSub": "Locals amb nota de {{nota}} o més, ordenats per valoració i nombre d'opinions.",
-    "verTodos": "Veure tots els restaurants"
+    "verTodos": "Veure tots els restaurants",
+    "todosTitulo": "Tots els restaurants",
+    "todosSub": "De 27 en 27, fins al final del catàleg",
+    "resultados": "Resultats",
+    "resultadosSub": "El que encaixa amb la teva cerca"
+  },
+  "landing": {
+    "promociones": "En promoció",
+    "promocionesSub": "Campanyes actives ara mateix",
+    "platos": "Plats que fan venir gana",
+    "platosSub": "Fotos reals de les cartes",
+    "reservados": "Els més reservats de la setmana",
+    "reservadosSub": "Els que omplen més taules aquests dies",
+    "topBarcelona": "Top 50 Barcelona",
+    "topBarcelonaSub": "Les millors notes de la ciutat",
+    "nuevos": "Nous a MIRA",
+    "nuevosSub": "Acabats d'arribar a la guia",
+    "verTodos": "Veure més restaurants",
+    "verTodosSub": "Explora el catàleg complet, amb filtres i sense límit"
   },
   "auditoria": {
     "titulo": "Auditoria",

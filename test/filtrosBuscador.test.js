@@ -36,3 +36,29 @@ test('«Barbacoa» cuenta como brasa en opciones, filtro y recomendaciones', () 
   const recs = recomendarPara([{ id: 9, cocina: 'Asador' }], lista);
   assert.deepEqual(recs.map((r) => r.restaurante.id), [1]);
 });
+
+test('el texto busca por nombre con o sin tilde', () => {
+  const lista = [
+    { id: 1, nombre: 'Can Pistraus', cocina: 'Catalana' },
+    { id: 2, nombre: 'La Màgica', cocina: 'Italiana' },
+  ];
+  assert.deepEqual(filterRestaurants(lista, { q: 'magica' }).map((r) => r.id), [2]);
+  assert.deepEqual(filterRestaurants(lista, { q: 'Màgica' }).map((r) => r.id), [2]);
+});
+
+test('el texto no busca por cocina, solo por nombre', () => {
+  const lista = [
+    { id: 1, nombre: 'Mira Blava', cocina: 'Italiana' },
+    { id: 2, nombre: 'La Italiana', cocina: 'Italiana' },
+  ];
+  assert.deepEqual(filterRestaurants(lista, { q: 'Italiana' }).map((r) => r.id), [2]);
+});
+
+test('el texto acepta palabras parciales del nombre', () => {
+  const lista = [
+    { id: 1, nombre: 'Can Rovira del Mar', cocina: 'Marisco' },
+    { id: 2, nombre: 'Can Riera', cocina: 'Catalana' },
+  ];
+  assert.deepEqual(filterRestaurants(lista, { q: 'can rov' }).map((r) => r.id), [1]);
+  assert.deepEqual(filterRestaurants(lista, { q: 'del mar' }).map((r) => r.id), [1]);
+});

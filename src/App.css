@@ -1131,7 +1131,8 @@
 
 /* ---------- Filtros colapsables ---------- */
 .filtros-toggle {
-  display: none;
+  /* Visible en todos los anchos: la landing y Descubrir arrancan plegados. */
+  display: block;
   width: 100%;
   background: var(--papel);
   border: 1px solid var(--glass-border);
@@ -1146,15 +1147,12 @@
   display: contents;
 }
 
+/* Plegado en cualquier ancho; en escritorio, abierto, sigue usando la rejilla de 4. */
+.searchbar.plegada .filtros-plegables {
+  display: none;
+}
+
 @media (max-width: 767px) {
-  .filtros-toggle {
-    display: block;
-  }
-
-  .searchbar.plegada .filtros-plegables {
-    display: none;
-  }
-
   .searchbar:not(.plegada) .filtros-plegables {
     display: grid;
     gap: 0.9rem;

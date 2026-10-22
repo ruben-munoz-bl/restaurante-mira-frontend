@@ -358,3 +358,50 @@
   .dsc-rail { display: none; }
   .dsc-pista { display: none; }
 }
+
+/* ── Buscador + listado completo (M07) ── */
+.dsc-buscador {
+  position: relative;
+  z-index: 5;
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: 1.5rem var(--gutter) 0;
+}
+/* Aquí no hay hero encima: el margen negativo del buscador sobra. */
+.dsc-buscador .searchbar { margin-top: 0; }
+
+.dsc-aviso {
+  max-width: var(--ancho-max);
+  margin: 1rem auto 0;
+  padding: 0.75rem 1rem;
+  background: var(--papel);
+  border-left: 4px solid var(--rojo);
+  border-radius: 0 var(--radio-peq) var(--radio-peq) 0;
+  color: var(--tinta);
+}
+
+.dsc-todos {
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: clamp(3rem, 7vw, 5rem) var(--gutter) 4rem;
+  scroll-margin-top: 5.5rem;
+}
+.dsc-todos-titulo {
+  margin: 0;
+  font-family: var(--fuente-display);
+  font-size: clamp(2rem, 4.5vw, 3.2rem);
+  color: var(--tinta);
+  letter-spacing: -0.01em;
+}
+.dsc-todos-sub {
+  margin: 0.6rem 0 1rem;
+  color: var(--gris);
+  max-width: 60ch;
+}
+.dsc-todos-contador {
+  margin: 0 0 1.5rem;
+  color: var(--gris);
+  font: 500 0.95rem var(--fuente);
+  letter-spacing: 0.06em;
+}
+.dsc-todos-contador b { color: var(--tinta); font-family: var(--fuente-display); font-size: 1.25rem; }
