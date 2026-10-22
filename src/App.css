@@ -3779,15 +3779,14 @@ button.btn-texto {
 .header-points-pill {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  background: linear-gradient(135deg, var(--primary-container), var(--dorado));
+  justify-content: center;
   color: #fff;
-  padding: 0.35rem 0.75rem;
+  padding: 0.35rem;
   border-radius: 999px;
   font-size: 0.85rem;
   font-weight: 700;
   text-decoration: none;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform 0.2s;
   white-space: nowrap;
 }
 
@@ -3795,7 +3794,6 @@ button.btn-texto {
 
 .header-points-pill:hover {
   transform: scale(1.05);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 
 .header-points-pill svg {
@@ -3804,44 +3802,10 @@ button.btn-texto {
 
 .header-points-pill img,
 .header-points-pill-coin {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   object-fit: contain;
   flex-shrink: 0;
-}
-
-/* Header streak fire button */
-.header-streak-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid #F59E0B;
-  background: linear-gradient(135deg, #FEF3C7, #FDE68A);
-  cursor: pointer;
-  padding: 0;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.2);
-  flex-shrink: 0;
-}
-.header-streak-btn:hover {
-  transform: scale(1.12);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
-}
-.header-streak-btn:active {
-  transform: scale(0.95);
-}
-.header-streak-btn--loading {
-  opacity: 0.5;
-  pointer-events: none;
-}
-.header-streak-btn-img {
-  width: 18px;
-  height: 18px;
-  object-fit: contain;
-  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
 }
 
 /* Points Preview in Detail */
