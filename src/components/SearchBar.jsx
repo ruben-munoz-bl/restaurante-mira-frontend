@@ -17,10 +17,11 @@ const SERVICIOS_FILTRO = [
   { campo: 'entornoTranquilo', icono: '🤫' },
 ];
 
-export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChange, onClear }) {
+export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChange, onClear, abiertoInicial = false, onBuscar }) {
   const t = useT(TRADS);
   const [qLocal, setQLocal] = useState(filtros.q);
-  const [plegado, setPlegado] = useState(() => window.innerWidth < 768);
+  // Plegados siempre al montar: solo se abren si el padre lo pide.
+  const [plegado, setPlegado] = useState(() => !abiertoInicial);
 
   // Etiquetas por valor estable: el texto de los modelos va en español.
   const CLAVES_FRANJA = { '': 'cualquierHora', desayuno: 'desayuno', comida: 'comida', cena: 'cena' };
@@ -43,15 +44,27 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
     return CLAVES_DIA[d] ? t(`modelos.${CLAVES_DIA[d]}`) : d;
   }
   useEffect(() => setQLocal(filtros.q), [filtros.q]);
+  // Los filtros de la URL llegan después del primer render: se abren al aplicarse.
+  useEffect(() => {
+    if (abiertoInicial) setPlegado(false);
+  }, [abiertoInicial]);
 
   function buscarSiEnter(e) {
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (qLocal !== filtros.q) onChange('q', qLocal);
+      if (qLocal !== filtros.q) {
+        onChange('q', qLocal);
+        onBuscar?.({ ...filtros, q: qLocal });
+      }
     }
   }
 
-  function manejarEnvio(e) { e.preventDefault(); }
+  function manejarEnvio(e) {
+    e.preventDefault();
+    // El texto puede ir por delante del estado: se envía el valor visible.
+    const enviados = qLocal !== filtros.q ? { ...filtros, q: qLocal } : filtros;
+    onBuscar?.(enviados);
+  }
 
   return (
     <form role="search" aria-label={t('hero.buscar')} className={`searchbar${plegado ? ' plegada' : ''}`} onSubmit={manejarEnvio}>
@@ -186,6 +199,10 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
       </div>
 
       <div className="campo campo-acciones">
+        {/* Solo la landing navega al enviar: aquí hace falta un botón explícito. */}
+        {onBuscar && (
+          <button type="submit" className="btn-cta">{t('hero.buscar')}</button>
+        )}
         <button type="button" className="btn-secundario" onClick={onClear} disabled={!hayFiltrosActivos}>
           {t('busqueda.limpiar')}
         </button>

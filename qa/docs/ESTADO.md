@@ -1,6 +1,6 @@
 # Estado y handoff de QA
 
-> Última actualización: **2026-10-21**. Si retomas esto, lee primero este
+> Última actualización: **2026-10-22**. Si retomas esto, lee primero este
 > fichero; el detalle cronológico está en `bitacora.md`.
 
 ## TL;DR
@@ -10,10 +10,10 @@
   admin/restaurante vía `#/demo-paneles` y los dos guards de sesión).
 - Monkey reproducible por seed: **verde**, 0 incidencias. Ahora con varias
   semillas, modo móvil, formularios y ráfagas de clics (ver bitácora 2026-10-20 b).
-- Regresión: el backend está verde (210/210), pero el frontend arrastra
-  **38 fallos preexistentes** ajenos a esta suite; por eso `qa:regresion` sale
-  en rojo (exit 3) y es correcto.
-- **CI en GitHub Actions, en verde** (`.github/workflows/qa.yml`).
+- Regresión: frontend **320/320** y backend verde; `qa:regresion` ya no tiene
+  fallos preexistentes.
+- **CI en GitHub Actions, en verde** (`.github/workflows/qa.yml`) y el job
+  `unit-frontend` ya bloquea si falla.
 - **No hay flujos autenticados reales**: falta un usuario de Firebase de prueba
   o un mock de Auth.
 
@@ -29,15 +29,15 @@
 | Monkey 40/80 acciones con seed | verde, 0 incidencias |
 | Monkey multisemilla (1,2,3 escritorio · 4,5 móvil), Chrome en Linux | verde, 0 incidencias |
 | Perfiles Taurus con `passfail` (exit 3 si falla) | verde |
-| `npm test` backend (210 tests) | verde |
-| `npm test` frontend | 271/309 (38 fallos preexistentes) |
+| `npm test` backend | verde |
+| `npm test` frontend | 320/320 verde |
 
 Comandos rápidos (desde la raíz del frontend):
 
 ```powershell
 npm run qa:flujo       # 27 E2E, ~4-6 min (cada test abre navegador)
 npm run qa:monkey      # 80 acciones
-npm run qa:regresion   # unitarias + E2E; rojo por el frontend
+npm run qa:regresion   # unitarias + E2E
 ```
 
 Para iterar un solo fichero:
@@ -78,9 +78,9 @@ Para iterar un solo fichero:
 - `e2e` en `windows-latest` (Edge preinstalado): `npm ci` → `setup-python 3.12`
   → `pip install pytest selenium` → `python -m pytest qa -k "not monkey and not
   suite_"`. Sube `qa/artifacts/` siempre.
-- `unit-frontend` en `ubuntu-latest`, Node 20, `continue-on-error: true` por los
-  38 fallos preexistentes. Llama a `node --test test/*.test.js` **sin comillas**:
-  `npm test` lo cita y Node 20 sobre Linux no expande el glob.
+- `unit-frontend` en `ubuntu-latest`, Node 20. Llama a `node --test
+  test/*.test.js` **sin comillas**: `npm test` lo cita y Node 20 sobre Linux no
+  expande el glob. Ya bloquea el PR si falla.
 - `monkey` solo `schedule` (lunes 04:00 UTC) o `workflow_dispatch`; en push sale
   como *skipped* y es lo correcto. A mano: Actions → *QA* → *Run workflow*.
 
@@ -99,12 +99,12 @@ Ya cubierto sin credenciales en `test_flujo_auth.py`: correo inválido,
 contraseña corta, opciones Google/recuperar/registro, validación nativa de
 recuperar y redirección a login al reservar como invitado.
 
-### 3. Fallos unitarios del frontend (preexistentes)
+### 3. Fallos unitarios del frontend — **resuelto (2026-10-22)**
 
-38 de 309. Afectan a `verifyEmail`/reset y a `mobile/src`; el arnés hace
-`vm.runInContext` tras quitar los `import` y esos ficheros ya no encajan con
-Node **v24.21** (el proyecto declara `>=18`). No lo causa la suite E2E.
-Decidir: actualizar el arnés, fijar Node 20 en CI o mover esos tests a Vitest.
+El arnés que quita los `import` y ejecuta con `vm.runInContext` fallaba con los
+finales de línea según la plataforma: afectaba a `verifyEmail`/reset y a
+`mobile/src`. Se corrigió en `08ca563` (regex `\r?\n`), `npm test` da 320/320
+en Node 20 y 24, y el job de CI ya no lleva `continue-on-error`.
 
 ### 4. Bug de contraseña — **resuelto (2026-10-21)**
 
@@ -143,5 +143,5 @@ npm run qa:monkey
 npm run build
 ```
 
-`qa:regresion` seguirá rojo mientras el frontend tenga los 38 fallos: mira el
-detalle, no el código de salida a secas.
+`qa:regresion` ya debe salir en verde; si falla, mira el detalle y no solo el
+código de salida.

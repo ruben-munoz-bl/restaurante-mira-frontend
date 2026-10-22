@@ -1,0 +1,192 @@
+/* Landing (M07) — secciones compactas en fila deslizable. Reutiliza .card de App.css. */
+
+.landing-secciones {
+  max-width: var(--ancho-max);
+  margin: 0 auto;
+  padding: 2.5rem var(--gutter) 3rem;
+  display: grid;
+  gap: 2.5rem;
+}
+
+.landing-cabecera {
+  margin-bottom: 0.9rem;
+}
+
+/* Sin esto, la fila horizontal (2600 px de tarjetas) estira el grid y la página. */
+.landing-seccion,
+.landing-final {
+  min-width: 0;
+}
+
+.landing-titulo {
+  margin: 0;
+  font-family: var(--fuente-display);
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  line-height: 1.15;
+  color: var(--tinta);
+}
+
+.landing-sub {
+  margin: 0.2rem 0 0;
+  color: var(--texto-sec);
+  font-size: 0.92rem;
+}
+
+/* Fila horizontal: scroll nativo con snap; el padding deja respirar sombra y hover. */
+.landing-fila {
+  display: flex;
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0.4rem 0.2rem 1rem;
+  list-style: none;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mismo ancho de tarjeta que la rejilla de Descubrir. */
+.landing-fila > li {
+  flex: 0 0 100%;
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 768px) {
+  .landing-fila > li { flex-basis: calc((100% - 1.25rem) / 2); }
+}
+
+@media (min-width: 1024px) {
+  .landing-fila > li { flex-basis: calc((100% - 2.5rem) / 3); }
+}
+
+.landing-fila::-webkit-scrollbar {
+  height: 6px;
+}
+
+.landing-fila::-webkit-scrollbar-thumb {
+  background: var(--borde);
+  border-radius: 999px;
+}
+
+/* Carrusel de promociones: flechas sobre la fila; en móvil se desliza. */
+.landing-carrusel {
+  position: relative;
+}
+
+.landing-carrusel-btn {
+  position: absolute;
+  top: calc(50% - 0.6rem);
+  transform: translateY(-50%);
+  z-index: 2;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 50%;
+  background: var(--papel);
+  color: var(--tinta);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--sombra-card);
+}
+
+.landing-carrusel-btn.anterior { left: 0.35rem; }
+.landing-carrusel-btn.siguiente { right: 0.35rem; }
+
+.landing-carrusel-btn:hover {
+  border-color: rgba(22, 56, 44, 0.25);
+}
+
+.landing-carrusel-btn:focus-visible {
+  outline: 2px solid var(--primary-container);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .landing-carrusel-btn { display: none; }
+}
+
+/* Tarjeta de plato: toda pulsable para abrir el restaurante. */
+.landing-plato {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radio-xl);
+  overflow: hidden;
+  background: var(--papel);
+  color: var(--tinta);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: var(--sombra-card);
+  transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease;
+}
+
+.landing-plato:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--sombra-card-hover);
+  border-color: rgba(22, 56, 44, 0.15);
+}
+
+.landing-plato img {
+  display: block;
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.landing-plato-texto {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.7rem 0.9rem 0.9rem;
+}
+
+.landing-plato-nombre {
+  font-family: var(--fuente-display);
+  font-size: 1.02rem;
+  line-height: 1.25;
+}
+
+.landing-plato-rest {
+  color: var(--texto-sec);
+  font-size: 0.84rem;
+}
+
+.landing-plato-precio {
+  color: var(--primary-container);
+  font-weight: 700;
+}
+
+/* Cierre: catálogo completo. */
+.landing-final {
+  padding: 2rem 1rem 0;
+  border-top: 1px solid var(--borde);
+  text-align: center;
+}
+
+.landing-final .landing-sub {
+  margin-bottom: 1.1rem;
+}
+
+@media (max-width: 600px) {
+  .landing-secciones {
+    padding: 1.75rem var(--gutter-movil) 2.25rem;
+    gap: 1.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-plato {
+    transition: none;
+  }
+  .landing-plato:hover {
+    transform: none;
+  }
+}

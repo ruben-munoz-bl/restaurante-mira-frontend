@@ -1586,7 +1586,27 @@ export default {
     "destacadosEyebrow": "MIRA selection",
     "destacadosTitulo": "Featured restaurants",
     "destacadosSub": "Places rated {{nota}} or higher, ranked by rating and number of reviews.",
-    "verTodos": "See all restaurants"
+    "verTodos": "See all restaurants",
+    "todosTitulo": "All restaurants",
+    "todosSub": "27 at a time, all the way through",
+    "resultados": "Results",
+    "resultadosSub": "What matches your search"
+  },
+  "landing": {
+    "promociones": "On promotion",
+    "promocionesSub": "Campaigns running right now",
+    "anterior": "Previous",
+    "siguiente": "Next",
+    "platos": "Dishes you will love",
+    "platosSub": "Real photos from the menus",
+    "reservados": "Most booked this week",
+    "reservadosSub": "The tables everyone wants right now",
+    "topBarcelona": "Top 50 Barcelona",
+    "topBarcelonaSub": "The city's best rated",
+    "nuevos": "New on MIRA",
+    "nuevosSub": "Just joined the guide",
+    "verTodos": "See more restaurants",
+    "verTodosSub": "Browse the full catalogue, with filters and no limits"
   },
   "auditoria": {
     "titulo": "Audit",

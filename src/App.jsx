@@ -15,7 +15,7 @@ import en from './i18n/en.js';
 import Header from './components/Header.jsx';
 import Hero from './components/Hero.jsx';
 import SearchBar from './components/SearchBar.jsx';
-import RestaurantList from './components/RestaurantList.jsx';
+import LandingSecciones from './components/LandingSecciones.jsx';
 import RestaurantDetail from './components/RestaurantDetail.jsx';
 import Login from './components/Login.jsx';
 import Recuperar from './components/Recuperar.jsx';
@@ -40,8 +40,6 @@ import AvisoApp from './components/AvisoApp.jsx';
 import AvisosOfertas from './components/AvisosOfertas.jsx';
 import Llegada from './components/Llegada.jsx';
 import LibroCarta from './components/LibroCarta.jsx';
-import PromoBanner from './components/PromoBanner.jsx';
-import RestaurantSkeleton from './components/RestaurantSkeleton.jsx';
 import PrimerArranque from './components/PrimerArranque.jsx';
 import Footer from './components/Footer.jsx';
 import BottomNav from './components/BottomNav.jsx';
@@ -73,6 +71,37 @@ function baseHash() {
   const h = window.location.hash || '';
   const q = h.indexOf('?');
   return q === -1 ? h : h.slice(0, q);
+}
+
+/** Filtros que viajan en la URL al pasar de la landing a Descubrir. */
+const CAMPOS_FILTRO = ['q', 'precio', 'cocina', 'zona', 'distanciaMax', 'orden', 'dia', 'franja', 'hora', 'servicios'];
+
+function leerFiltrosHash() {
+  const params = new URLSearchParams((window.location.hash.split('?')[1] || ''));
+  const filtros = {};
+  for (const campo of CAMPOS_FILTRO) {
+    if (campo === 'servicios') {
+      const valor = params.get('servicios');
+      if (valor) filtros.servicios = valor.split(',').filter(Boolean);
+    } else if (params.has(campo)) {
+      filtros[campo] = params.get(campo);
+    }
+  }
+  return filtros;
+}
+
+function hashDescubrir(filtros) {
+  const params = new URLSearchParams();
+  for (const campo of CAMPOS_FILTRO) {
+    const valor = filtros[campo];
+    if (campo === 'servicios') {
+      if (valor?.length) params.set('servicios', valor.join(','));
+    } else if (valor !== '' && valor != null && !(campo === 'orden' && valor === 'Relevancia')) {
+      params.set(campo, valor);
+    }
+  }
+  const query = params.toString();
+  return `#/descubrir${query ? `?${query}` : ''}`;
 }
 
 function rutaActual() {
@@ -261,38 +290,40 @@ function AppContent({ auth, tema, setTema }) {
 
   const {
     filtros,
-    filtrados,
     visibles,
     todos,
     total,
-    modo,
     hayMas,
     cargandoMas,
     cargarMas,
     estado,
-    error,
     cocinasDisponibles,
     zonasDisponibles,
     seleccionado,
     libro,
-    ocultosDieta,
-    ignorarDieta,
-    incluirEstimados,
-    setIncluirEstimados,
-    posiblesAptos,
     hayFiltrosActivos,
     actualizarFiltro,
     limpiarFiltros,
-    recargar,
     abrirDetalle,
     cerrarDetalle,
     abrirCarta,
     cerrarCarta,
-    verTodosIgual,
     obtenerRestaurante,
-    elegirCocina,
   } = useRestaurantController({ dieta, accesibilidad });
   const [ruta, setRuta] = useState(rutaActual);
+
+  // Al llegar a Descubrir con filtros en la URL (botón/buscador de la landing),
+  // se aplican al controller una sola vez. `lista=1` es el CTA final: catálogo entero.
+  useEffect(() => {
+    if (ruta !== 'descubrir') return;
+    const delHash = leerFiltrosHash();
+    if (!Object.keys(delHash).length) {
+      if (window.location.hash.includes('lista=1')) limpiarFiltros();
+      return;
+    }
+    for (const [campo, valor] of Object.entries(delHash)) actualizarFiltro(campo, valor);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ruta]);
 
   const opciones = useMemo(() => ({
     cocinas: cocinasDisponibles,
@@ -386,6 +417,10 @@ function AppContent({ auth, tema, setTema }) {
     cerrarDetalle();
     window.location.hash = '#/reservas';
     window.scrollTo(0, 0);
+  }
+
+  function irADescubrir(filtrosParaLlevar = filtros) {
+    window.location.hash = hashDescubrir(filtrosParaLlevar);
   }
 
   async function salir() {
@@ -492,6 +527,17 @@ function AppContent({ auth, tema, setTema }) {
             esFavorito={esFavorito}
             onToggleFavorito={toggleFavorito}
             onVerCarta={abrirCarta}
+            filtros={filtros}
+            opciones={opciones}
+            hayFiltrosActivos={hayFiltrosActivos}
+            onChange={actualizarFiltro}
+            onClear={limpiarFiltros}
+            visibles={visibles}
+            total={total}
+            hayMas={hayMas}
+            cargandoMas={cargandoMas}
+            cargarMas={cargarMas}
+            estado={estado}
           />
         )}
         {ruta === 'mapa' && <Mapa todos={todos} total={total} onVerDetalle={abrirDetalle} />}
@@ -500,83 +546,26 @@ function AppContent({ auth, tema, setTema }) {
             <Hero total={total} numZonas={zonasDisponibles.length} />
             <AvisoApp />
             <section id="buscar" className="buscar" aria-labelledby="buscar-titulo">
-               <h2 id="buscar-titulo" className="buscar-titulo">
-                 {t('busqueda.titulo')}
-               </h2>
-
-              {/* La barra vive fuera de los estados: así nunca se desmonta al buscar. */}
+              <h2 id="buscar-titulo" className="buscar-titulo">
+                {t('busqueda.titulo')}
+              </h2>
+              {/* En la landing el buscador solo elige filtros: al enviar se va a Descubrir. */}
               <SearchBar
                 filtros={filtros}
                 opciones={opciones}
                 hayFiltrosActivos={hayFiltrosActivos}
                 onChange={actualizarFiltro}
                 onClear={limpiarFiltros}
+                onBuscar={irADescubrir}
               />
-
-              {estado === 'cargando' && visibles.length === 0 && (
-                <div className="grid" role="status" aria-label={t('otros.cargando')}>
-                  {Array.from({ length: 8 }, (_, i) => (
-                    <RestaurantSkeleton key={`skel-${i}`} />
-                  ))}
-                </div>
-              )}
-
-              {estado === 'error' && (
-                <div className="error-panel" role="alert">
-                  <p className="vacio-titulo">{t('otros.error')}</p>
-                  <p>{error}</p>
-                  <button type="button" className="btn-cta" onClick={recargar}>
-                    {t('otros.reintentar')}
-                  </button>
-                </div>
-              )}
-
-              {/* Refresco con datos previos: se mantiene la lista mientras llega lo nuevo. */}
-              {(estado === 'listo' || (estado === 'cargando' && visibles.length > 0)) && (
-                <>
-                    <p aria-live="polite" className="contador">
-                      {t('lista.mostrando', {
-                        n: visibles.length,
-                        total: modo === 'pagina' ? total || filtrados.length : filtrados.length,
-                      })}
-                      {filtros.q && ` ${t('lista.de')} "${filtros.q}"`}
-                    </p>
-                    {ocultosDieta > 0 && !ignorarDieta && (
-                      <p className="aviso">
-                        {ocultosDieta} {ocultosDieta === 1 ? t('lista.localOculto') : t('lista.localesOcultos')} {t('lista.porTuDieta')}{' '}
-                        <a href="#/cuenta">{t('lista.cambiarCuenta')}</a> ·{' '}
-                        <button type="button" className="btn-texto" onClick={verTodosIgual}>
-                          {t('lista.verTodos')}
-                        </button>
-                      </p>
-                    )}
-                    {(posiblesAptos > 0 || incluirEstimados) && (
-                      <p className="aviso aviso-estimado">
-                        {incluirEstimados
-                          ? t('lista.incluyendoEstimados')
-                          : t('lista.posiblesAptos', { n: posiblesAptos })}{' '}
-                        <button type="button" className="btn-texto" onClick={() => setIncluirEstimados((v) => !v)}>
-                          {incluirEstimados ? t('lista.soloVerificados') : t('lista.verPosiblesAptos')}
-                        </button>
-                      </p>
-                    )}
-                  <RestaurantList
-                    restaurants={visibles}
-                    filtros={filtros}
-                    onClear={limpiarFiltros}
-                    onSelect={abrirDetalle}
-                    hayMas={hayMas}
-                    cargandoMas={cargandoMas}
-                    onLoadMore={cargarMas}
-                    esFavorito={esFavorito}
-                    onToggleFavorito={toggleFavorito}
-                    onVerCarta={abrirCarta}
-                    cargandoInicial={estado === 'cargando'}
-                  />
-                </>
-              )}
             </section>
-            <PromoBanner />
+            <LandingSecciones
+              todos={todos}
+              onSelect={abrirDetalle}
+              esFavorito={esFavorito}
+              onToggleFavorito={toggleFavorito}
+              onVerCarta={abrirCarta}
+            />
           </>
         )}
       </main>

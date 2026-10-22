@@ -1586,7 +1586,27 @@ export default {
     "destacadosEyebrow": "Selección MIRA",
     "destacadosTitulo": "Restaurantes destacados",
     "destacadosSub": "Locales con nota de {{nota}} o más, ordenados por valoración y número de opiniones.",
-    "verTodos": "Ver todos los restaurantes"
+    "verTodos": "Ver todos los restaurantes",
+    "todosTitulo": "Todos los restaurantes",
+    "todosSub": "De 27 en 27, hasta el final del catálogo",
+    "resultados": "Resultados",
+    "resultadosSub": "Lo que encaja con tu búsqueda"
+  },
+  "landing": {
+    "promociones": "En promoción",
+    "promocionesSub": "Campañas activas ahora mismo",
+    "anterior": "Anterior",
+    "siguiente": "Siguiente",
+    "platos": "Platos que apetecen",
+    "platosSub": "Fotos reales de las cartas",
+    "reservados": "Los más reservados de la semana",
+    "reservadosSub": "Los que más mesas llenan estos días",
+    "topBarcelona": "Top 50 Barcelona",
+    "topBarcelonaSub": "Las mejores notas de la ciudad",
+    "nuevos": "Nuevos en MIRA",
+    "nuevosSub": "Recién llegados a la guía",
+    "verTodos": "Ver más restaurantes",
+    "verTodosSub": "Explora el catálogo completo, con filtros y sin límite"
   },
   "auditoria": {
     "titulo": "Auditoría",

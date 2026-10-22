@@ -27,7 +27,7 @@ def home(driver, servidores):
 
 def test_home_carga_catalogo(home):
     """La landing pinta el hero y una parrilla de restaurantes con datos."""
-    assert TITULO_HOME in home.find_element(By.TAG_NAME, "h1").text
+    assert TITULO_HOME in h.texto(home.find_element(By.TAG_NAME, "h1"))
     tarjetas = h.tarjetas(home)
     assert len(tarjetas) >= 10, f"solo {len(tarjetas)} tarjetas"
 
@@ -39,25 +39,43 @@ def test_home_carga_catalogo(home):
     assert not errores, f"errores de consola al cargar: {errores}"
 
 
+def test_landing_promocionados_en_carrusel(home):
+    """La sección de promocionados pinta tarjetas y la flecha avanza la pista."""
+    seccion = home.find_element(
+        By.XPATH, "//h2[@id='landing-promociones']/ancestor::section[1]"
+    )
+    pista = seccion.find_element(By.CSS_SELECTOR, ".landing-fila")
+    assert len(seccion.find_elements(By.CSS_SELECTOR, ".landing-fila > li")) >= 4
+
+    boton = seccion.find_element(By.CSS_SELECTOR, ".landing-carrusel-btn.siguiente")
+    assert boton.is_displayed()
+    antes = home.execute_script("return arguments[0].scrollLeft", pista)
+    h.click_js(home, boton)
+    WebDriverWait(home, 5).until(
+        lambda d: d.execute_script("return arguments[0].scrollLeft", pista) > antes
+    )
+
+
 def test_buscador_filtra_al_pulsar_enter(home):
-    """El buscador aplica el texto al enviar (Enter) y se limpia igual."""
-    total_inicial = len(h.tarjetas(home))
+    """Enviar en la landing lleva a Descubrir con el filtro; Limpiar lo retira."""
+    total_landing = len(h.tarjetas(home))
+    assert total_landing >= 10
 
     campo = home.find_element(By.ID, "f-q")
     campo.clear()
     campo.send_keys("paco")
     campo.send_keys(Keys.ENTER)
 
-    WebDriverWait(home, 10).until(lambda d: len(h.tarjetas(d)) < total_inicial)
+    WebDriverWait(home, 10).until(
+        lambda d: "#/descubrir" in d.current_url and "q=paco" in d.current_url
+    )
+    WebDriverWait(home, 10).until(lambda d: 0 < len(h.tarjetas(d)) < total_landing)
     filtradas = [h.titulo_tarjeta(home, t) for t in h.tarjetas(home)]
     assert filtradas, "el filtro dejó la lista vacía"
     assert all("paco" in t.lower() for t in filtradas), filtradas
 
-    campo = home.find_element(By.ID, "f-q")
-    campo.send_keys(Keys.CONTROL, "a")
-    campo.send_keys(Keys.BACKSPACE)
-    campo.send_keys(Keys.ENTER)
-    WebDriverWait(home, 10).until(lambda d: len(h.tarjetas(d)) == total_inicial)
+    home.find_element(By.CSS_SELECTOR, ".searchbar .btn-secundario").click()
+    WebDriverWait(home, 10).until(lambda d: len(h.tarjetas(d)) > len(filtradas))
 
 
 def test_detalle_abre_la_ficha_del_restaurante(home):

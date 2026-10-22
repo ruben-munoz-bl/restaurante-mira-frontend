@@ -34,7 +34,7 @@ function montar(archivo) {
   };
   vm.createContext(contexto);
   const codigo = readFileSync(new URL(archivo, import.meta.url), 'utf8')
-    .replace(/^import .*;\n/gm, '')
+    .replace(/^import .*;\r?\n/gm, '')
     .replace('export default function useLlegada', 'function useLlegada');
   vm.runInContext(codigo, contexto);
   return {

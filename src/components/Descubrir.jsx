@@ -8,6 +8,8 @@ import { useT } from '../i18n/index.jsx';
 import { fetchRestaurants } from '../services/restaurantApi.js';
 import { imagenParaRestaurante } from '../models/restaurantModel.js';
 import RestaurantCard from './RestaurantCard.jsx';
+import RestaurantList from './RestaurantList.jsx';
+import SearchBar from './SearchBar.jsx';
 import '../styles/descubrir.css';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
@@ -47,11 +49,29 @@ const suave = (a, b, x) => {
   return t * t * (3 - 2 * t);
 };
 
-export default function Descubrir({ todos = [], onSelect, esFavorito, onToggleFavorito, onVerCarta }) {
+export default function Descubrir({
+  todos = [],
+  onSelect,
+  esFavorito,
+  onToggleFavorito,
+  onVerCarta,
+  filtros,
+  opciones,
+  hayFiltrosActivos,
+  onChange,
+  onClear,
+  visibles = [],
+  total = 0,
+  hayMas,
+  cargandoMas,
+  cargarMas,
+  estado,
+}) {
   const t = useT(TRADS);
   const [catalogo, setCatalogo] = useState(todos);
-  const [estado, setEstado] = useState(todos.length ? 'listo' : 'cargando');
+  const [estadoVuelo, setEstadoVuelo] = useState(todos.length ? 'listo' : 'cargando');
   const reducido = useMemo(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, []);
+  const refTodos = useRef(null);
 
   // El portal solo trae una página: para un ranking justo se pide el catálogo completo.
   useEffect(() => {
@@ -59,10 +79,12 @@ export default function Descubrir({ todos = [], onSelect, esFavorito, onToggleFa
     fetchRestaurants()
       .then((lista) => {
         if (vivo && lista.length) setCatalogo(lista);
-        if (vivo) setEstado('listo');
+        if (vivo) setEstadoVuelo('listo');
       })
       .catch(() => {
-        if (vivo) setEstado(todos.length ? 'listo' : 'error');
+        // El fallo del catálogo lo comunica `estado` (controller); aquí basta con
+        // seguir con lo que ya trajo el portal.
+        if (vivo) setEstadoVuelo('listo');
       });
     return () => {
       vivo = false;
@@ -80,25 +102,51 @@ export default function Descubrir({ todos = [], onSelect, esFavorito, onToggleFa
     [ranking],
   );
 
+  // Llegada desde el botón final de la landing (#dsc-todos, hash con lista=1).
+  const irALista = useMemo(() => window.location.hash.includes('lista=1'), []);
+  useEffect(() => {
+    if (!irALista) return undefined;
+    const el = refTodos.current;
+    if (!el) return undefined;
+    const raf = requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    return () => cancelAnimationFrame(raf);
+  }, [irALista, visibles.length > 0]);
+
+  const tituloResultados = hayFiltrosActivos ? t('descubrir.resultados') : t('descubrir.todosTitulo');
+  const subResultados = hayFiltrosActivos ? t('descubrir.resultadosSub') : t('descubrir.todosSub');
+
   return (
     <div className="descubrir">
-      {estado === 'cargando' && (
+      {estado === 'error' && (
+        <div className="dsc-aviso" role="alert">{t('descubrir.error')}</div>
+      )}
+
+      {/* Con filtros activos solo interesan los resultados: fuera vuelo y destacados. */}
+      {!hayFiltrosActivos && estadoVuelo === 'cargando' && (
         <div className="dsc-cargando" role="status">
           <span className="dsc-cargando-anillo" aria-hidden="true" />
           {t('descubrir.cargando')}
         </div>
       )}
-      {estado === 'error' && (
-        <div className="dsc-cargando" role="alert">{t('descubrir.error')}</div>
-      )}
-      {estado === 'listo' && vuelo.length > 0 &&
+      {!hayFiltrosActivos && estadoVuelo === 'listo' && vuelo.length > 0 &&
         (reducido ? (
           <VueloEstatico vuelo={vuelo} t={t} onSelect={onSelect} />
         ) : (
           <Vuelo vuelo={vuelo} t={t} onSelect={onSelect} />
         ))}
 
-      {estado === 'listo' && destacados.length > 0 && (
+      <div className="dsc-buscador">
+        <SearchBar
+          filtros={filtros}
+          opciones={opciones}
+          hayFiltrosActivos={hayFiltrosActivos}
+          onChange={onChange}
+          onClear={onClear}
+          abiertoInicial={hayFiltrosActivos}
+        />
+      </div>
+
+      {!hayFiltrosActivos && estadoVuelo === 'listo' && destacados.length > 0 && (
         <section className="dsc-destacados" aria-labelledby="dsc-destacados-titulo">
           <p className="dsc-eyebrow">{t('descubrir.destacadosEyebrow')}</p>
           <h2 id="dsc-destacados-titulo" className="dsc-destacados-titulo">
@@ -119,6 +167,30 @@ export default function Descubrir({ todos = [], onSelect, esFavorito, onToggleFa
           </div>
         </section>
       )}
+
+      <section id="dsc-todos" ref={refTodos} className="dsc-todos" aria-labelledby="dsc-todos-titulo">
+        <h2 id="dsc-todos-titulo" className="dsc-todos-titulo">{tituloResultados}</h2>
+        <p className="dsc-todos-sub">{subResultados}</p>
+        <p
+          className="dsc-todos-contador"
+          aria-label={`${tituloResultados}: ${visibles.length} / ${total}`}
+        >
+          <b>{visibles.length}</b> / {total}
+        </p>
+        <RestaurantList
+          restaurants={visibles}
+          filtros={filtros}
+          onClear={onClear}
+          onSelect={onSelect}
+          hayMas={hayMas}
+          cargandoMas={cargandoMas}
+          onLoadMore={cargarMas}
+          esFavorito={esFavorito}
+          onToggleFavorito={onToggleFavorito}
+          onVerCarta={onVerCarta}
+          cargandoInicial={estado === 'cargando' && visibles.length === 0}
+        />
+      </section>
     </div>
   );
 }
