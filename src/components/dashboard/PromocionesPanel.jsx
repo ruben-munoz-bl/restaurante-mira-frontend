@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { promotionsApi } from "../../services/api.js";
 import {
-  promocionVacia, validarPromocion, paraGuardar, estadoPromocion, bloqueaNueva,
-  fechaCorta, erroresDeApi, claveErrorApi,
+  promocionVacia, validarPromocion, validarEdicion, paraGuardar, paraActualizar,
+  estadoPromocion, bloqueaNueva, fechaCorta, fechaInput, erroresDeApi,
+  claveErrorApi, claveErrorEdicion,
 } from "../../models/promocionesModel.js";
 import { useT } from "../../i18n/index.jsx";
 import es from "../../i18n/es.js";
@@ -32,6 +33,11 @@ export default function PromocionesPanel({ restauranteId, restauranteNombre = ""
   const [guardando, setGuardando] = useState(false);
   const [aviso, setAviso] = useState("");
   const [stats, setStats] = useState(null);
+  const [editando, setEditando] = useState(null); // id de la campaña en edición
+  const [edicion, setEdicion] = useState({ fechaFin: "", presupuestoTotal: "" });
+  const [erroresEdicion, setErroresEdicion] = useState({});
+  const [errorEdicion, setErrorEdicion] = useState("");
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
 
   const recargar = useCallback(async () => {
     if (!restauranteId) { setPromos([]); setCargando(false); return; }
@@ -49,6 +55,7 @@ export default function PromocionesPanel({ restauranteId, restauranteNombre = ""
   useEffect(() => {
     setModo("lista");
     setAviso("");
+    setEditando(null);
     recargar();
   }, [recargar]);
 
@@ -98,6 +105,55 @@ export default function PromocionesPanel({ restauranteId, restauranteNombre = ""
       setErrorGeneral(t(`promociones.${claveErrorApi(err)}`));
     } finally {
       setGuardando(false);
+    }
+  }
+
+  function abrirEditar(p) {
+    setEditando(p.id);
+    setEdicion({ fechaFin: fechaInput(p.fechaFin), presupuestoTotal: String(p.presupuestoTotal ?? "") });
+    setErroresEdicion({});
+    setErrorEdicion("");
+    setErrorGeneral("");
+  }
+
+  function cambiarEdicion(campo, valor) {
+    setEdicion((prev) => ({ ...prev, [campo]: valor }));
+    setErroresEdicion({});
+    setErrorEdicion("");
+  }
+
+  async function guardarEdicion(p) {
+    const e = validarEdicion(edicion, fechaInput(p.fechaInicio));
+    if (e) { setErroresEdicion(e); return; }
+    setGuardandoEdicion(true);
+    setErrorEdicion("");
+    try {
+      await promotionsApi.actualizar(p.id, paraActualizar(edicion));
+      setAviso("actualizada");
+      setEditando(null);
+      await recargar();
+    } catch (err) {
+      const detalles = erroresDeApi(err);
+      if (detalles) setErroresEdicion(detalles);
+      setErrorEdicion(t(`promociones.${claveErrorEdicion(err)}`));
+    } finally {
+      setGuardandoEdicion(false);
+    }
+  }
+
+  async function finalizar(p) {
+    if (!window.confirm(t("promociones.confirmarFinalizar"))) return;
+    setGuardandoEdicion(true);
+    setErrorGeneral("");
+    try {
+      await promotionsApi.actualizar(p.id, { estado: "finalizada" });
+      setAviso("cerrada");
+      setEditando(null);
+      await recargar();
+    } catch (err) {
+      setErrorGeneral(t(`promociones.${claveErrorEdicion(err)}`));
+    } finally {
+      setGuardandoEdicion(false);
     }
   }
 
@@ -241,6 +297,43 @@ export default function PromocionesPanel({ restauranteId, restauranteNombre = ""
                     <span className="ofertas-chip">{t("promociones.cpc")}: {euros(p.cpc)}</span>
                     <span className="ofertas-chip">{t("promociones.puntosExtra")}: {p.puntosExtraPorReserva ?? 0}</span>
                   </div>
+                  {editando === p.id ? (
+                    <div className="promos-edicion" data-test="promociones-edicion">
+                      <label className="op-field">
+                        <span>{t("promociones.fechaFin")}</span>
+                        <input className="op-input" type="date" value={edicion.fechaFin}
+                          onChange={(e) => cambiarEdicion("fechaFin", e.target.value)} data-test="promociones-editar-fin" />
+                        {erroresEdicion.fechaFin && <span className="ofertas-error">{t(`promociones.${erroresEdicion.fechaFin[0]}`)}</span>}
+                      </label>
+                      <label className="op-field">
+                        <span>{t("promociones.presupuestoTotal")}</span>
+                        <input className="op-input" type="number" min="0.01" max="1000000" step="0.01"
+                          value={edicion.presupuestoTotal} onChange={(e) => cambiarEdicion("presupuestoTotal", e.target.value)}
+                          data-test="promociones-editar-presupuesto" />
+                        {erroresEdicion.presupuestoTotal && <span className="ofertas-error">{t(`promociones.${erroresEdicion.presupuestoTotal[0]}`)}</span>}
+                      </label>
+                      {errorEdicion && <p className="ofertas-error" role="alert">{errorEdicion}</p>}
+                      <div className="ofertas-acciones">
+                        <button type="button" className="op-btn-primary" onClick={() => guardarEdicion(p)} disabled={guardandoEdicion} data-test="promociones-editar-guardar">
+                          {guardandoEdicion ? t("promociones.guardandoCambios") : t("promociones.guardarCambios")}
+                        </button>
+                        <button type="button" className="op-btn-ghost" onClick={() => setEditando(null)} disabled={guardandoEdicion}>
+                          {t("promociones.cancelar")}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="promos-acciones">
+                      <button type="button" className="op-btn-ghost" onClick={() => abrirEditar(p)} data-test="promociones-editar">
+                        {t("promociones.editar")}
+                      </button>
+                      {p.estado !== "finalizada" && (
+                        <button type="button" className="op-btn-ghost" onClick={() => finalizar(p)} disabled={guardandoEdicion} data-test="promociones-finalizar">
+                          {t("promociones.finalizar")}
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

@@ -168,6 +168,7 @@ export const promotionsApi = {
     return d.data || d;
   },
   crear: async (datos) => api.post('/v1/promotions', datos),
+  actualizar: async (id, datos) => api.put(`/v1/promotions/${id}`, datos),
   getStats: async (id) => api.get(`/v1/promotions/${id}/stats`),
 };
 

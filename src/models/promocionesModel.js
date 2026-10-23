@@ -97,6 +97,16 @@ export function validarPromocion(d) {
   return Object.keys(e).length ? e : null;
 }
 
+/** { campo: [clave i18n] } o null. La edición solo cambia fin y presupuesto. */
+export function validarEdicion(d, fechaInicio) {
+  const e = {};
+  if (!FECHA.test(d.fechaFin || '')) e.fechaFin = ['errFechaFin'];
+  else if (FECHA.test(fechaInicio || '') && d.fechaFin < fechaInicio) e.fechaFin = ['errFechaPosterior'];
+  const presupuesto = Number(d.presupuestoTotal);
+  if (!Number.isFinite(presupuesto) || presupuesto <= 0 || presupuesto > 1000000) e.presupuestoTotal = ['errPresupuesto'];
+  return Object.keys(e).length ? e : null;
+}
+
 /** Payload limpio para POST /v1/promotions. */
 export function paraGuardar(d, restauranteId) {
   return {
@@ -108,6 +118,11 @@ export function paraGuardar(d, restauranteId) {
     cpc: Number(d.cpc),
     puntosExtraPorReserva: Number(d.puntosExtraPorReserva),
   };
+}
+
+/** Payload limpio para PUT /v1/promotions/:id (solo lo que se puede editar). */
+export function paraActualizar(d) {
+  return { fechaFin: d.fechaFin, presupuestoTotal: Number(d.presupuestoTotal) };
 }
 
 /** Detalles de campo de un 400 del backend → claves i18n relativas a promociones. */
@@ -135,4 +150,10 @@ export function claveErrorApi(err) {
   if (err.status === 404) return 'errRestaurante';
   if (err.status === 400) return 'errValidacion';
   return 'errRed';
+}
+
+/** Igual que claveErrorApi pero para editar/cerrar: el 404 es la campaña. */
+export function claveErrorEdicion(err) {
+  if (err?.status === 404) return 'errPromoNoExiste';
+  return claveErrorApi(err);
 }

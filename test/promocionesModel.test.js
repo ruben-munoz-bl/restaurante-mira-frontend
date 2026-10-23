@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  promocionVacia, validarPromocion, paraGuardar, estadoPromocion, bloqueaNueva,
-  aMs, fechaCorta, fechaInput, hoyMadrid, sumarDias, erroresDeApi, claveErrorApi,
+  promocionVacia, validarPromocion, validarEdicion, paraGuardar, paraActualizar,
+  estadoPromocion, bloqueaNueva, aMs, fechaCorta, fechaInput, hoyMadrid, sumarDias,
+  erroresDeApi, claveErrorApi, claveErrorEdicion,
 } from '../src/models/promocionesModel.js';
 
 const buenos = () => ({
@@ -52,6 +53,24 @@ test('paraGuardar convierte números y añade restauranteId', () => {
   assert.equal('estado' in p, false);
 });
 
+test('validarEdicion solo mira fin y presupuesto', () => {
+  assert.equal(validarEdicion({ fechaFin: '2026-11-22', presupuestoTotal: '300' }, '2026-10-23'), null);
+  assert.deepEqual(validarEdicion({ fechaFin: '', presupuestoTotal: '300' }, '2026-10-23').fechaFin, ['errFechaFin']);
+  assert.deepEqual(validarEdicion({ fechaFin: '2026-10-01', presupuestoTotal: '300' }, '2026-10-23').fechaFin, ['errFechaPosterior']);
+  assert.deepEqual(validarEdicion({ fechaFin: '2026-11-22', presupuestoTotal: '0' }, '2026-10-23').presupuestoTotal, ['errPresupuesto']);
+});
+
+test('paraActualizar envía solo los campos editables', () => {
+  assert.deepEqual(paraActualizar({ fechaFin: '2026-12-01', presupuestoTotal: ' 450.5 ', tipo: 'x' }), {
+    fechaFin: '2026-12-01', presupuestoTotal: 450.5,
+  });
+});
+
+test('claveErrorEdicion distingue la campaña que ya no existe', () => {
+  assert.equal(claveErrorEdicion({ status: 404 }), 'errPromoNoExiste');
+  assert.equal(claveErrorEdicion({ status: 403 }), 'errPermiso');
+  assert.equal(claveErrorEdicion({}), 'errRed');
+});
 test('estadoPromocion distingue activa, programada, caducada y finalizada', () => {
   const ahora = Date.parse('2026-10-23T12:00:00Z');
   assert.equal(estadoPromocion({ estado: 'activa', fechaInicio: '2026-10-01', fechaFin: '2026-10-31' }, ahora), 'activa');

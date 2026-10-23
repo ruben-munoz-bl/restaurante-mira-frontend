@@ -526,6 +526,9 @@
 .promos-avanzado[open] summary { margin-bottom: 0.5rem; }
 .promos-stats { display: flex; flex-wrap: wrap; gap: 0.6rem; padding: 0.55rem 0.7rem; border: 1px solid var(--op-border); border-radius: var(--op-radius-lg); background: var(--op-surface-low); font-size: 0.66rem; color: var(--op-on-variant); }
 .promos-stats strong { display: block; font-size: 0.85rem; color: var(--op-on-surface); }
+.promos-acciones { display: flex; gap: 0.4rem; margin-top: 0.5rem; }
+.promos-edicion { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.6rem; margin-top: 0.5rem; }
+.promos-edicion .ofertas-acciones { width: 100%; margin-top: 0; }
 @media (max-width: 640px) {
   .ofertas-nivel, .ofertas-form-fila { grid-template-columns: 1fr; gap: 0.3rem; }
 }
