@@ -402,6 +402,8 @@ http
         return enviar(res, 200, ofertas[i]);
       }
     }
+    // Panel del restaurante: el segundo restaurante, sin carta, para probar el paso de carta (M09).
+    if (p === '/v1/dashboard/my-restaurant') return enviar(res, 200, { restaurante: docs[1], stats: {}, proximasReservas: [], reservasHoy: [], ticketsRecientes: [], ingresosPorMes: [] });
     if (p.startsWith('/v1/points/balance')) return enviar(res, 200, { saldoActual: 0, rachaLogin: { dias: 0, yaReclamado: true } });
     return enviar(res, 200, { data: [], items: [] });
   })
