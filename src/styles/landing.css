@@ -157,6 +157,14 @@
   box-shadow: 0 10px 22px rgba(22, 56, 44, 0.18);
 }
 
+/* Foto ya recortada con fondo transparente: sin círculo ni sombra de caja. */
+.landing-plato--recortado img {
+  border-radius: 0;
+  object-fit: contain;
+  box-shadow: none;
+  filter: drop-shadow(0 10px 14px rgba(22, 56, 44, 0.16));
+}
+
 .landing-plato-texto {
   display: grid;
   gap: 0.15rem;
@@ -211,6 +219,14 @@
   }
 }
 
+/* Las fotos se pensaron sobre fondo claro: la tarjeta sigue clara en modo oscuro. */
 [data-theme='dark'] .landing-plato {
-  --landing-plato-fondo: rgba(255, 255, 255, 0.05);
+  --landing-plato-fondo: #f3f2ef;
+  color: #1d2a24;
+}
+[data-theme='dark'] .landing-plato .landing-plato-rest {
+  color: #55615b;
+}
+[data-theme='dark'] .landing-plato .landing-plato-precio {
+  color: #14532d;
 }

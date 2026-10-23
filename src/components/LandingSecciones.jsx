@@ -100,7 +100,7 @@ export default function LandingSecciones({ todos = [], onSelect, esFavorito, onT
           >
             {platos.map(({ restaurante, plato }, i) => (
               <li key={`${restaurante.id}-${i}`}>
-                <button type="button" className="landing-plato" onClick={() => onSelect?.(restaurante)}>
+                <button type="button" className={`landing-plato${plato.recortada ? ' landing-plato--recortado' : ''}`} onClick={() => onSelect?.(restaurante)}>
                   <img src={plato.foto} alt={plato.nombre} loading="lazy" />
                   <span className="landing-plato-texto">
                     <span className="landing-plato-nombre">{plato.nombre}</span>
