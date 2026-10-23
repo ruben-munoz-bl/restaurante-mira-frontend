@@ -1,14 +1,15 @@
 /**
  * Escáner de QR de llegada en la app (G10): el restaurante escanea el QR del
  * cliente con la cámara (o pega el código), lo valida con
- * POST /v1/visitas/validar y ve las llegadas de hoy con su estado.
- * Misma lógica que el panel web (escanerModel).
+ * POST /v1/visitas/validar (v1.) o reservations/checkin (r1.).
+ * Las reservas muestran el cliente y el pedido que devuelve la API.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { api } from '../../services/httpClient.js';
 import { ESTADOS, normalizarCodigo, estadoDesdeError, aLlegada, agregarLlegada } from '../../models/escanerModel.js';
+import { esQrReserva, validarQrLlegada, mensajeErrorReserva } from '../../models/checkinReservaModel.js';
 import { OpBtnPrimary, OpBtnGhost } from './DashboardUi.jsx';
 import { useOpStyles } from './OpTokens';
 import { Simbolo } from '../shell/Simbolo';
@@ -34,8 +35,9 @@ export default function EscanerLlegadas({ restauranteId }) {
   const [llegadas, setLlegadas] = useState([]);
   const [errorLista, setErrorLista] = useState(false);
   const leido = useRef(false);
+  const enCurso = useRef(false);
   const montado = useRef(true);
-  useEffect(() => () => { montado.current = false; }, []);
+  useEffect(() => { montado.current = true; return () => { montado.current = false; }; }, []);
 
   const cargarLista = useCallback(async () => {
     if (!restauranteId) return;
@@ -57,22 +59,34 @@ export default function EscanerLlegadas({ restauranteId }) {
   }, [cargarLista]);
 
   const validar = useCallback(async (codigo) => {
+    if (enCurso.current) return;
     const limpio = normalizarCodigo(codigo);
     if (!limpio) { setResultado({ estado: ESTADOS.INVALIDO }); return; }
+    const esReserva = esQrReserva(limpio);
+    enCurso.current = true;
     setValidando(true);
+    setResultado(null);
     try {
-      const r = await api.post('/v1/visitas/validar', { qr: limpio });
+      const r = await validarQrLlegada(api, limpio);
+      if (!montado.current) return;
+      if (esReserva) {
+        setResultado({ estado: ESTADOS.OK, reserva: r.reserva, cliente: r.cliente, puntosPedido: r.puntosPedido });
+        return;
+      }
       const llegada = aLlegada({ ...r?.visita, cliente: r?.cliente });
       if (montado.current && llegada) setLlegadas((prev) => agregarLlegada(prev, llegada));
       setResultado({
         estado: ESTADOS.OK,
-        cliente: r?.cliente?.nombre || null,
+        cliente: r?.cliente,
         texto: r?.aplicar?.texto || null,
         descuentoPct: r?.aplicar?.descuentoPct ?? null,
       });
     } catch (e) {
-      if (montado.current) setResultado({ estado: estadoDesdeError(e) });
+      if (montado.current) setResultado(esReserva
+        ? { estado: 'error_reserva', mensaje: mensajeErrorReserva(e) }
+        : { estado: estadoDesdeError(e) });
     } finally {
+      enCurso.current = false;
       if (montado.current) { setValidando(false); cargarLista(); }
     }
   }, [cargarLista]);
@@ -93,8 +107,9 @@ export default function EscanerLlegadas({ restauranteId }) {
   }
 
   const ok = resultado?.estado === ESTADOS.OK;
+  const reserva = resultado?.reserva;
   const detalle = ok
-    ? [resultado.cliente, resultado.texto, resultado.descuentoPct != null ? `${resultado.descuentoPct} % de descuento` : null].filter(Boolean).join(' · ')
+    ? [resultado.cliente?.nombre, resultado.texto, resultado.descuentoPct != null ? `${resultado.descuentoPct} % de descuento` : null].filter(Boolean).join(' · ')
     : '';
   return (
     <View style={s.panel} testID="escaner-llegadas">
@@ -103,7 +118,7 @@ export default function EscanerLlegadas({ restauranteId }) {
         <Text style={[s.panelTitle, { flex: 1 }]}>Escáner de QR</Text>
       </View>
       <Text style={{ color: op.onVariant, fontSize: 12, marginBottom: 10 }}>
-        Escanea el QR del cliente para confirmar su llegada y aplicar la oferta.
+        Escanea el QR del cliente para confirmar su reserva y ver el pedido, o aplicar su oferta de llegada.
       </Text>
 
       {camara ? (
@@ -121,9 +136,25 @@ export default function EscanerLlegadas({ restauranteId }) {
       {resultado ? (
         <View style={[estilos.resultado, { backgroundColor: ok ? '#e3f6ec' : '#fdecec' }]}>
           <Text style={[estilos.resultadoTxt, { color: ok ? '#0b5a3a' : '#9b1c1c' }]}>
-            {resultado.sinPermiso ? 'Sin permiso de cámara. Escribe el código a mano.' : MENSAJES[resultado.estado]}
+            {resultado.sinPermiso ? 'Sin permiso de cámara. Escribe el código a mano.'
+              : resultado.mensaje || (reserva ? 'Llegada de la reserva confirmada.' : MENSAJES[resultado.estado])}
           </Text>
           {detalle ? <Text style={estilos.detalle}>{detalle}</Text> : null}
+          {reserva ? (
+            <View testID="checkin-reserva">
+              <Text style={estilos.detalle}>{reserva.codigo} · {reserva.fecha} · {reserva.hora} · {reserva.comensales} comensales</Text>
+              {reserva.pedido ? (
+                <View style={estilos.pedido}>
+                  <Text style={estilos.pedidoTitulo}>Pedido anticipado</Text>
+                  {reserva.pedido.lineas.map((l) => (
+                    <Text key={l.platoId} style={estilos.pedidoLinea}>{l.cantidad} × {l.nombre} · {Number(l.subtotal).toFixed(2)} €</Text>
+                  ))}
+                  <Text style={estilos.pedidoTitulo}>Total: {Number(reserva.pedido.total).toFixed(2)} €</Text>
+                </View>
+              ) : <Text style={estilos.detalle}>Sin pedido anticipado.</Text>}
+              {resultado.puntosPedido === 50 ? <Text style={estilos.detalle}>+50 puntos para el cliente por su pedido anticipado.</Text> : null}
+            </View>
+          ) : null}
         </View>
       ) : null}
 
@@ -181,6 +212,9 @@ const estilos = StyleSheet.create({
   resultado: { padding: 12, borderRadius: 10, marginBottom: 10 },
   resultadoTxt: { fontSize: 15, fontWeight: '700', textAlign: 'center' },
   detalle: { marginTop: 6, textAlign: 'center', color: '#0b3d2a' },
+  pedido: { marginTop: 10, gap: 6 },
+  pedidoTitulo: { color: '#0b3d2a', fontWeight: '700' },
+  pedidoLinea: { color: '#0b3d2a' },
   botones: { flexDirection: 'row', justifyContent: 'center', gap: 8 },
   manual: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   fila: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 8, borderBottomWidth: 1 },

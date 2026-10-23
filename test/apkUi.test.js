@@ -5,6 +5,8 @@ import vm from 'node:vm';
 import { transformSync } from 'esbuild';
 import { CLARO, OSCURO } from '../mobile/src/theme/tokens.js';
 import * as avisosModel from '../mobile/src/models/avisosOfertasModel.js';
+import * as escanerModel from '../mobile/src/models/escanerModel.js';
+import * as checkinModel from '../mobile/src/models/checkinReservaModel.js';
 import { ofertaParaLlegada } from '../mobile/src/models/accesoLlegada.js';
 import { pestanaActiva, rutaDesdePath } from '../mobile/src/components/shell/rutas.js';
 import { construirBody, normalizarRespuesta, MAX_MENSAJE } from '../mobile/src/services/aiPayload.js';
@@ -59,6 +61,36 @@ const contenido = tree => nodos(tree, 'Text').flatMap(n => n.props.children.flat
 const boton = (tree, texto) => nodos(tree, 'Pressable').find(n => contenido(n).includes(texto));
 const plano = style => Object.assign({}, ...(Array.isArray(style) ? style.flat(Infinity).filter(Boolean) : [style]));
 const restaurante = { restaurante: { id: 'r1', nombre: 'Prueba', partner: true }, oferta: { id: 'o1', titulo: 'Oferta' }, nivel: { distancia: 20, texto: 'Llegaste' }, distanciaM: 10 };
+
+test('M11 app: el escáner muestra cliente, hora, comensales y pedido; mantiene visitas v1', async () => {
+  const llamadas = [];
+  const opBoton = ({ children, ...props }) => ({ type: 'Pressable', props: { ...props, children: [{ type: 'Text', props: { children } }] } });
+  let respuesta = { reserva: { id: 'res1', codigo: 'MIRA-TEST', fecha: '2026-10-23', hora: '13:30', comensales: 4,
+    presentadaEn: '2026-10-23T11:30:00Z', pedido: { lineas: [{ platoId: 'p1', nombre: 'Croquetas', cantidad: 2, subtotal: 19 }], total: 19 } },
+  cliente: { nombre: 'Ana' }, puntosPedido: 50 };
+  const h = montar('components/dashboard/EscanerLlegadas.jsx', {
+    ...escanerModel, ...checkinModel,
+    CameraView: 'CameraView', useCameraPermissions: () => [{ granted: true }, async () => ({ granted: true })],
+    useOpStyles: () => ({ s: {}, op: {} }), OpBtnPrimary: opBoton, OpBtnGhost: opBoton,
+    api: { get: async () => ({ data: [] }), post: async (...args) => { llamadas.push(args); return respuesta; } },
+  }, { restauranteId: 'r1' });
+  try {
+    let tree = h.render();
+    nodos(tree, 'TextInput')[0].props.onChangeText(' r1.res1.mock ');
+    tree = h.render(); await boton(tree, 'Validar').props.onPress(); tree = h.render();
+    const texto = contenido(tree);
+    for (const valor of ['Ana', '13:30', '4', 'comensales', 'Croquetas', '19.00', '+50']) assert.ok(texto.includes(valor), valor);
+    assert.equal(texto.includes('Aplica la oferta en la cuenta'), false);
+    respuesta = { visita: { id: 'v1', estado: 'confirmada' }, cliente: { nombre: 'Marc' }, aplicar: { texto: 'Café gratis', descuentoPct: 20 } };
+    nodos(tree, 'TextInput')[0].props.onChangeText('v1.visita.123.mock');
+    tree = h.render(); await boton(tree, 'Validar').props.onPress(); tree = h.render();
+    assert.ok(contenido(tree).includes('Café gratis'));
+    assert.ok(contenido(tree).includes('Marc'));
+    assert.equal(contenido(tree).includes('Croquetas'), false);
+    assert.equal(llamadas[0][0], '/v1/reservations/checkin');
+    assert.equal(llamadas[1][0], '/v1/visitas/validar');
+  } finally { h.cerrar(); }
+});
 
 test('BUG-139: foreground consulta quieto cada 30s, cancela al salir y comparte dedup con background', async () => {
   const storage = new Map();
