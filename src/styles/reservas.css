@@ -259,3 +259,12 @@
   .tkd, .tk, .rsv-agenda li { animation: none; }
   .rsv-esq { animation: none; }
 }
+
+/* M06 — QR y pedido anticipado */
+.tk-extra { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; align-items: flex-start; }
+.tk-qr .llegada-qr { width: 120px; height: auto; display: block; }
+.tk-pedido { flex: 1 1 200px; font-size: 0.9rem; }
+.tk-pedido ul { list-style: none; margin: 6px 0; padding: 0; }
+.tk-pedido li, .tk-pedido-total { display: flex; justify-content: space-between; gap: 8px; margin: 2px 0; }
+.tk-pedido-aviso { margin: 4px 0 0; font-size: 0.8rem; opacity: 0.8; }
+.tk-presentada { margin: 6px 0 0; font-weight: 600; color: #1f7a4d; }

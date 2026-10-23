@@ -55,7 +55,7 @@ export async function getDisponibilidad(restaurante, fecha, hora) {
   }
 }
 
-export async function crearReserva({ restaurante, usuario, fecha, hora, comensales, comentarios = '' }) {
+export async function crearReserva({ restaurante, usuario, fecha, hora, comensales, comentarios = '', pedido = null }) {
   if (!usuario?.uid) throw new Error('Debes iniciar sesión para reservar.');
   validarReserva({ fecha, hora, comensales, comentarios });
   const restaurantId = String(restaurante.id);
@@ -69,6 +69,7 @@ export async function crearReserva({ restaurante, usuario, fecha, hora, comensal
     nombreRestaurante: restaurante.nombre || '',
     usuarioNombre: usuario.displayName || usuario.nombre || usuario.email || '',
     usuarioEmail: usuario.email || '',
+    ...(pedido ? { pedido } : {}),
   });
   return {
     id: d.id,
@@ -77,6 +78,7 @@ export async function crearReserva({ restaurante, usuario, fecha, hora, comensal
     fecha: d.fecha || fecha,
     hora: d.hora || hora,
     comensales: d.comensales ?? Number(comensales),
+    pedido: d.pedido ?? null,
   };
 }
 

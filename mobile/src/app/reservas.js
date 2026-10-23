@@ -3,7 +3,9 @@
  * meteorología de los días con reserva, lista del día seleccionado y
  * pestañas próximas/pasadas/canceladas con cancelación (Alert nativo).
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import Svg, { Path, Rect } from 'react-native-svg';
+import { trazadoQR } from '../models/llegadaModel.js';
 import { View, Text, Pressable, StyleSheet, Alert, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AppShell } from '../components/shell/AppShell';
@@ -21,6 +23,16 @@ import { FUENTES, RADIO } from '../theme/tokens';
 import { btnCta, btnSecundario } from '../theme/ui';
 
 const TRADS = { es, ca, en };
+
+function CodigoQR({ texto }) {
+  const { size, d } = useMemo(() => trazadoQR(texto), [texto]);
+  return (
+    <Svg width={160} height={160} viewBox={`-2 -2 ${size + 4} ${size + 4}`} accessibilityLabel="QR">
+      <Rect x={-2} y={-2} width={size + 4} height={size + 4} fill="#fff" />
+      <Path d={d} fill="#002218" />
+    </Svg>
+  );
+}
 
 function hoyISO() {
   const h = new Date();
@@ -310,6 +322,31 @@ export default function Reservas() {
                       </Text>
                       {r.comentarios ? (
                         <Text style={[estilos.detalle, { color: colores.gris }]}>“{r.comentarios}”</Text>
+                      ) : null}
+                      {r.presentadaEn ? (
+                        <Text style={[estilos.detalle, { color: colores.primaryContainer, fontWeight: '700' }]}>
+                          ✓ {t('reservas.presentada')}
+                        </Text>
+                      ) : null}
+                      {r.pedido ? (
+                        <View style={{ marginTop: 6 }}>
+                          <Text style={[estilos.registroTitulo, { color: colores.tinta }]}>{t('reservas.pedido')}</Text>
+                          {r.pedido.lineas.map((l) => (
+                            <Text key={l.platoId} style={[estilos.detalle, { color: colores.gris }]}>
+                              {l.cantidad} × {l.nombre} · {Number(l.subtotal).toFixed(2)} €
+                            </Text>
+                          ))}
+                          <Text style={[estilos.detalle, { color: colores.tinta, fontWeight: '700' }]}>
+                            {t('reservas.total', { total: Number(r.pedido.total).toFixed(2) })}
+                          </Text>
+                          <Text style={[estilos.detalle, { color: colores.gris }]}>{t('reservas.avisoPedido')}</Text>
+                        </View>
+                      ) : null}
+                      {r.qr && !r.presentadaEn && String(r.estado || '').toLowerCase() !== 'cancelada' ? (
+                        <View style={{ marginTop: 8, gap: 4 }}>
+                          <CodigoQR texto={r.qr} />
+                          <Text style={[estilos.detalle, { color: colores.gris }]}>{t('reservas.qr')}</Text>
+                        </View>
                       ) : null}
                     </View>
                     {String(r.estado || '').toLowerCase() !== 'cancelada' && r.fecha >= hoy && (

@@ -66,7 +66,7 @@ export async function getDisponibilidad(restaurante, fecha, hora) {
  * Crea la reserva. Con `token` (data test) se envía el Bearer explícito del
  * usuario de prueba; sin token se usa la sesión actual, como siempre.
  */
-export async function crearReserva({ restaurante, usuario, fecha, hora, comensales, comentarios = '', token = null, permitirPasado = false }) {
+export async function crearReserva({ restaurante, usuario, fecha, hora, comensales, comentarios = '', pedido = null, token = null, permitirPasado = false }) {
   if (!usuario?.uid) throw new Error('Debes iniciar sesión para reservar.');
   validarReserva({ fecha, hora, comensales, comentarios, permitirPasado });
   const restaurantId = String(restaurante.id);
@@ -82,6 +82,7 @@ export async function crearReserva({ restaurante, usuario, fecha, hora, comensal
     nombreRestaurante: restaurante.nombre || '',
     usuarioNombre: usuario.displayName || usuario.nombre || usuario.email || '',
     usuarioEmail: usuario.email || '',
+    ...(pedido ? { pedido } : {}),
   };
   const d = await conAuditoria(
     'reserva_creada',
@@ -102,6 +103,7 @@ export async function crearReserva({ restaurante, usuario, fecha, hora, comensal
     fecha: d.fecha || fecha,
     hora: d.hora || hora,
     comensales: d.comensales ?? Number(comensales),
+    pedido: d.pedido ?? null,
   };
 }
 
