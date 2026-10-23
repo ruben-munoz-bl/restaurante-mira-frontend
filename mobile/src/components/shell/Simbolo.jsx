@@ -83,6 +83,9 @@ const MAPA = {
   upload: 'file-upload',
   qr_code_scanner: 'qr-code-scanner',
   photo_camera: 'photo-camera',
+  menu_book: 'menu-book',
+  arrow_upward: 'arrow-upward',
+  arrow_downward: 'arrow-downward',
 };
 
 export function Simbolo({ name, size = 20, color, style }) {

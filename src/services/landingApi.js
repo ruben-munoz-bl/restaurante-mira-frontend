@@ -8,6 +8,26 @@ import { promotionsApi } from './api.js';
 import { fotoDePlato } from './fotosPlatos.js';
 import { primerPlatoLocal } from '../models/landingModel.js';
 
+// Fotos generadas del plato visto desde arriba y recortado (public/platos/<slug>.webp).
+const PLATOS_RECORTADOS = new Set([
+  'bravas', 'brunch-completo', 'cafe-de-especialidad', 'calcots', 'calzone', 'churros', 'crep-de-setas',
+  'ensalada-cesar', 'entrana', 'entrecot', 'huevos-benedict', 'jamon-iberico', 'kebab-mixto', 'lasana',
+  'menu-degustacion', 'paella', 'patatas', 'pizza-cuatro-quesos', 'plato-del-dia', 'pulpo-a-la-gallega',
+  'risotto-de-setas', 'sopa-del-dia', 'tortilla', 'tostada-con-tomate', 'zarzuela',
+]);
+
+/** «Lasaña» → "lasana", «Calçots» → "calcots". */
+export function slugPlato(nombre) {
+  return String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+}
+
+/** Ruta de la foto recortada del plato, o null si no hay. */
+export function fotoRecortada(nombre) {
+  const slug = slugPlato(nombre);
+  return PLATOS_RECORTADOS.has(slug) ? `/platos/${slug}.webp` : null;
+}
+
 /** Firestore puede serializar fechas como ISO o como { seconds } / { _seconds }. */
 function aMs(valor) {
   if (valor == null || valor === '') return null;
@@ -71,12 +91,13 @@ async function platoDe(restaurante) {
   }
   if (!plato) plato = primerPlatoLocal(restaurante);
   if (!plato) return null;
-  // M14 siembra las cartas con foto: null; se resuelve con Wikipedia una vez.
-  const foto = plato.foto || (await fotoDePlato(plato.nombre));
+  // La foto del restaurante manda; si no, la recortada del plato y, en último caso, Wikipedia.
+  const recortada = plato.foto ? null : fotoRecortada(plato.nombre);
+  const foto = plato.foto || recortada || (await fotoDePlato(plato.nombre));
   if (!foto) return null;
   return {
     restaurante,
-    plato: { nombre: plato.nombre, precio: plato.precio, foto },
+    plato: { nombre: plato.nombre, precio: plato.precio, foto, recortada: Boolean(recortada) },
   };
 }
 
@@ -85,10 +106,13 @@ async function platoDe(restaurante) {
  * cartas (una petición por restaurante) y las que no existen o no tienen foto
  * se descartan.
  */
+/** Mira el triple de restaurantes y pone primero los platos con foto recortada. */
 export async function fetchPlatosDestacados(restaurantes, limite = 8) {
-  const lista = (restaurantes || []).slice(0, limite);
+  const lista = (restaurantes || []).slice(0, limite * 3);
   const resultados = await Promise.allSettled(lista.map(platoDe));
   return resultados
     .filter((r) => r.status === 'fulfilled' && r.value)
-    .map((r) => r.value);
+    .map((r) => r.value)
+    .sort((a, b) => Boolean(b.plato?.recortada) - Boolean(a.plato?.recortada))
+    .slice(0, limite);
 }
