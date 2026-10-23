@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { crearReserva, getDisponibilidad, SLOTS } from '../services/reservaApi.js';
+import { fotoDePlato } from '../services/fotosPlatos.js';
 import { getCarta, pedidoDesde, totalPedido } from '../services/cartaApi.js';
 import { crearResena, listarResenasDeRestaurante, darLikeResena, quitarLikeResena } from '../services/resenasApi.js';
 import {
@@ -117,6 +118,25 @@ function StarPicker({ value, onChange, etiqueta }) {
         </Pressable>
       ))}
     </View>
+  );
+}
+
+/** Miniatura del plato del pedido (M05): foto del restaurante o, si no hay, de Wikipedia. */
+function FotoPlato({ plato }) {
+  const [uri, setUri] = useState(plato.foto || null);
+  useEffect(() => {
+    if (plato.foto) return undefined;
+    let vivo = true;
+    fotoDePlato(plato.nombre).then((u) => vivo && setUri(u)).catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [plato.foto, plato.nombre]);
+  const { colores } = useTheme();
+  return uri ? (
+    <Image source={{ uri }} style={{ width: 44, height: 44, borderRadius: 6 }} accessibilityIgnoresInvertColors />
+  ) : (
+    <View style={{ width: 44, height: 44, borderRadius: 6, backgroundColor: colores.borde }} />
   );
 }
 
@@ -787,6 +807,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                         .filter((p) => p.disponible !== false)
                         .map((p) => (
                           <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <FotoPlato plato={p} />
                             <Text style={{ flex: 1, color: colores.tinta }}>
                               {p.nombre} · {Number(p.precio).toFixed(2)} €
                             </Text>

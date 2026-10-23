@@ -723,5 +723,7 @@
 .det-pedido-cat h4 { margin: 10px 0 4px; font-size: 0.95rem; }
 .det-pedido-plato { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; }
 .det-pedido-plato input { width: 4.5em; min-height: 36px; }
+.det-pedido-plato .det-menu-foto { width: 44px; height: 44px; }
+.det-pedido-nombre { flex: 1; }
 .det-pedido-total { margin: 8px 0 2px; }
 .det-pedido-aviso { margin: 0; font-size: 0.85rem; opacity: 0.85; }

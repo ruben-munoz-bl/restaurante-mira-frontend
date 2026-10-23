@@ -88,11 +88,13 @@ function FotoPlato({ plato, cocina, restauranteId }) {
   const [src, setSrc] = useState(null);
   useEffect(() => {
     let vivo = true;
+    // La foto del restaurante (M09) manda; si no hay, se busca en Wikipedia.
+    if (plato.foto) { setSrc(plato.foto); return undefined; }
     fotoDePlato(plato.nombre)
       .then((url) => vivo && setSrc(url || imagenParaRestaurante(cocina, restauranteId)))
       .catch(() => vivo && setSrc(imagenParaRestaurante(cocina, restauranteId)));
     return () => { vivo = false; };
-  }, [plato.nombre, cocina, restauranteId]);
+  }, [plato.foto, plato.nombre, cocina, restauranteId]);
   return (
     <span className={`det-menu-foto det-menu-foto--${src ? 'lista' : 'cargando'}`}>
       {src && <img src={src} alt="" loading="lazy" />}
@@ -597,7 +599,8 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                           <h4>{cat.nombre}</h4>
                           {cat.platos.filter((p) => p.disponible !== false).map((p) => (
                             <label key={p.id} className="det-pedido-plato">
-                              <span>{p.nombre} <small>{p.precio.toFixed(2)} €</small></span>
+                              <FotoPlato plato={p} cocina={restaurant.cocina} restauranteId={restaurant.id} />
+                              <span className="det-pedido-nombre">{p.nombre} <small>{p.precio.toFixed(2)} €</small></span>
                               <input
                                 type="number" min="0" max="20" inputMode="numeric"
                                 aria-label={t('detail.pedidoCantidad', { nombre: p.nombre })}
