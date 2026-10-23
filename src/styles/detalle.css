@@ -721,9 +721,28 @@
 .det-pedido legend { font-weight: 600; padding: 0 4px; }
 .det-pedido-opciones { display: flex; gap: 16px; flex-wrap: wrap; }
 .det-pedido-cat h4 { margin: 10px 0 4px; font-size: 0.95rem; }
-.det-pedido-plato { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; }
-.det-pedido-plato input { width: 4.5em; min-height: 36px; }
-.det-pedido-plato .det-menu-foto { width: 44px; height: 44px; }
-.det-pedido-nombre { flex: 1; }
+/* Platos del pedido con el estilo de las tarjetas de la JAM: tocar suma uno. */
+.det-pedido-platos { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr)); gap: 0.6rem; }
+.det-pedido-plato { position: relative; }
+.det-pedido-plato > button:first-child {
+  width: 100%; display: grid; grid-template-columns: 56px 1fr auto; align-items: center; gap: 0.75rem;
+  padding: 0.5rem; border-radius: 6px; cursor: pointer; text-align: left; color: inherit; font: inherit;
+  background: var(--papel); border: 1px solid var(--borde);
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1), border-color 180ms ease, background-color 180ms ease;
+}
+.det-pedido-plato > button:first-child:not(:disabled):active { transform: scale(0.98); }
+.det-pedido-plato > button:first-child:disabled { cursor: default; }
+@media (hover: hover) and (pointer: fine) { .det-pedido-plato > button:first-child:not(:disabled):hover { background: var(--fondo-suave); } }
+[data-theme='dark'] .det-pedido-plato > button:first-child:not(:disabled):hover { background: rgba(255, 255, 255, 0.09); }
+.det-pedido-plato .det-menu-foto { width: 56px; height: 56px; }
+.det-pedido-info { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+.det-pedido-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.det-pedido-info span { font-size: 0.82rem; color: var(--texto-sec); }
+.det-pedido-mas { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 1.2rem; color: var(--verde); border: 1px solid currentColor; }
+.det-pedido-plato.is-elegido > button:first-child { border-color: rgba(30, 215, 96, 0.6); background: rgba(30, 215, 96, 0.08); }
+.det-pedido-n { position: absolute; left: 0.3rem; top: 0.3rem; min-width: 26px; height: 26px; padding: 0 6px; border-radius: 999px; display: grid; place-items: center; background: var(--verde); color: var(--papel); font-weight: 900; font-size: 0.8rem; pointer-events: none; animation: det-pedido-entra 260ms cubic-bezier(0.23, 1, 0.32, 1) both; }
+.det-pedido-menos { position: absolute; right: 2.9rem; top: 50%; translate: 0 -50%; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--borde); background: var(--papel); color: inherit; font-size: 1.1rem; font-weight: 800; cursor: pointer; }
+@keyframes det-pedido-entra { from { scale: 0.4; opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .det-pedido-n { animation: none; } .det-pedido-plato > button:first-child { transition: none; } }
 .det-pedido-total { margin: 8px 0 2px; }
 .det-pedido-aviso { margin: 0; font-size: 0.85rem; opacity: 0.85; }

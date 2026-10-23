@@ -806,18 +806,31 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                       {cat.platos
                         .filter((p) => p.disponible !== false)
                         .map((p) => (
+                          // Estilo JAM: tocar la tarjeta suma uno; «−» quita uno.
                           <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <FotoPlato plato={p} />
-                            <Text style={{ flex: 1, color: colores.tinta }}>
-                              {p.nombre} · {Number(p.precio).toFixed(2)} €
-                            </Text>
-                            <Pressable onPress={() => cambiarCantidad(p.id, -1)} accessibilityLabel={`${t('detail.menos')} ${p.nombre}`} hitSlop={8}>
-                              <Text style={btnSecundario(colores, { peq: true })}>−</Text>
-                            </Pressable>
-                            <Text style={{ minWidth: 20, textAlign: 'center', color: colores.tinta }}>{cantidades[p.id] || 0}</Text>
-                            <Pressable onPress={() => cambiarCantidad(p.id, 1)} accessibilityLabel={`${t('detail.mas')} ${p.nombre}`} hitSlop={8}>
+                            <Pressable
+                              onPress={() => cambiarCantidad(p.id, 1)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${t('detail.mas')} ${p.nombre}`}
+                              style={{
+                                flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 6, borderWidth: 1,
+                                borderColor: cantidades[p.id] ? colores.verde : colores.borde,
+                                backgroundColor: cantidades[p.id] ? 'rgba(30, 215, 96, 0.08)' : 'transparent',
+                              }}
+                            >
+                              <FotoPlato plato={p} />
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ fontWeight: '700', color: colores.tinta }} numberOfLines={1}>{p.nombre}</Text>
+                                <Text style={{ color: colores.gris }}>{Number(p.precio).toFixed(2)} €</Text>
+                              </View>
+                              {cantidades[p.id] ? <Text style={{ fontWeight: '900', color: colores.verde }}>×{cantidades[p.id]}</Text> : null}
                               <Text style={btnSecundario(colores, { peq: true })}>+</Text>
                             </Pressable>
+                            {cantidades[p.id] ? (
+                              <Pressable onPress={() => cambiarCantidad(p.id, -1)} accessibilityLabel={`${t('detail.menos')} ${p.nombre}`} hitSlop={8}>
+                                <Text style={btnSecundario(colores, { peq: true })}>−</Text>
+                              </Pressable>
+                            ) : null}
                           </View>
                         ))}
                     </View>

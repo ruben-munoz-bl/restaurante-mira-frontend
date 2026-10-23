@@ -390,6 +390,8 @@ export default {
     "pedidoSi": "Yes, choose dishes",
     "pedidoNo": "No, thanks",
     "pedidoCantidad": "Quantity of {{nombre}}",
+    "pedidoAnadir": "Add {{nombre}} to the order",
+    "pedidoQuitar": "Remove one {{nombre}}",
     "pedidoTotal": "Estimated total: €{{total}}",
     "pedidoAviso": "You pay at the restaurant, there is no online payment. The order cannot be edited later.",
     "pedidoNoDisponible": "One of the dishes is no longer available: \"{{nombre}}\". Remove it from the order and try again.",

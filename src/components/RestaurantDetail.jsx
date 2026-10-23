@@ -143,6 +143,11 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   const [cartaPedido, setCartaPedido] = useState(null);
   const [quierePedido, setQuierePedido] = useState(false);
   const [cantidades, setCantidades] = useState({});
+  // Máx. 20 por plato y 30 platos distintos (contrato M01): pasado el límite no suma.
+  const cambiarCantidad = (id, delta) => setCantidades((c) => {
+    if (!c[id] && delta > 0 && Object.values(c).filter((n) => n > 0).length >= 30) return c;
+    return { ...c, [id]: Math.min(20, Math.max(0, (c[id] || 0) + delta)) };
+  });
 
   const [resenasFs, setResenasFs] = useState([]);
   const [cargandoResenas, setCargandoResenas] = useState(true);
@@ -597,18 +602,30 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                       {cartaPedido.categorias.map((cat) => (
                         <div key={cat.id} className="det-pedido-cat">
                           <h4>{cat.nombre}</h4>
-                          {cat.platos.filter((p) => p.disponible !== false).map((p) => (
-                            <label key={p.id} className="det-pedido-plato">
-                              <FotoPlato plato={p} cocina={restaurant.cocina} restauranteId={restaurant.id} />
-                              <span className="det-pedido-nombre">{p.nombre} <small>{p.precio.toFixed(2)} €</small></span>
-                              <input
-                                type="number" min="0" max="20" inputMode="numeric"
-                                aria-label={t('detail.pedidoCantidad', { nombre: p.nombre })}
-                                value={cantidades[p.id] || 0}
-                                onChange={(e) => setCantidades((c) => (!c[p.id] && Object.values(c).filter((n) => n > 0).length >= 30 ? c : { ...c, [p.id]: Math.min(20, Math.max(0, Math.floor(Number(e.target.value) || 0))) }))}
-                              />
-                            </label>
-                          ))}
+                          <ul className="det-pedido-platos">
+                            {cat.platos.filter((p) => p.disponible !== false).map((p) => {
+                              const n = cantidades[p.id] || 0;
+                              return (
+                                <li key={p.id} className={`det-pedido-plato${n ? ' is-elegido' : ''}`}>
+                                  {/* Estilo JAM: cada toque suma uno (máx. 20 por plato y 30 platos distintos, contrato M01). */}
+                                  <button type="button" onClick={() => cambiarCantidad(p.id, 1)} disabled={n >= 20} aria-label={t('detail.pedidoAnadir', { nombre: p.nombre })}>
+                                    <FotoPlato plato={p} cocina={restaurant.cocina} restauranteId={restaurant.id} />
+                                    <span className="det-pedido-info">
+                                      <strong>{p.nombre}</strong>
+                                      <span>{p.precio.toFixed(2)} €</span>
+                                    </span>
+                                    <span className="det-pedido-mas" aria-hidden="true">+</span>
+                                  </button>
+                                  {n > 0 && (
+                                    <>
+                                      <span className="det-pedido-n" aria-live="polite">×{n}</span>
+                                      <button type="button" className="det-pedido-menos" onClick={() => cambiarCantidad(p.id, -1)} aria-label={t('detail.pedidoQuitar', { nombre: p.nombre })}>−</button>
+                                    </>
+                                  )}
+                                </li>
+                              );
+                            })}
+                          </ul>
                         </div>
                       ))}
                       <p className="det-pedido-total"><strong>{t('detail.pedidoTotal', { total: totalPedido(cartaPedido, cantidades).toFixed(2) })}</strong></p>

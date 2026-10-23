@@ -390,6 +390,8 @@ export default {
     "pedidoSi": "Sí, triar plats",
     "pedidoNo": "No, gràcies",
     "pedidoCantidad": "Quantitat de {{nombre}}",
+    "pedidoAnadir": "Afegir {{nombre}} a la comanda",
+    "pedidoQuitar": "Treure un de {{nombre}}",
     "pedidoTotal": "Total orientatiu: {{total}} €",
     "pedidoAviso": "Es paga al local, no hi ha pagament en línia. La comanda no es pot editar després.",
     "pedidoNoDisponible": "Un dels plats ja no està disponible: «{{nombre}}». Treu-lo de la comanda i torna-ho a provar.",

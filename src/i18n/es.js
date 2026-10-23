@@ -390,6 +390,8 @@ export default {
     "pedidoSi": "Sí, elegir platos",
     "pedidoNo": "No, gracias",
     "pedidoCantidad": "Cantidad de {{nombre}}",
+    "pedidoAnadir": "Añadir {{nombre}} al pedido",
+    "pedidoQuitar": "Quitar uno de {{nombre}}",
     "pedidoTotal": "Total orientativo: {{total}} €",
     "pedidoAviso": "Se paga en el local, no hay pago online. El pedido no se puede editar después.",
     "pedidoNoDisponible": "Uno de los platos ya no está disponible: «{{nombre}}». Quítalo del pedido y vuelve a intentarlo.",
