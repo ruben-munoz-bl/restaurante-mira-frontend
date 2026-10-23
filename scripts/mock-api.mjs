@@ -77,6 +77,33 @@ for (const d of docs) {
   cartas.set(d.id, { restauranteId: d.id, actualizada: new Date().toISOString(), categorias: [{ id: 'cat_carta', nombre: 'Carta', platos }] });
 }
 const reservas = []; // creadas durante la sesión (en memoria)
+// Sesión de empresa simulada para M10/M11 (no verifica tokens Firebase).
+const restaurantePanel = process.env.MOCK_RESTAURANTE_ID || 'demo-panel';
+const hoyMadrid = () => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' }).format(new Date());
+function reservaCliente(r) {
+  return { ...r, pedido: r.pedido ?? null, presentadaEn: r.presentadaEn ?? null,
+    qr: r.estado !== 'cancelada' && !r.presentadaEn && r.fecha >= hoyMadrid() ? `r1.${r.id}.mock` : null };
+}
+function reservaPanel(r) {
+  return { id: r.id, codigo: r.codigo, fecha: r.fecha, hora: r.hora, comensales: r.comensales,
+    estado: r.estado, comentarios: r.comentarios || '', presentadaEn: r.presentadaEn ?? null,
+    cliente: { nombre: r.usuarioNombre || 'Cliente de prueba' }, pedido: r.pedido ?? null };
+}
+function fechaValida(f) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(f || '') && Number.isFinite(Date.parse(f)) && new Date(f).toISOString().slice(0, 10) === f;
+}
+// Optativo: códigos reproducibles para pegar en el escáner sin crear reservas.
+if (process.env.MOCK_RESERVAS_EJEMPLO === '1') {
+  const pedido = { lineas: [{ platoId: 'pl_croquetas', nombre: 'Croquetas de jamón', precio: 9.5, cantidad: 2, subtotal: 19 }],
+    total: 19, moneda: 'EUR', creadoEn: new Date().toISOString() };
+  for (const [id, extra] of [
+    ['demo-pedido', { pedido }], ['demo-sin-pedido', {}],
+    ['demo-usada', { presentadaEn: new Date().toISOString() }],
+    ['demo-cancelada', { estado: 'cancelada' }], ['demo-fuera-fecha', { fecha: '2000-01-01' }],
+    ['demo-otro-restaurante', { restauranteId: restaurantePanel === '1' ? '2' : '1' }],
+  ]) reservas.push({ id, codigo: `MIRA-${id}`, restauranteId: restaurantePanel, fecha: hoyMadrid(), hora: '13:00',
+    comensales: 2, estado: 'confirmada', comentarios: '', usuarioNombre: 'Cliente de prueba', pedido: null, presentadaEn: null, ...extra });
+}
 const dispositivos = new Map(); // push (T04): id -> { token, tipo, plataforma, idioma }
 
 // Campañas de ejemplo para que la landing pinte el carrusel en modo mock.
@@ -263,11 +290,50 @@ http
         }
         pedido = { lineas, total: Math.round(lineas.reduce((t, l) => t + l.subtotal, 0) * 100) / 100, moneda: 'EUR', creadoEn: new Date().toISOString() };
       }
-      const nueva = { id, codigo: 'MIRA-' + Math.random().toString(36).slice(2, 7).toUpperCase(), estado: 'confirmada', ...datos, pedido, presentadaEn: null, qr: `r1.${id}.mock` };
+      const nueva = { ...datos, id, codigo: 'MIRA-' + Math.random().toString(36).slice(2, 7).toUpperCase(), estado: 'confirmada', pedido, presentadaEn: null };
       reservas.push(nueva);
-      return enviar(res, 201, nueva);
+      return enviar(res, 201, reservaCliente(nueva));
     }
-    if (p === '/v1/reservations' && req.method === 'GET') return enviar(res, 200, { data: reservas });
+    if (p === '/v1/reservations' && req.method === 'GET') return enviar(res, 200, { data: reservas.map(reservaCliente) });
+    if (p === '/v1/reservations/checkin' && req.method === 'POST') {
+      if (!req.headers.authorization) return enviar(res, 401, { error: 'MISSING_TOKEN' });
+      const m = typeof datos.qr === 'string' && /^r1\.([A-Za-z0-9_-]{1,200})\.mock$/.exec(datos.qr);
+      if (!m) return enviar(res, 400, { error: 'QR_INVALIDO' });
+      const r = reservas.find((x) => x.id === m[1]);
+      if (!r) return enviar(res, 404, { error: 'NOT_FOUND' });
+      if (String(r.restaurantId || r.restauranteId) !== restaurantePanel) return enviar(res, 403, { error: 'OTRO_RESTAURANTE' });
+      if (r.presentadaEn) return enviar(res, 409, { error: 'QR_USADO' });
+      if (r.estado === 'cancelada') return enviar(res, 409, { error: 'RESERVA_CANCELADA' });
+      if (r.fecha !== hoyMadrid()) return enviar(res, 409, { error: 'FUERA_DE_FECHA' });
+      r.presentadaEn = new Date().toISOString();
+      r.puntosPedido = r.pedido?.lineas?.length ? 50 : 0;
+      return enviar(res, 200, { reserva: { id: r.id, codigo: r.codigo, fecha: r.fecha, hora: r.hora,
+        comensales: r.comensales, presentadaEn: r.presentadaEn, pedido: r.pedido ?? null },
+      cliente: { nombre: r.usuarioNombre || 'Cliente de prueba' }, puntosPedido: r.puntosPedido });
+    }
+    if (p === '/v1/reservations/restaurante' && req.method === 'GET') {
+      if (!req.headers.authorization) return enviar(res, 401, { error: 'MISSING_TOKEN' });
+      const rid = url.searchParams.get('restauranteId');
+      const desde = url.searchParams.get('desde') ?? hoyMadrid();
+      const hasta = url.searchParams.get('hasta') ?? desde;
+      const extras = [...url.searchParams.keys()].some((k) => !['restauranteId', 'desde', 'hasta'].includes(k));
+      if (!rid || extras || !fechaValida(desde) || !fechaValida(hasta) || hasta < desde || Date.parse(hasta) - Date.parse(desde) > 31 * 86400000) {
+        return enviar(res, 400, { error: 'VALIDATION_ERROR', details: { rango: ['Restaurante y fechas válidas; máximo 31 días'] } });
+      }
+      if (!docs.some((d) => d.id === rid) && rid !== 'demo-panel') return enviar(res, 404, { error: 'NOT_FOUND' });
+      if (rid !== restaurantePanel) return enviar(res, 403, { error: 'FORBIDDEN' });
+      const data = reservas.filter((r) => String(r.restaurantId || r.restauranteId) === rid && r.fecha >= desde && r.fecha <= hasta)
+        .sort((a, b) => `${a.fecha} ${a.hora}`.localeCompare(`${b.fecha} ${b.hora}`)).map(reservaPanel);
+      return enviar(res, 200, { data });
+    }
+    const cancelar = p.match(/^\/v1\/reservations\/([^/]+)\/cancel$/);
+    if (cancelar && req.method === 'PUT') {
+      const r = reservas.find((x) => x.id === cancelar[1]);
+      if (!r) return enviar(res, 404, { error: 'NOT_FOUND' });
+      if (r.presentadaEn) return enviar(res, 409, { error: 'CONFLICT' });
+      r.estado = 'cancelada';
+      return enviar(res, 200, { ok: true, estado: r.estado });
+    }
     // Push (contrato T04): sin Bearer → 401; el id es SHA-256 de `tipo:token`.
     if (p.startsWith('/v1/push/tokens')) {
       if (!req.headers.authorization) return enviar(res, 401, { error: 'MISSING_TOKEN', message: 'Falta el Bearer' });
@@ -410,8 +476,8 @@ http
       }
     }
     // Panel del restaurante: un local fuera del catálogo y sin carta, para probar el paso de carta (M09).
-    if (p === '/v1/dashboard/my-restaurant') return enviar(res, 200, { restaurante: { ...docs[1], id: 'demo-panel' }, stats: {}, proximasReservas: [], reservasHoy: [], ticketsRecientes: [], ingresosPorMes: [] });
+    if (p === '/v1/dashboard/my-restaurant') return enviar(res, 200, { restaurante: docs.find((d) => d.id === restaurantePanel) || { ...docs[1], id: 'demo-panel' }, stats: {}, proximasReservas: [], reservasHoy: [], ticketsRecientes: [], ingresosPorMes: [] });
     if (p.startsWith('/v1/points/balance')) return enviar(res, 200, { saldoActual: 0, rachaLogin: { dias: 0, yaReclamado: true } });
     return enviar(res, 200, { data: [], items: [] });
   })
-  .listen(PORT, () => console.log(`Mock API (sin base de datos) en http://localhost:${PORT}`));
+  .listen(PORT, function () { console.log(`Mock API (sin base de datos) en http://127.0.0.1:${this.address().port}`); });
