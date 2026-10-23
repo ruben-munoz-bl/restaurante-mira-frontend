@@ -220,8 +220,8 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   const [errorReserva, setErrorReserva] = useState('');
   const [cargandoReserva, setCargandoReserva] = useState(false);
   const [cartaApi, setCartaApi] = useState(null);
-  const [pedir, setPedir] = useState(false);
   const [cantidades, setCantidades] = useState({});
+  const [verCarta, setVerCarta] = useState(false);
 
   const [resenasFs, setResenasFs] = useState([]);
   const [cargandoResenas, setCargandoResenas] = useState(true);
@@ -340,7 +340,6 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   useEffect(() => {
     let vivo = true;
     setCartaApi(null);
-    setPedir(false);
     setCantidades({});
     getCarta(restaurant.id)
       .then((c) => {
@@ -383,10 +382,9 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
         hora: reserva.hora,
         comensales: reserva.comensales,
         comentarios: reserva.comentarios,
-        pedido: pedir && cartaApi ? pedidoDesde(cantidades) : null,
+        pedido: cartaApi ? pedidoDesde(cantidades) : null,
       });
       setConfirmacion(r);
-      setPedir(false);
       setCantidades({});
       const d = await getDisponibilidad(restaurant, reserva.fecha, reserva.hora);
       setDisponibilidad(d);
@@ -398,7 +396,6 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
       }
       else if (codigo === 'SIN_CARTA') {
         setCartaApi(null);
-        setPedir(false);
         setErrorReserva(t('detail.sinCarta'));
       } else setErrorReserva(err.message);
     } finally {
@@ -788,46 +785,64 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
 
             {cartaApi && (
               <View style={{ marginTop: 11.2, gap: 6.4 }}>
-                <CampoEtiqueta>{t('detail.pedirAdelantado')}</CampoEtiqueta>
-                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                  {[
-                    [true, t('detail.siPedir')],
-                    [false, t('detail.noPedir')],
-                  ].map(([v, txt]) => (
-                    <Pressable key={txt} onPress={() => setPedir(v)} accessibilityRole="radio" accessibilityState={{ selected: pedir === v }}>
-                      <Text style={pedir === v ? btnCta(colores, { peq: true }) : btnSecundario(colores, { peq: true })}>{txt}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {pedir &&
-                  cartaApi.categorias.map((cat) => (
+                {/* Botón destacado (como el banner JAM) que despliega la carta; el pedido es opcional. */}
+                <Pressable
+                  onPress={() => setVerCarta((v) => !v)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: verCarta }}
+                  style={{ padding: 16, gap: 4, borderRadius: 14, borderWidth: 1.5, borderColor: '#1ed760', backgroundColor: '#0d1512' }}
+                >
+                  <Text style={{ color: '#f3f7f4', fontSize: 11, fontWeight: '800', letterSpacing: 2.5 }}>MIRA <Text style={{ color: '#1ed760' }}>{t('detail.pedirMarca')}</Text></Text>
+                  <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }}>{t('detail.pedirAdelantado')}</Text>
+                  <Text style={{ color: 'rgba(243,247,244,0.82)' }}>
+                    {Object.values(cantidades).reduce((a, n) => a + n, 0) ? t('detail.pedirResumen', { n: Object.values(cantidades).reduce((a, n) => a + n, 0), total: totalPedido(cartaApi, cantidades).toFixed(2) }) : t('detail.pedirGancho')}
+                  </Text>
+                  <Text style={{ alignSelf: 'flex-start', marginTop: 6, paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999, backgroundColor: '#1ed760', color: '#06110c', fontWeight: '800', overflow: 'hidden' }}>
+                    {verCarta ? t('detail.pedirOcultar') : t('detail.pedirVerCarta')}
+                  </Text>
+                </Pressable>
+                {verCarta && <Text style={{ color: colores.gris }}>{t('detail.pedirAyuda')}</Text>}
+                {verCarta && cartaApi.categorias.map((cat) => (
                     <View key={cat.id} style={{ gap: 4 }}>
-                      <Text style={{ fontWeight: '700', color: colores.tinta }}>{cat.nombre}</Text>
+                      <Text style={{ fontWeight: '800', fontSize: 18, color: colores.tinta, marginTop: 8 }}>{cat.nombre}</Text>
                       {cat.platos
                         .filter((p) => p.disponible !== false)
                         .map((p) => (
+                          // Estilo JAM: tocar la tarjeta suma uno; «−» quita uno.
                           <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                            <FotoPlato plato={p} />
-                            <Text style={{ flex: 1, color: colores.tinta }}>
-                              {p.nombre} · {Number(p.precio).toFixed(2)} €
-                            </Text>
-                            <Pressable onPress={() => cambiarCantidad(p.id, -1)} accessibilityLabel={`${t('detail.menos')} ${p.nombre}`} hitSlop={8}>
-                              <Text style={btnSecundario(colores, { peq: true })}>−</Text>
-                            </Pressable>
-                            <Text style={{ minWidth: 20, textAlign: 'center', color: colores.tinta }}>{cantidades[p.id] || 0}</Text>
-                            <Pressable onPress={() => cambiarCantidad(p.id, 1)} accessibilityLabel={`${t('detail.mas')} ${p.nombre}`} hitSlop={8}>
+                            <Pressable
+                              onPress={() => cambiarCantidad(p.id, 1)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${t('detail.mas')} ${p.nombre}`}
+                              style={{
+                                flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, padding: 8, borderRadius: 6, borderWidth: 1,
+                                borderColor: cantidades[p.id] ? colores.verde : colores.borde,
+                                backgroundColor: cantidades[p.id] ? 'rgba(30, 215, 96, 0.08)' : 'transparent',
+                              }}
+                            >
+                              <FotoPlato plato={p} />
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ fontWeight: '700', color: colores.tinta }} numberOfLines={1}>{p.nombre}</Text>
+                                <Text style={{ color: colores.gris }}>{Number(p.precio).toFixed(2)} €</Text>
+                              </View>
+                              {cantidades[p.id] ? <Text style={{ fontWeight: '900', color: colores.verde }}>×{cantidades[p.id]}</Text> : null}
                               <Text style={btnSecundario(colores, { peq: true })}>+</Text>
                             </Pressable>
+                            {cantidades[p.id] ? (
+                              <Pressable onPress={() => cambiarCantidad(p.id, -1)} accessibilityLabel={`${t('detail.menos')} ${p.nombre}`} hitSlop={8}>
+                                <Text style={btnSecundario(colores, { peq: true })}>−</Text>
+                              </Pressable>
+                            ) : null}
                           </View>
                         ))}
                     </View>
                   ))}
-                {pedir && (
+                {verCarta && (
                   <Text style={{ fontWeight: '700', color: colores.tinta }}>
                     {t('detail.totalOrientativo', { total: totalPedido(cartaApi, cantidades).toFixed(2) })}
                   </Text>
                 )}
-                {pedir && <Text style={{ color: colores.gris }}>{t('detail.avisoPedido')}</Text>}
+                {verCarta && <Text style={{ color: colores.gris }}>{t('detail.avisoPedido')}</Text>}
               </View>
             )}
 

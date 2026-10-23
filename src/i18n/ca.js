@@ -387,10 +387,16 @@ export default {
     "cancelada": "Cancel·lada"
   },
   "detail": {
-    "pedidoPregunta": "Vols demanar el menjar per avançat?",
-    "pedidoSi": "Sí, triar plats",
-    "pedidoNo": "No, gràcies",
-    "pedidoCantidad": "Quantitat de {{nombre}}",
+    "pedidoMarca": "CARTA",
+    "pedidoTitulo": "Demana el menjar ja",
+    "pedidoGancho": "Tria els plats en reservar i la cuina els tindrà a punt quan arribis. Opcional.",
+    "pedidoResumen": "{{n}} plats a la comanda · {{total}} €",
+    "pedidoVerCarta": "Veure la carta",
+    "pedidoOcultar": "Amagar la carta",
+    "pedidoAyuda": "Toca un plat per afegir-lo; torna-hi per sumar-ne un més.",
+    "pedidoUds": "a la comanda",
+    "pedidoAnadir": "Afegir {{nombre}} a la comanda",
+    "pedidoQuitar": "Treure un de {{nombre}}",
     "pedidoTotal": "Total orientatiu: {{total}} €",
     "pedidoAviso": "Es paga al local, no hi ha pagament en línia. La comanda no es pot editar després.",
     "pedidoNoDisponible": "Un dels plats ja no està disponible: «{{nombre}}». Treu-lo de la comanda i torna-ho a provar.",
@@ -2050,6 +2056,7 @@ export default {
     "notifIos": "A l'iPhone, primer instal·la MIRA a la pantalla d'inici: t'expliquem com."
   },
   "cartaEditor": {
+    "seccion": { "entrantes": "Entrants", "primeros": "Primers", "segundos": "Segons", "postres": "Postres", "bebidas": "Begudes" },
     "boton": "Carta",
     "titulo": "Carta del restaurant",
     "ofertaTitulo": "Crees la carta ara?",
