@@ -8,6 +8,7 @@
 import http from 'node:http';
 import { createHash } from 'node:crypto';
 import { restaurants } from '../src/data/restaurants.js';
+import { cartaDelLocal } from '../src/models/restaurantModel.js';
 
 const PORT = Number(process.env.MOCK_PORT || 3001);
 
@@ -69,6 +70,12 @@ const cartas = new Map([[docs[0]?.id || '1', { restauranteId: docs[0]?.id || '1'
     { id: 'pl_paella', nombre: 'Paella de marisco', descripcion: 'Mínimo 2 personas', precio: 22, foto: null, alergenos: ['crustaceos'], disponible: true },
   ] },
 ] }]]);
+// Como en producción tras M14: el resto de restaurantes con su carta simulada del frontend.
+for (const d of docs) {
+  if (cartas.has(d.id)) continue;
+  const platos = cartaDelLocal(d).map((pl, i) => ({ id: `pl_${d.id}_${i}`, nombre: pl.nombre, descripcion: '', precio: pl.precio, foto: null, alergenos: [], disponible: true }));
+  cartas.set(d.id, { restauranteId: d.id, actualizada: new Date().toISOString(), categorias: [{ id: 'cat_carta', nombre: 'Carta', platos }] });
+}
 const reservas = []; // creadas durante la sesión (en memoria)
 const dispositivos = new Map(); // push (T04): id -> { token, tipo, plataforma, idioma }
 
@@ -402,8 +409,8 @@ http
         return enviar(res, 200, ofertas[i]);
       }
     }
-    // Panel del restaurante: el segundo restaurante, sin carta, para probar el paso de carta (M09).
-    if (p === '/v1/dashboard/my-restaurant') return enviar(res, 200, { restaurante: docs[1], stats: {}, proximasReservas: [], reservasHoy: [], ticketsRecientes: [], ingresosPorMes: [] });
+    // Panel del restaurante: un local fuera del catálogo y sin carta, para probar el paso de carta (M09).
+    if (p === '/v1/dashboard/my-restaurant') return enviar(res, 200, { restaurante: { ...docs[1], id: 'demo-panel' }, stats: {}, proximasReservas: [], reservasHoy: [], ticketsRecientes: [], ingresosPorMes: [] });
     if (p.startsWith('/v1/points/balance')) return enviar(res, 200, { saldoActual: 0, rachaLogin: { dias: 0, yaReclamado: true } });
     return enviar(res, 200, { data: [], items: [] });
   })
