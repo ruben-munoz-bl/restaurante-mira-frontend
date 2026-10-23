@@ -386,10 +386,9 @@ export default {
     "cancelada": "Cancel·lada"
   },
   "detail": {
-    "pedidoPregunta": "Vols demanar el menjar per avançat?",
-    "pedidoSi": "Sí, triar plats",
-    "pedidoNo": "No, gràcies",
-    "pedidoCantidad": "Quantitat de {{nombre}}",
+    "pedidoTitulo": "Demana el menjar ja",
+    "pedidoAyuda": "Opcional · toca un plat per afegir-lo",
+    "pedidoUds": "a la comanda",
     "pedidoAnadir": "Afegir {{nombre}} a la comanda",
     "pedidoQuitar": "Treure un de {{nombre}}",
     "pedidoTotal": "Total orientatiu: {{total}} €",

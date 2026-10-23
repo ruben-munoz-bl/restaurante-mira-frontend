@@ -220,7 +220,6 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   const [errorReserva, setErrorReserva] = useState('');
   const [cargandoReserva, setCargandoReserva] = useState(false);
   const [cartaApi, setCartaApi] = useState(null);
-  const [pedir, setPedir] = useState(false);
   const [cantidades, setCantidades] = useState({});
 
   const [resenasFs, setResenasFs] = useState([]);
@@ -340,7 +339,6 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   useEffect(() => {
     let vivo = true;
     setCartaApi(null);
-    setPedir(false);
     setCantidades({});
     getCarta(restaurant.id)
       .then((c) => {
@@ -383,10 +381,9 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
         hora: reserva.hora,
         comensales: reserva.comensales,
         comentarios: reserva.comentarios,
-        pedido: pedir && cartaApi ? pedidoDesde(cantidades) : null,
+        pedido: cartaApi ? pedidoDesde(cantidades) : null,
       });
       setConfirmacion(r);
-      setPedir(false);
       setCantidades({});
       const d = await getDisponibilidad(restaurant, reserva.fecha, reserva.hora);
       setDisponibilidad(d);
@@ -398,7 +395,6 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
       }
       else if (codigo === 'SIN_CARTA') {
         setCartaApi(null);
-        setPedir(false);
         setErrorReserva(t('detail.sinCarta'));
       } else setErrorReserva(err.message);
     } finally {
@@ -789,18 +785,8 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
             {cartaApi && (
               <View style={{ marginTop: 11.2, gap: 6.4 }}>
                 <CampoEtiqueta>{t('detail.pedirAdelantado')}</CampoEtiqueta>
-                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
-                  {[
-                    [true, t('detail.siPedir')],
-                    [false, t('detail.noPedir')],
-                  ].map(([v, txt]) => (
-                    <Pressable key={txt} onPress={() => setPedir(v)} accessibilityRole="radio" accessibilityState={{ selected: pedir === v }}>
-                      <Text style={pedir === v ? btnCta(colores, { peq: true }) : btnSecundario(colores, { peq: true })}>{txt}</Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {pedir &&
-                  cartaApi.categorias.map((cat) => (
+                <Text style={{ color: colores.gris }}>{t('detail.pedirAyuda')}</Text>
+                {cartaApi.categorias.map((cat) => (
                     <View key={cat.id} style={{ gap: 4 }}>
                       <Text style={{ fontWeight: '700', color: colores.tinta }}>{cat.nombre}</Text>
                       {cat.platos
@@ -835,12 +821,12 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                         ))}
                     </View>
                   ))}
-                {pedir && (
+                {(
                   <Text style={{ fontWeight: '700', color: colores.tinta }}>
                     {t('detail.totalOrientativo', { total: totalPedido(cartaApi, cantidades).toFixed(2) })}
                   </Text>
                 )}
-                {pedir && <Text style={{ color: colores.gris }}>{t('detail.avisoPedido')}</Text>}
+                <Text style={{ color: colores.gris }}>{t('detail.avisoPedido')}</Text>
               </View>
             )}
 

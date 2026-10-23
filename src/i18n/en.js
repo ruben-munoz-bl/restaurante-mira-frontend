@@ -386,10 +386,9 @@ export default {
     "cancelada": "Cancelled"
   },
   "detail": {
-    "pedidoPregunta": "Would you like to order your food in advance?",
-    "pedidoSi": "Yes, choose dishes",
-    "pedidoNo": "No, thanks",
-    "pedidoCantidad": "Quantity of {{nombre}}",
+    "pedidoTitulo": "Order your food now",
+    "pedidoAyuda": "Optional · tap a dish to add it",
+    "pedidoUds": "in order",
     "pedidoAnadir": "Add {{nombre}} to the order",
     "pedidoQuitar": "Remove one {{nombre}}",
     "pedidoTotal": "Estimated total: €{{total}}",

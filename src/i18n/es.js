@@ -386,10 +386,9 @@ export default {
     "cancelada": "Cancelada"
   },
   "detail": {
-    "pedidoPregunta": "¿Quieres pedir la comida por adelantado?",
-    "pedidoSi": "Sí, elegir platos",
-    "pedidoNo": "No, gracias",
-    "pedidoCantidad": "Cantidad de {{nombre}}",
+    "pedidoTitulo": "Pide la comida ya",
+    "pedidoAyuda": "Opcional · toca un plato para añadirlo",
+    "pedidoUds": "en pedido",
     "pedidoAnadir": "Añadir {{nombre}} al pedido",
     "pedidoQuitar": "Quitar uno de {{nombre}}",
     "pedidoTotal": "Total orientativo: {{total}} €",
