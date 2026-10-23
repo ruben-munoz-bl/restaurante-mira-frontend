@@ -1250,7 +1250,15 @@ export default {
     "estadoErrorRed": "Could not connect. Check the connection and try again.",
     "listaConfirmada": "Redeemed",
     "listaPendiente": "Pending",
-    "listaCaducada": "Expired"
+    "listaCaducada": "Expired",
+    "estadoReservaOk": "Arrival confirmed. Booking marked as checked in.",
+    "estadoCancelada": "This booking is cancelled.",
+    "estadoFueraDeFecha": "This QR is only valid on the booking day.",
+    "estadoYaPresentada": "This booking was already checked in.",
+    "reservaDatos": "{{hora}} · {{comensales}} guests",
+    "reservaPedido": "Pre-order (paid at the restaurant)",
+    "reservaSinPedido": "No pre-order.",
+    "puntosPedido": "+{{puntos}} points for the customer for the pre-order"
   },
   "ops": {
     "seccDashboard": "General Dashboard",
@@ -2092,5 +2100,23 @@ export default {
     "errPrecio": "Price between 0.01 and 999.99 € (2 decimals).",
     "errFoto": "Must be an https URL.",
     "errAlergenos": "Invalid allergen."
+  },
+  "reservasPanel": {
+    "titulo": "Bookings and orders",
+    "subtitulo": "Today and the next 7 days. Scan the customer's QR on arrival.",
+    "escanear": "Scan arrival",
+    "ocultarEscaner": "Hide scanner",
+    "conPedido": "Pre-order",
+    "presentada": "Checked in",
+    "cancelada": "Cancelled",
+    "sinReservas": "No bookings for these days.",
+    "error": "Could not load the bookings.",
+    "reintentar": "Retry",
+    "total": "Total",
+    "personas": "{{n}} guests",
+    "hoy": "Today",
+    "verPedido": "View order",
+    "ocultarPedido": "Hide order",
+    "soloConPedido": "Only with pre-order"
   }
 }

@@ -18,6 +18,9 @@ export const ESTADOS = {
   OTRO_RESTAURANTE: 'otro_restaurante',
   INVALIDO: 'invalido',
   ERROR_RED: 'error_red',
+  // Check-in de reservas (M11)
+  CANCELADA: 'cancelada',
+  FUERA_DE_FECHA: 'fuera_de_fecha',
 };
 
 const MAX_LARGO_CODIGO = 1024;
@@ -66,6 +69,8 @@ export function claveMensajeEstado(estado) {
     [ESTADOS.OTRO_RESTAURANTE]: 'escaner.estadoOtroRestaurante',
     [ESTADOS.INVALIDO]: 'escaner.estadoInvalido',
     [ESTADOS.ERROR_RED]: 'escaner.estadoErrorRed',
+    [ESTADOS.CANCELADA]: 'escaner.estadoCancelada',
+    [ESTADOS.FUERA_DE_FECHA]: 'escaner.estadoFueraDeFecha',
   };
   return mapa[estado] || 'escaner.estadoInvalido';
 }
@@ -97,4 +102,24 @@ export function agregarLlegada(lista, llegada) {
   const sinDuplicado = (Array.isArray(lista) ? lista : [])
     .filter((v) => v.id !== llegada.id);
   return [llegada, ...sinDuplicado];
+}
+
+/** QR de reserva (M11, `r1.<reservaId>.<firma>`); los de visita empiezan por `v1.`. */
+export function esQrReserva(codigo) {
+  return typeof codigo === 'string' && codigo.startsWith('r1.');
+}
+
+/**
+ * Estado a mostrar a partir del error de POST /v1/reservations/checkin.
+ * Códigos: 400 QR_INVALIDO, 403 OTRO_RESTAURANTE, 404 NOT_FOUND,
+ * 409 QR_USADO | RESERVA_CANCELADA | FUERA_DE_FECHA.
+ */
+export function estadoCheckinDesdeError(err) {
+  if (err?.status === 409) {
+    const codigo = err.data?.error;
+    if (codigo === 'RESERVA_CANCELADA') return ESTADOS.CANCELADA;
+    if (codigo === 'FUERA_DE_FECHA') return ESTADOS.FUERA_DE_FECHA;
+    return ESTADOS.YA_USADO;
+  }
+  return estadoDesdeError(err);
 }
