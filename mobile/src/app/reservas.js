@@ -34,6 +34,40 @@ function CodigoQR({ texto }) {
   );
 }
 
+/** Presentada, pedido anticipado y QR de la reserva (M06); en la lista y en el día del calendario. */
+function PedidoQr({ r, hoy, t, colores }) {
+  const conQr = r.qr && !r.presentadaEn && String(r.estado || '').toLowerCase() !== 'cancelada' && (r.fecha || '') >= hoy;
+  return (
+    <>
+      {r.presentadaEn ? (
+        <Text style={[estilos.detalle, { color: colores.primaryContainer, fontWeight: '700' }]}>
+          ✓ {t('reservas.presentada')}
+        </Text>
+      ) : null}
+      {r.pedido ? (
+        <View style={{ marginTop: 6 }}>
+          <Text style={[estilos.registroTitulo, { color: colores.tinta }]}>{t('reservas.pedido')}</Text>
+          {r.pedido.lineas.map((l) => (
+            <Text key={l.platoId} style={[estilos.detalle, { color: colores.gris }]}>
+              {l.cantidad} × {l.nombre} · {Number(l.subtotal).toFixed(2)} €
+            </Text>
+          ))}
+          <Text style={[estilos.detalle, { color: colores.tinta, fontWeight: '700' }]}>
+            {t('reservas.total', { total: Number(r.pedido.total).toFixed(2) })}
+          </Text>
+          <Text style={[estilos.detalle, { color: colores.gris }]}>{t('reservas.avisoPedido')}</Text>
+        </View>
+      ) : null}
+      {conQr ? (
+        <View style={{ marginTop: 8, gap: 4 }}>
+          <CodigoQR texto={r.qr} />
+          <Text style={[estilos.detalle, { color: colores.gris }]}>{t('reservas.qr')}</Text>
+        </View>
+      ) : null}
+    </>
+  );
+}
+
 function hoyISO() {
   const h = new Date();
   const p = (n) => String(n).padStart(2, '0');
@@ -279,6 +313,7 @@ export default function Reservas() {
                             {aviso}
                           </Text>
                         ) : null}
+                        <PedidoQr r={r} hoy={hoy} t={t} colores={colores} />
                       </View>
                     </View>
                   );
@@ -323,31 +358,7 @@ export default function Reservas() {
                       {r.comentarios ? (
                         <Text style={[estilos.detalle, { color: colores.gris }]}>“{r.comentarios}”</Text>
                       ) : null}
-                      {r.presentadaEn ? (
-                        <Text style={[estilos.detalle, { color: colores.primaryContainer, fontWeight: '700' }]}>
-                          ✓ {t('reservas.presentada')}
-                        </Text>
-                      ) : null}
-                      {r.pedido ? (
-                        <View style={{ marginTop: 6 }}>
-                          <Text style={[estilos.registroTitulo, { color: colores.tinta }]}>{t('reservas.pedido')}</Text>
-                          {r.pedido.lineas.map((l) => (
-                            <Text key={l.platoId} style={[estilos.detalle, { color: colores.gris }]}>
-                              {l.cantidad} × {l.nombre} · {Number(l.subtotal).toFixed(2)} €
-                            </Text>
-                          ))}
-                          <Text style={[estilos.detalle, { color: colores.tinta, fontWeight: '700' }]}>
-                            {t('reservas.total', { total: Number(r.pedido.total).toFixed(2) })}
-                          </Text>
-                          <Text style={[estilos.detalle, { color: colores.gris }]}>{t('reservas.avisoPedido')}</Text>
-                        </View>
-                      ) : null}
-                      {r.qr && !r.presentadaEn && String(r.estado || '').toLowerCase() !== 'cancelada' ? (
-                        <View style={{ marginTop: 8, gap: 4 }}>
-                          <CodigoQR texto={r.qr} />
-                          <Text style={[estilos.detalle, { color: colores.gris }]}>{t('reservas.qr')}</Text>
-                        </View>
-                      ) : null}
+                      <PedidoQr r={r} hoy={hoy} t={t} colores={colores} />
                     </View>
                     {String(r.estado || '').toLowerCase() !== 'cancelada' && r.fecha >= hoy && (
                       <Pressable onPress={() => handleCancelar(r)}>

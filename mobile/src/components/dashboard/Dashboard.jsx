@@ -18,6 +18,7 @@ import { RevenueLineChart, ReservationsPieChart } from './Charts.jsx';
 import ReservationActions from './ReservationActions.jsx';
 import TicketUpload from './TicketUpload.jsx';
 import EscanerLlegadas from './EscanerLlegadas.jsx';
+import CartaEditor from './CartaEditor.jsx';
 import {
   OpBtnPrimary,
   OpBtnGhost,
@@ -805,6 +806,9 @@ export default function Dashboard({ usuario }) {
 
         {/* Escáner de QR de llegada y llegadas de hoy (G10). */}
         {restaurante.id ? <EscanerLlegadas restauranteId={restaurante.id} /> : null}
+
+        {/* Carta del restaurante (M09): antes solo se editaba en la web. */}
+        {restaurante.id ? <CartaEditor restauranteId={restaurante.id} /> : null}
 
         {/* Inline Ficha edit (collapsible) */}
         {showFicha ? (

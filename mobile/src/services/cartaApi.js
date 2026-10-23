@@ -29,3 +29,8 @@ export function totalPedido(carta, cantidades) {
   const t = platos.reduce((s, p) => s + p.precio * (Number(cantidades?.[p.id]) || 0), 0);
   return Math.round(t * 100) / 100;
 }
+
+/** Carta completa para el editor (empresa dueña o admin). */
+export const getCartaEditar = (restauranteId) => api.get(`/v1/cartas/${encodeURIComponent(restauranteId)}/editar`);
+
+export const guardarCarta = (restauranteId, categorias) => api.put(`/v1/cartas/${encodeURIComponent(restauranteId)}`, { categorias });
