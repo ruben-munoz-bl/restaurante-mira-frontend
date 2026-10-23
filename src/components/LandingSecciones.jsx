@@ -15,7 +15,7 @@ import en from '../i18n/en.js';
 import '../styles/landing.css';
 
 const TRADS = { es, ca, en };
-const LIMITE_PLATOS = 8;
+const LIMITE_PLATOS = 12;
 
 /** Mismo formato que la carta: 12,50 €. */
 function formatoPrecio(precio) {

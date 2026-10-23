@@ -106,10 +106,13 @@ async function platoDe(restaurante) {
  * cartas (una petición por restaurante) y las que no existen o no tienen foto
  * se descartan.
  */
+/** Mira el triple de restaurantes y pone primero los platos con foto recortada. */
 export async function fetchPlatosDestacados(restaurantes, limite = 8) {
-  const lista = (restaurantes || []).slice(0, limite);
+  const lista = (restaurantes || []).slice(0, limite * 3);
   const resultados = await Promise.allSettled(lista.map(platoDe));
   return resultados
     .filter((r) => r.status === 'fulfilled' && r.value)
-    .map((r) => r.value);
+    .map((r) => r.value)
+    .sort((a, b) => Boolean(b.plato?.recortada) - Boolean(a.plato?.recortada))
+    .slice(0, limite);
 }
