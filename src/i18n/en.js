@@ -1590,6 +1590,7 @@ export default {
     "verTodos": "See all restaurants",
     "todosTitulo": "All restaurants",
     "todosSub": "27 at a time, all the way through",
+    "filtros": "Search and filter",
     "resultados": "Results",
     "resultadosSub": "What matches your search"
   },

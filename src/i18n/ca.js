@@ -1590,6 +1590,7 @@ export default {
     "verTodos": "Veure tots els restaurants",
     "todosTitulo": "Tots els restaurants",
     "todosSub": "De 27 en 27, fins al final del catàleg",
+    "filtros": "Cercar i filtrar",
     "resultados": "Resultats",
     "resultadosSub": "El que encaixa amb la teva cerca"
   },
