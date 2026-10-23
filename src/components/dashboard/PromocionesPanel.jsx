@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { promotionsApi } from "../../services/api.js";
 import {
   promocionVacia, validarPromocion, paraGuardar, estadoPromocion, bloqueaNueva,
-  fechaCorta, fechaInput, erroresDeApi, claveErrorApi,
+  fechaCorta, erroresDeApi, claveErrorApi,
 } from "../../models/promocionesModel.js";
 import { useT } from "../../i18n/index.jsx";
 import es from "../../i18n/es.js";
