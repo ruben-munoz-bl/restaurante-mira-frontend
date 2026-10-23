@@ -18,6 +18,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { crearReserva, getDisponibilidad, SLOTS } from '../services/reservaApi.js';
+import { fotoDePlato } from '../services/fotosPlatos.js';
+import { getCarta, pedidoDesde, totalPedido } from '../services/cartaApi.js';
 import { crearResena, listarResenasDeRestaurante, darLikeResena, quitarLikeResena } from '../services/resenasApi.js';
 import {
   semillaLikes,
@@ -119,6 +121,25 @@ function StarPicker({ value, onChange, etiqueta }) {
   );
 }
 
+/** Miniatura del plato del pedido (M05): foto del restaurante o, si no hay, de Wikipedia. */
+function FotoPlato({ plato }) {
+  const [uri, setUri] = useState(plato.foto || null);
+  useEffect(() => {
+    if (plato.foto) return undefined;
+    let vivo = true;
+    fotoDePlato(plato.nombre).then((u) => vivo && setUri(u)).catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [plato.foto, plato.nombre]);
+  const { colores } = useTheme();
+  return uri ? (
+    <Image source={{ uri }} style={{ width: 44, height: 44, borderRadius: 6 }} accessibilityIgnoresInvertColors />
+  ) : (
+    <View style={{ width: 44, height: 44, borderRadius: 6, backgroundColor: colores.borde }} />
+  );
+}
+
 /** Fila dato (dt/dd) — definido fuera del render (regla static-components). */
 function Dato({ etiqueta, valor, children }) {
   const { colores } = useTheme();
@@ -198,6 +219,9 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   const [confirmacion, setConfirmacion] = useState(null);
   const [errorReserva, setErrorReserva] = useState('');
   const [cargandoReserva, setCargandoReserva] = useState(false);
+  const [cartaApi, setCartaApi] = useState(null);
+  const [pedir, setPedir] = useState(false);
+  const [cantidades, setCantidades] = useState({});
 
   const [resenasFs, setResenasFs] = useState([]);
   const [cargandoResenas, setCargandoResenas] = useState(true);
@@ -312,6 +336,27 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     };
   }, [restaurant.coords]);
 
+  // M05: carta real (contrato M01); null = sin carta, no se ofrece pedir.
+  useEffect(() => {
+    let vivo = true;
+    setCartaApi(null);
+    setPedir(false);
+    setCantidades({});
+    getCarta(restaurant.id)
+      .then((c) => {
+        if (vivo) setCartaApi(c);
+      })
+      .catch(() => {});
+    return () => {
+      vivo = false;
+    };
+  }, [restaurant.id]);
+
+  function cambiarCantidad(id, delta) {
+    // Máx. 30 líneas (contrato M01): no se añade un plato nuevo pasado el límite.
+    setCantidades((c) => (!c[id] && Object.values(c).filter((n) => n > 0).length >= 30 ? c : { ...c, [id]: Math.min(20, Math.max(0, (c[id] || 0) + delta)) }));
+  }
+
   async function handleReserva() {
     setErrorReserva('');
     setConfirmacion(null);
@@ -338,12 +383,24 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
         hora: reserva.hora,
         comensales: reserva.comensales,
         comentarios: reserva.comentarios,
+        pedido: pedir && cartaApi ? pedidoDesde(cantidades) : null,
       });
       setConfirmacion(r);
+      setPedir(false);
+      setCantidades({});
       const d = await getDisponibilidad(restaurant, reserva.fecha, reserva.hora);
       setDisponibilidad(d);
     } catch (err) {
-      setErrorReserva(err.message);
+      const codigo = err.data?.error;
+      if (codigo === 'PLATO_NO_DISPONIBLE') {
+        setCantidades((c) => ({ ...c, [err.data.platoId]: 0 }));
+        setErrorReserva(t('detail.platoNoDisponible'));
+      }
+      else if (codigo === 'SIN_CARTA') {
+        setCartaApi(null);
+        setPedir(false);
+        setErrorReserva(t('detail.sinCarta'));
+      } else setErrorReserva(err.message);
     } finally {
       setCargandoReserva(false);
     }
@@ -726,6 +783,51 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                   {avisoTerraza}
                   {meteoReserva ? ` (${meteoReserva.resumen})` : ''}
                 </Text>
+              </View>
+            )}
+
+            {cartaApi && (
+              <View style={{ marginTop: 11.2, gap: 6.4 }}>
+                <CampoEtiqueta>{t('detail.pedirAdelantado')}</CampoEtiqueta>
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
+                  {[
+                    [true, t('detail.siPedir')],
+                    [false, t('detail.noPedir')],
+                  ].map(([v, txt]) => (
+                    <Pressable key={txt} onPress={() => setPedir(v)} accessibilityRole="radio" accessibilityState={{ selected: pedir === v }}>
+                      <Text style={pedir === v ? btnCta(colores, { peq: true }) : btnSecundario(colores, { peq: true })}>{txt}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+                {pedir &&
+                  cartaApi.categorias.map((cat) => (
+                    <View key={cat.id} style={{ gap: 4 }}>
+                      <Text style={{ fontWeight: '700', color: colores.tinta }}>{cat.nombre}</Text>
+                      {cat.platos
+                        .filter((p) => p.disponible !== false)
+                        .map((p) => (
+                          <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <FotoPlato plato={p} />
+                            <Text style={{ flex: 1, color: colores.tinta }}>
+                              {p.nombre} · {Number(p.precio).toFixed(2)} €
+                            </Text>
+                            <Pressable onPress={() => cambiarCantidad(p.id, -1)} accessibilityLabel={`${t('detail.menos')} ${p.nombre}`} hitSlop={8}>
+                              <Text style={btnSecundario(colores, { peq: true })}>−</Text>
+                            </Pressable>
+                            <Text style={{ minWidth: 20, textAlign: 'center', color: colores.tinta }}>{cantidades[p.id] || 0}</Text>
+                            <Pressable onPress={() => cambiarCantidad(p.id, 1)} accessibilityLabel={`${t('detail.mas')} ${p.nombre}`} hitSlop={8}>
+                              <Text style={btnSecundario(colores, { peq: true })}>+</Text>
+                            </Pressable>
+                          </View>
+                        ))}
+                    </View>
+                  ))}
+                {pedir && (
+                  <Text style={{ fontWeight: '700', color: colores.tinta }}>
+                    {t('detail.totalOrientativo', { total: totalPedido(cartaApi, cantidades).toFixed(2) })}
+                  </Text>
+                )}
+                {pedir && <Text style={{ color: colores.gris }}>{t('detail.avisoPedido')}</Text>}
               </View>
             )}
 

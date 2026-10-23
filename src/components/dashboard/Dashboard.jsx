@@ -13,11 +13,13 @@ import DocumentoFiscal from "../fiscal/DocumentoFiscal.jsx";
 import OfertasPanel from "./OfertasPanel.jsx";
 import OfertasStats from "./OfertasStats.jsx";
 import OfertasEscanner from "./OfertasEscanner.jsx";
+import CartaEditor from "./CartaEditor.jsx";
 import { facturaReal, reporteFiscalReal, fechaDeTicket } from "../fiscal/fiscalReal.js";
 import "./dashboard.css";
 
 import { unirReservas, filtrarTicketsPeriodo, csvLiquidacion, ticketsCompletos } from "./dashboardDatos.js";
 
+const lsGet = (k)=> { try { return localStorage.getItem(k); } catch { return null; } };
 const TRADS = { es, ca, en };
 
 const CLAVE_DATOS_SIM = 'mira:rest-datos-simulados';
@@ -63,6 +65,8 @@ function DashboardRestaurante({ usuario, perfil, esAdmin, cargandoSesion }) {
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [showFicha, setShowFicha] = useState(false);
   const [showOfertas, setShowOfertas] = useState(false);
+  const [showCarta, setShowCarta] = useState(false);
+  const [cartaLuego, setCartaLuego] = useState({});
   const [dragOver, setDragOver] = useState(false);
   const [selectedForecast, setSelectedForecast] = useState(null);
   const [showAllReservas, setShowAllReservas] = useState(false);
@@ -516,6 +520,7 @@ const restDropdownRef = useRef(null);
               <button className="op-btn-ghost" onClick={handleExportLiquidacion}><span className="material-symbols-outlined" style={{fontSize:16}}>download</span> {t("dashboard.exportarLiquidacion")}</button>
               <button className="op-btn-ghost" onClick={()=> setShowFicha(v=>!v)}><span className="material-symbols-outlined" style={{fontSize:16}}>storefront</span> {t("dashboard.ficha")}</button>
               <button className="op-btn-ghost" onClick={()=> setShowOfertas(v=>!v)} data-test="dashboard-ofertas-btn"><span className="material-symbols-outlined" style={{fontSize:16}}>local_offer</span> {t("ofertas.boton")}</button>
+              <button className="op-btn-ghost" onClick={()=> setShowCarta(v=>!v)} data-test="dashboard-carta-btn"><span className="material-symbols-outlined" style={{fontSize:16}}>menu_book</span> {t("cartaEditor.boton")}</button>
               <button type="button" role="switch" aria-checked={datosSimulados} className={`op-sim-switch ${datosSimulados ? 'on' : ''}`} onClick={toggleDatosSimulados} title={t("dashboard.datosSimuladosDesc")}>
                 <span className="op-sim-track"><i /></span>
                 <span>{t("dashboard.datosSimulados")}</span>
@@ -563,6 +568,12 @@ const restDropdownRef = useRef(null);
               </div>
             </div>
           )}
+
+          {/* Carta (M09): paso tras el alta. La propuesta queda pendiente sin restauranteId, así que se ofrece la primera vez que el panel carga un restaurante sin carta. */}
+          {restaurante.id && (showCarta ? <CartaEditor restauranteId={restaurante.id} /> : !cartaLuego[restaurante.id] && !lsGet(`mira_carta_luego_${restaurante.id}`) && (
+            <CartaEditor restauranteId={restaurante.id} oferta onCrear={()=> setShowCarta(true)}
+              onLuego={()=>{ try { localStorage.setItem(`mira_carta_luego_${restaurante.id}`, "1"); } catch { /* ignore */ } setCartaLuego(p=> ({...p, [restaurante.id]: true})); }} />
+          ))}
 
           {/* Ofertas por distancia (G04) + escáner de llegada (G10) + estadísticas (G07) */}
           {showOfertas && restaurante.id && (

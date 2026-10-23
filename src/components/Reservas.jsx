@@ -12,6 +12,7 @@ import { esperaApi } from '../services/mejorasApi.js';
 import { diasMes, pronosticoDia, alertaTerraza, resumenTexto } from '../services/meteoApi.js';
 import { imagenParaRestaurante } from '../models/restaurantModel.js';
 import { useT } from '../i18n/index.jsx';
+import { CodigoQR } from './Llegada.jsx';
 import es from '../i18n/es.js';
 import ca from '../i18n/ca.js';
 import en from '../i18n/en.js';
@@ -63,6 +64,30 @@ function urlComoLlegar(r) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.nombreRestaurante || '')}`;
 }
 
+/** QR de la reserva y pedido anticipado (M06): solo lectura, se cambia hablando con el local. */
+function PedidoQr({ r, t }) {
+  const hoy = new Date().toLocaleDateString('sv-SE');
+  const qr = r.qr && !r.presentadaEn && estadoDe(r) !== 'cancelada' && (r.fecha || '') >= hoy ? r.qr : null;
+  if (!qr && !r.pedido) return null;
+  return (
+    <div className="tk-extra">
+      {qr && <div className="tk-qr" role="img" aria-label={t('reservas.qrAlt')}><CodigoQR texto={qr} /></div>}
+      {r.pedido && (
+        <div className="tk-pedido">
+          <strong>{t('reservas.pedido')}</strong>
+          <ul>
+            {r.pedido.lineas.map((l) => (
+              <li key={l.platoId}><span>{l.cantidad} × {l.nombre}</span><span>{Number(l.subtotal).toFixed(2)} €</span></li>
+            ))}
+          </ul>
+          <p className="tk-pedido-total"><span>{t('reservas.pedidoTotal')}</span><strong>{Number(r.pedido.total).toFixed(2)} €</strong></p>
+          <p className="tk-pedido-aviso">{t('reservas.pedidoNoEditable')}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Ticket({ r, t, locale, hoy, meteo, onCancelar, compacto = false }) {
   const estado = estadoDe(r);
   const fecha = new Date(`${r.fecha}T12:00:00`);
@@ -86,6 +111,8 @@ function Ticket({ r, t, locale, hoy, meteo, onCancelar, compacto = false }) {
         </p>
         {r.comentarios && <p className="tk-nota">“{r.comentarios}”</p>}
         {aviso && <p className="tk-aviso" role="status">{aviso}</p>}
+        {r.presentadaEn && <p className="tk-presentada">✓ {t('reservas.presentada')}</p>}
+        <PedidoQr r={r} t={t} />
       </div>
       <div className="tk-talon">
         <span className="tk-codigo-label">{t('reservas.codigo')}</span>
@@ -121,6 +148,8 @@ function TicketDestacado({ r, t, locale, meteo, onCancelar }) {
           {m && m.tempMax != null && <div><dt>{resumenTexto(m.codigo, t)}</dt><dd>{Math.round(m.tempMax)}°</dd></div>}
         </dl>
         {aviso && <p className="tk-aviso" role="status">{aviso}</p>}
+        {r.presentadaEn && <p className="tk-presentada">✓ {t('reservas.presentada')}</p>}
+        <PedidoQr r={r} t={t} />
         <div className="tkd-acciones">
           <a className="btn-cta btn-peq" href={urlComoLlegar(r)} target="_blank" rel="noreferrer">{t('reservas.comoLlegar')}</a>
           <button type="button" className="btn-secundario btn-peq" onClick={() => descargarIcs(r)}>{t('reservas.anadirCalendario')}</button>

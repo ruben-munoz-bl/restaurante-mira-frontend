@@ -715,3 +715,15 @@
 @media (hover: hover) and (pointer: fine) {
   .det-grupo:hover { box-shadow: 0 0 0 1px rgba(30, 215, 96, 0.45), 0 0 32px -2px rgba(30, 215, 96, 0.75); }
 }
+
+/* M05 — pedido anticipado */
+.det-pedido { border: 1px solid rgba(0, 0, 0, 0.12); border-radius: 10px; padding: 10px 12px; margin: 12px 0; }
+.det-pedido legend { font-weight: 600; padding: 0 4px; }
+.det-pedido-opciones { display: flex; gap: 16px; flex-wrap: wrap; }
+.det-pedido-cat h4 { margin: 10px 0 4px; font-size: 0.95rem; }
+.det-pedido-plato { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 4px 0; }
+.det-pedido-plato input { width: 4.5em; min-height: 36px; }
+.det-pedido-plato .det-menu-foto { width: 44px; height: 44px; }
+.det-pedido-nombre { flex: 1; }
+.det-pedido-total { margin: 8px 0 2px; }
+.det-pedido-aviso { margin: 0; font-size: 0.85rem; opacity: 0.85; }

@@ -15,7 +15,7 @@ import '../styles/llegada.css';
 
 const TRADS = { es, ca, en };
 
-function CodigoQR({ texto }) {
+export function CodigoQR({ texto }) {
   const { size, d } = useMemo(() => trazadoQR(texto), [texto]);
   return (
     <svg className="llegada-qr" viewBox={`-2 -2 ${size + 4} ${size + 4}`} role="img" aria-label="QR" shapeRendering="crispEdges">

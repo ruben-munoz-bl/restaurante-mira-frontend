@@ -5,6 +5,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { crearReserva, getDisponibilidad, SLOTS } from '../services/reservaApi.js';
 import { esperaApi } from '../services/mejorasApi.js';
+import { getCarta, pedidoDesde, totalPedido } from '../services/cartaApi.js';
 import { crearResena, listarResenasDeRestaurante, darLikeResena, quitarLikeResena } from '../services/resenasApi.js';
 import { semillaLikes, parseFechaLocal, hoyLocalISO, ordenarResenas, cartaDelLocal, flagsPlato, imagenParaRestaurante } from '../models/restaurantModel.js';
 import { fotoDePlato } from '../services/fotosPlatos.js';
@@ -87,11 +88,13 @@ function FotoPlato({ plato, cocina, restauranteId }) {
   const [src, setSrc] = useState(null);
   useEffect(() => {
     let vivo = true;
+    // La foto del restaurante (M09) manda; si no hay, se busca en Wikipedia.
+    if (plato.foto) { setSrc(plato.foto); return undefined; }
     fotoDePlato(plato.nombre)
       .then((url) => vivo && setSrc(url || imagenParaRestaurante(cocina, restauranteId)))
       .catch(() => vivo && setSrc(imagenParaRestaurante(cocina, restauranteId)));
     return () => { vivo = false; };
-  }, [plato.nombre, cocina, restauranteId]);
+  }, [plato.foto, plato.nombre, cocina, restauranteId]);
   return (
     <span className={`det-menu-foto det-menu-foto--${src ? 'lista' : 'cargando'}`}>
       {src && <img src={src} alt="" loading="lazy" />}
@@ -136,6 +139,10 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   const [confirmacion, setConfirmacion] = useState(null);
   const [errorReserva, setErrorReserva] = useState('');
   const [cargandoReserva, setCargandoReserva] = useState(false);
+  // Pedido anticipado (M05): solo si el restaurante tiene carta en la API.
+  const [cartaPedido, setCartaPedido] = useState(null);
+  const [quierePedido, setQuierePedido] = useState(false);
+  const [cantidades, setCantidades] = useState({});
 
   const [resenasFs, setResenasFs] = useState([]);
   const [cargandoResenas, setCargandoResenas] = useState(true);
@@ -245,6 +252,13 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   // La lista de espera es por franja: al cambiar de franja se olvida el estado anterior.
   useEffect(() => { setEspera({ estado: 'nada', mensaje: '' }); }, [reserva.fecha, reserva.hora]);
 
+  useEffect(() => {
+    let vivo = true;
+    setCartaPedido(null); setQuierePedido(false); setCantidades({});
+    getCarta(restaurant.id).then((c) => { if (vivo) setCartaPedido(c); }).catch(() => {});
+    return () => { vivo = false; };
+  }, [restaurant.id]);
+
   async function apuntarseEspera() {
     if (!usuario?.uid) { window.location.hash = '#/login'; return; }
     setEspera({ estado: 'enviando', mensaje: '' });
@@ -265,13 +279,21 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
     if (parseFechaLocal(reserva.fecha) < hoy) { setErrorReserva(t('detail.fechaNoAnterior')); return; }
     setCargandoReserva(true);
     try {
-      const r = await crearReserva({ restaurante: restaurant, usuario, fecha: reserva.fecha, hora: reserva.hora, comensales: reserva.comensales, comentarios: reserva.comentarios });
+      const r = await crearReserva({ restaurante: restaurant, usuario, fecha: reserva.fecha, hora: reserva.hora, comensales: reserva.comensales, comentarios: reserva.comentarios, pedido: quierePedido ? pedidoDesde(cantidades) : null });
       setConfirmacion(r);
       // Deja ver la confirmación un momento y lleva a «Mis reservas» cerrando la ficha.
       if (onReservado) { setTimeout(onReservado, 1500); return; }
       const d = await getDisponibilidad(restaurant, reserva.fecha, reserva.hora);
       setDisponibilidad(d);
-    } catch (err) { setErrorReserva(err.message); }
+    } catch (err) {
+      const codigo = err?.data?.error;
+      if (codigo === 'SIN_CARTA') { setCartaPedido(null); setQuierePedido(false); setErrorReserva(t('detail.pedidoSinCarta')); }
+      else if (codigo === 'PLATO_NO_DISPONIBLE') {
+        const plato = (cartaPedido?.categorias || []).flatMap((c) => c.platos).find((p) => p.id === err.data.platoId);
+        setCantidades((c) => ({ ...c, [err.data.platoId]: 0 }));
+        setErrorReserva(t('detail.pedidoNoDisponible', { nombre: plato?.nombre || err.data.platoId }));
+      } else setErrorReserva(err.message);
+    }
     finally { setCargandoReserva(false); }
   }
 
@@ -562,6 +584,38 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                     </>
                   )}
                 </div>
+              )}
+              {cartaPedido && (
+                <fieldset className="det-pedido">
+                  <legend>{t('detail.pedidoPregunta')}</legend>
+                  <div className="det-pedido-opciones">
+                    <label><input type="radio" name="quierePedido" checked={!quierePedido} onChange={() => setQuierePedido(false)} /> {t('detail.pedidoNo')}</label>
+                    <label><input type="radio" name="quierePedido" checked={quierePedido} onChange={() => setQuierePedido(true)} /> {t('detail.pedidoSi')}</label>
+                  </div>
+                  {quierePedido && (
+                    <>
+                      {cartaPedido.categorias.map((cat) => (
+                        <div key={cat.id} className="det-pedido-cat">
+                          <h4>{cat.nombre}</h4>
+                          {cat.platos.filter((p) => p.disponible !== false).map((p) => (
+                            <label key={p.id} className="det-pedido-plato">
+                              <FotoPlato plato={p} cocina={restaurant.cocina} restauranteId={restaurant.id} />
+                              <span className="det-pedido-nombre">{p.nombre} <small>{p.precio.toFixed(2)} €</small></span>
+                              <input
+                                type="number" min="0" max="20" inputMode="numeric"
+                                aria-label={t('detail.pedidoCantidad', { nombre: p.nombre })}
+                                value={cantidades[p.id] || 0}
+                                onChange={(e) => setCantidades((c) => (!c[p.id] && Object.values(c).filter((n) => n > 0).length >= 30 ? c : { ...c, [p.id]: Math.min(20, Math.max(0, Math.floor(Number(e.target.value) || 0))) }))}
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      ))}
+                      <p className="det-pedido-total"><strong>{t('detail.pedidoTotal', { total: totalPedido(cartaPedido, cantidades).toFixed(2) })}</strong></p>
+                      <p className="det-pedido-aviso" role="note">{t('detail.pedidoAviso')}</p>
+                    </>
+                  )}
+                </fieldset>
               )}
               {errorReserva && <p className="reserva-error" role="alert">{errorReserva}</p>}
 

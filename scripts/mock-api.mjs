@@ -8,6 +8,7 @@
 import http from 'node:http';
 import { createHash } from 'node:crypto';
 import { restaurants } from '../src/data/restaurants.js';
+import { cartaDelLocal } from '../src/models/restaurantModel.js';
 
 const PORT = Number(process.env.MOCK_PORT || 3001);
 
@@ -57,7 +58,25 @@ const docs = restaurants.map((r, i) => {
   };
 });
 
-const resenasMira = {}; // creadas durante la sesión (en memoria)
+const resenasMira = {};
+// M01: cartas en memoria (restaurante 1 con carta de ejemplo) y reservas creadas.
+const cartas = new Map([[docs[0]?.id || '1', { restauranteId: docs[0]?.id || '1', actualizada: new Date().toISOString(), categorias: [
+  { id: 'cat_entrantes', nombre: 'Entrantes', platos: [
+    { id: 'pl_croquetas', nombre: 'Croquetas de jamón', descripcion: '6 unidades', precio: 9.5, foto: null, alergenos: ['gluten', 'lactosa'], disponible: true },
+    { id: 'pl_bravas', nombre: 'Patatas bravas', descripcion: '', precio: 6, foto: null, alergenos: [], disponible: true },
+    { id: 'pl_agotado', nombre: 'Pulpo a la gallega', descripcion: '', precio: 18, foto: null, alergenos: [], disponible: false },
+  ] },
+  { id: 'cat_principales', nombre: 'Principales', platos: [
+    { id: 'pl_paella', nombre: 'Paella de marisco', descripcion: 'Mínimo 2 personas', precio: 22, foto: null, alergenos: ['crustaceos'], disponible: true },
+  ] },
+] }]]);
+// Como en producción tras M14: el resto de restaurantes con su carta simulada del frontend.
+for (const d of docs) {
+  if (cartas.has(d.id)) continue;
+  const platos = cartaDelLocal(d).map((pl, i) => ({ id: `pl_${d.id}_${i}`, nombre: pl.nombre, descripcion: '', precio: pl.precio, foto: null, alergenos: [], disponible: true }));
+  cartas.set(d.id, { restauranteId: d.id, actualizada: new Date().toISOString(), categorias: [{ id: 'cat_carta', nombre: 'Carta', platos }] });
+}
+const reservas = []; // creadas durante la sesión (en memoria)
 const dispositivos = new Map(); // push (T04): id -> { token, tipo, plataforma, idioma }
 
 // Campañas de ejemplo para que la landing pinte el carrusel en modo mock.
@@ -213,9 +232,42 @@ http
       return enviar(res, 200, { data: nueva });
     }
     if (p === '/v1/reservations/availability') return enviar(res, 200, { limite: 20, ocupadas: 6, libres: 14 });
-    if (p === '/v1/reservations' && req.method === 'POST') {
-      return enviar(res, 200, { data: { id: 'res1', codigo: 'MIRA-' + Math.random().toString(36).slice(2, 7).toUpperCase(), ...datos } });
+    // M01: carta por restaurante y pedido dentro de la reserva.
+    const carta = p.match(/^\/v1\/cartas\/([^/]+)(\/editar)?$/);
+    if (carta) {
+      const rid = decodeURIComponent(carta[1]);
+      if (req.method === 'PUT') {
+        let n = 0;
+        const categorias = (datos.categorias || []).map((c) => ({ ...c, id: c.id || `cat_${Date.now()}_${n++}`, platos: (c.platos || []).map((pl) => ({ ...pl, id: pl.id || `pl_${Date.now()}_${n++}` })) }));
+        cartas.set(rid, { restauranteId: rid, categorias, actualizada: new Date().toISOString() });
+        return enviar(res, 200, cartas.get(rid));
+      }
+      const c = cartas.get(rid);
+      if (carta[2]) return enviar(res, 200, c || { restauranteId: rid, categorias: [], actualizada: null });
+      if (!c) return enviar(res, 404, { error: 'NOT_FOUND' });
+      const categorias = c.categorias.map((k) => ({ ...k, platos: k.platos.filter((pl) => pl.disponible !== false) })).filter((k) => k.platos.length);
+      return categorias.length ? enviar(res, 200, { ...c, categorias }) : enviar(res, 404, { error: 'NOT_FOUND' });
     }
+    if (p === '/v1/reservations' && req.method === 'POST') {
+      const id = `res${reservas.length + 1}`;
+      let pedido = null;
+      if (datos.pedido) {
+        const c = cartas.get(String(datos.restauranteId));
+        if (!c) return enviar(res, 400, { error: 'SIN_CARTA' });
+        const platos = c.categorias.flatMap((k) => k.platos);
+        const lineas = [];
+        for (const l of datos.pedido.lineas || []) {
+          const pl = platos.find((x) => x.id === l.platoId && x.disponible !== false);
+          if (!pl) return enviar(res, 400, { error: 'PLATO_NO_DISPONIBLE', platoId: l.platoId });
+          lineas.push({ platoId: pl.id, nombre: pl.nombre, precio: pl.precio, cantidad: l.cantidad, subtotal: Math.round(pl.precio * l.cantidad * 100) / 100 });
+        }
+        pedido = { lineas, total: Math.round(lineas.reduce((t, l) => t + l.subtotal, 0) * 100) / 100, moneda: 'EUR', creadoEn: new Date().toISOString() };
+      }
+      const nueva = { id, codigo: 'MIRA-' + Math.random().toString(36).slice(2, 7).toUpperCase(), estado: 'confirmada', ...datos, pedido, presentadaEn: null, qr: `r1.${id}.mock` };
+      reservas.push(nueva);
+      return enviar(res, 201, nueva);
+    }
+    if (p === '/v1/reservations' && req.method === 'GET') return enviar(res, 200, { data: reservas });
     // Push (contrato T04): sin Bearer → 401; el id es SHA-256 de `tipo:token`.
     if (p.startsWith('/v1/push/tokens')) {
       if (!req.headers.authorization) return enviar(res, 401, { error: 'MISSING_TOKEN', message: 'Falta el Bearer' });
@@ -357,6 +409,8 @@ http
         return enviar(res, 200, ofertas[i]);
       }
     }
+    // Panel del restaurante: un local fuera del catálogo y sin carta, para probar el paso de carta (M09).
+    if (p === '/v1/dashboard/my-restaurant') return enviar(res, 200, { restaurante: { ...docs[1], id: 'demo-panel' }, stats: {}, proximasReservas: [], reservasHoy: [], ticketsRecientes: [], ingresosPorMes: [] });
     if (p.startsWith('/v1/points/balance')) return enviar(res, 200, { saldoActual: 0, rachaLogin: { dias: 0, yaReclamado: true } });
     return enviar(res, 200, { data: [], items: [] });
   })
