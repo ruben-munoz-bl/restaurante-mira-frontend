@@ -61,9 +61,6 @@ jobs:
     if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    # 38 fallos preexistentes (arnés vm.runInContext vs Node 20/24): no bloquea.
-    # Quitar continue-on-error cuando estén arreglados.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

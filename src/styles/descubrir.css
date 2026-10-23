@@ -405,3 +405,35 @@
   letter-spacing: 0.06em;
 }
 .dsc-todos-contador b { color: var(--tinta); font-family: var(--fuente-display); font-size: 1.25rem; }
+
+/* Barra del listado: el contador se queda arriba con un acceso directo al
+   buscador mientras se recorre la lista. */
+.dsc-todos-barra {
+  position: sticky;
+  top: 4.5rem;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 0.5rem 0;
+  background: var(--fondo);
+}
+.dsc-todos-barra .dsc-todos-contador { margin: 0; }
+
+.dsc-filtros-volver {
+  flex: none;
+  padding: 0.45rem 0.95rem;
+  border: 1px solid var(--borde);
+  border-radius: 999px;
+  background: var(--papel);
+  color: var(--tinta);
+  font: 600 0.9rem var(--fuente);
+  cursor: pointer;
+}
+.dsc-filtros-volver:hover { border-color: rgba(22, 56, 44, 0.25); }
+.dsc-filtros-volver:focus-visible {
+  outline: 2px solid var(--primary-container);
+  outline-offset: 2px;
+}

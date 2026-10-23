@@ -72,6 +72,7 @@ export default function Descubrir({
   const [estadoVuelo, setEstadoVuelo] = useState(todos.length ? 'listo' : 'cargando');
   const reducido = useMemo(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches, []);
   const refTodos = useRef(null);
+  const refBuscador = useRef(null);
 
   // El portal solo trae una página: para un ranking justo se pide el catálogo completo.
   useEffect(() => {
@@ -115,19 +116,12 @@ export default function Descubrir({
   const tituloResultados = hayFiltrosActivos ? t('descubrir.resultados') : t('descubrir.todosTitulo');
   const subResultados = hayFiltrosActivos ? t('descubrir.resultadosSub') : t('descubrir.todosSub');
 
+  function irABuscador() {
+    refBuscador.current?.scrollIntoView({ behavior: reducido ? 'auto' : 'smooth', block: 'center' });
+  }
+
   return (
     <div className="descubrir">
-      <div className="dsc-buscador">
-        <SearchBar
-          filtros={filtros}
-          opciones={opciones}
-          hayFiltrosActivos={hayFiltrosActivos}
-          onChange={onChange}
-          onClear={onClear}
-          abiertoInicial={hayFiltrosActivos}
-        />
-      </div>
-
       {estado === 'error' && (
         <div className="dsc-aviso" role="alert">{t('descubrir.error')}</div>
       )}
@@ -145,6 +139,17 @@ export default function Descubrir({
         ) : (
           <Vuelo vuelo={vuelo} t={t} onSelect={onSelect} />
         ))}
+
+      <div className="dsc-buscador" ref={refBuscador}>
+        <SearchBar
+          filtros={filtros}
+          opciones={opciones}
+          hayFiltrosActivos={hayFiltrosActivos}
+          onChange={onChange}
+          onClear={onClear}
+          abiertoInicial={hayFiltrosActivos}
+        />
+      </div>
 
       {!hayFiltrosActivos && estadoVuelo === 'listo' && destacados.length > 0 && (
         <section className="dsc-destacados" aria-labelledby="dsc-destacados-titulo">
@@ -171,12 +176,17 @@ export default function Descubrir({
       <section id="dsc-todos" ref={refTodos} className="dsc-todos" aria-labelledby="dsc-todos-titulo">
         <h2 id="dsc-todos-titulo" className="dsc-todos-titulo">{tituloResultados}</h2>
         <p className="dsc-todos-sub">{subResultados}</p>
-        <p
-          className="dsc-todos-contador"
-          aria-label={`${tituloResultados}: ${visibles.length} / ${total}`}
-        >
-          <b>{visibles.length}</b> / {total}
-        </p>
+        <div className="dsc-todos-barra">
+          <p
+            className="dsc-todos-contador"
+            aria-label={`${tituloResultados}: ${visibles.length} / ${total}`}
+          >
+            <b>{visibles.length}</b> / {total}
+          </p>
+          <button type="button" className="dsc-filtros-volver" onClick={irABuscador}>
+            {t('descubrir.filtros')}
+          </button>
+        </div>
         <RestaurantList
           restaurants={visibles}
           filtros={filtros}

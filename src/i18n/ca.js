@@ -51,6 +51,7 @@ export default {
     "hora": "Hora",
     "ordenarPor": "Ordenar per",
     "limpiar": "Netejar",
+    "buscar": "Cercar",
     "cualquiera": "Qualsevol",
     "todas": "Totes",
     "todaCataluna": "Tota Catalunya",
@@ -1589,12 +1590,15 @@ export default {
     "verTodos": "Veure tots els restaurants",
     "todosTitulo": "Tots els restaurants",
     "todosSub": "De 27 en 27, fins al final del catàleg",
+    "filtros": "Cercar i filtrar",
     "resultados": "Resultats",
     "resultadosSub": "El que encaixa amb la teva cerca"
   },
   "landing": {
     "promociones": "En promoció",
     "promocionesSub": "Campanyes actives ara mateix",
+    "anterior": "Anterior",
+    "siguiente": "Següent",
     "platos": "Plats que fan venir gana",
     "platosSub": "Fotos reals de les cartes",
     "reservados": "Els més reservats de la setmana",

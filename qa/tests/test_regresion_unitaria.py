@@ -15,8 +15,18 @@ import servers  # noqa: E402
 
 RAIZ_QA = pathlib.Path(__file__).resolve().parent.parent
 RAIZ_FRONT = RAIZ_QA.parent
-RAIZ_REPO = RAIZ_FRONT.parents[0].parent  # .../Restaurante Mira
-BACKEND = RAIZ_REPO / "restuarante-mira-backend"
+
+
+def _backend_vecino() -> pathlib.Path:
+    """El backend vive junto al frontend, también desde un worktree."""
+    for base in [RAIZ_FRONT, *RAIZ_FRONT.parents]:
+        ruta = base / "restuarante-mira-backend"
+        if (ruta / "package.json").exists():
+            return ruta
+    return RAIZ_FRONT.parent / "restuarante-mira-backend"
+
+
+BACKEND = pathlib.Path(os.environ.get("MIRA_BACKEND", _backend_vecino()))
 
 MOTIVO = "usa --unitarias (o MIRA_UNITARIAS=1) para correr las suites unitarias"
 

@@ -6,6 +6,7 @@
 import { api } from './httpClient.js';
 import { promotionsApi } from './api.js';
 import { fotoDePlato } from './fotosPlatos.js';
+import { primerPlatoLocal } from '../models/landingModel.js';
 
 /** Firestore puede serializar fechas como ISO o como { seconds } / { _seconds }. */
 function aMs(valor) {
@@ -60,9 +61,15 @@ export async function fetchMasReservados(limite = 8) {
 
 /** Primera carta disponible de cada restaurante, con foto resuelta. */
 async function platoDe(restaurante) {
-  const carta = await api.get(`/v1/cartas/${encodeURIComponent(restaurante.id)}`, { auth: false });
-  const platos = (carta?.categorias || []).flatMap((c) => c.platos || []);
-  const plato = platos.find((p) => p?.nombre);
+  let plato = null;
+  try {
+    const carta = await api.get(`/v1/cartas/${encodeURIComponent(restaurante.id)}`, { auth: false });
+    plato = (carta?.categorias || []).flatMap((c) => c.platos || []).find((p) => p?.nombre) || null;
+  } catch {
+    // shortcut: sin cartas sembradas (M14) se usa la carta simulada del frontend.
+    // Quitar el fallback cuando producción tenga /v1/cartas.
+  }
+  if (!plato) plato = primerPlatoLocal(restaurante);
   if (!plato) return null;
   // M14 siembra las cartas con foto: null; se resuelve con Wikipedia una vez.
   const foto = plato.foto || (await fotoDePlato(plato.nombre));

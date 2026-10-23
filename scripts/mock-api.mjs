@@ -60,6 +60,17 @@ const docs = restaurants.map((r, i) => {
 const resenasMira = {}; // creadas durante la sesión (en memoria)
 const dispositivos = new Map(); // push (T04): id -> { token, tipo, plataforma, idioma }
 
+// Campañas de ejemplo para que la landing pinte el carrusel en modo mock.
+const promociones = docs.slice(0, 5).map((d, i) => ({
+  id: `promo${i + 1}`,
+  restauranteId: d.id,
+  estado: 'activa',
+  prioridad: 3 - i,
+  fechaInicio: null,
+  fechaFin: null,
+  puntosExtraPorReserva: (i + 1) * 25,
+}));
+
 // Ofertas por geolocalización (contrato fase 1, bóveda: Proyecto/Contratos API.md).
 // En memoria: se pierden al reiniciar. El mock no comprueba dueños ni sesión.
 const DISTANCIAS = [1000, 500, 100, 20];
@@ -182,6 +193,12 @@ http
       }));
       return enviar(res, 200, { items });
     }
+    // M12: ranking de reservas de los últimos días (la landing lo pide público).
+    if (p === '/v1/restaurants/mas-reservados') {
+      const limite = Math.min(Number(url.searchParams.get('limit')) || 8, 50);
+      const data = docs.slice(0, limite).map((d, i) => ({ id: d.id, reservas: 30 - i, nombre: d.nombre }));
+      return enviar(res, 200, { data });
+    }
     const porId = p.match(/^\/v1\/restaurants\/([^/]+)$/);
     if (porId) {
       const d = docs.find((x) => x.id === decodeURIComponent(porId[1]));
@@ -225,7 +242,10 @@ http
         return res.end();
       }
     }
-    if (p.startsWith('/v1/promotions')) return enviar(res, 200, { data: [] });
+    if (p.startsWith('/v1/promotions')) {
+      const estado = url.searchParams.get('estado');
+      return enviar(res, 200, { data: estado ? promociones.filter((x) => x.estado === estado) : promociones });
+    }
     // Agente MIRA: el contrato real vive en mira-api; aquí basta una respuesta fija
     // para que la UI del chat no rompa al pulsar una sugerencia.
     if (p === '/v1/ai/agent' && req.method === 'POST') {
