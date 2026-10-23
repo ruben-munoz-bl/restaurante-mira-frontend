@@ -17,12 +17,6 @@ import '../styles/landing.css';
 const TRADS = { es, ca, en };
 const LIMITE_PLATOS = 12;
 
-/** Mismo formato que la carta: 12,50 €. */
-function formatoPrecio(precio) {
-  const n = Number(precio);
-  return Number.isFinite(n) ? `${n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €` : '—';
-}
-
 export default function LandingSecciones({ todos = [], onSelect, esFavorito, onToggleFavorito, onVerCarta }) {
   const t = useT(TRADS);
   const [promos, setPromos] = useState([]);
@@ -95,6 +89,7 @@ export default function LandingSecciones({ todos = [], onSelect, esFavorito, onT
         <Seccion id="landing-platos" titulo={t('landing.platos')} sub={t('landing.platosSub')}>
           <Carrusel
             etiqueta={t('landing.platos')}
+            intervalo={3000}
             anterior={t('landing.anterior')}
             siguiente={t('landing.siguiente')}
           >
@@ -105,7 +100,6 @@ export default function LandingSecciones({ todos = [], onSelect, esFavorito, onT
                   <span className="landing-plato-texto">
                     <span className="landing-plato-nombre">{plato.nombre}</span>
                     <span className="landing-plato-rest">{restaurante.nombre}</span>
-                    <span className="landing-plato-precio">{formatoPrecio(plato.precio)}</span>
                   </span>
                 </button>
               </li>
@@ -175,7 +169,7 @@ function Seccion({ id, titulo, sub, children }) {
 }
 
 /** Carrusel con scroll nativo y flechas; avanza solo y se puede deslizar. */
-function Carrusel({ etiqueta, anterior, siguiente, children }) {
+function Carrusel({ etiqueta, anterior, siguiente, intervalo = 5000, children }) {
   const pista = useRef(null);
   const [pausado, setPausado] = useState(false);
 
@@ -205,9 +199,9 @@ function Carrusel({ etiqueta, anterior, siguiente, children }) {
         left: el.scrollLeft >= fin - 2 ? 0 : Math.min(el.scrollLeft + paso, fin),
         behavior: 'smooth',
       });
-    }, 5000);
+    }, intervalo);
     return () => window.clearInterval(id);
-  }, [pausado]);
+  }, [pausado, intervalo]);
 
   return (
     <div

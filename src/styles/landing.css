@@ -182,11 +182,6 @@
   font-size: 0.84rem;
 }
 
-.landing-plato-precio {
-  color: var(--primary-container);
-  font-weight: 700;
-}
-
 /* Cierre: catálogo completo. */
 .landing-final {
   width: 100%;
@@ -226,7 +221,4 @@
 }
 [data-theme='dark'] .landing-plato .landing-plato-rest {
   color: #55615b;
-}
-[data-theme='dark'] .landing-plato .landing-plato-precio {
-  color: #14532d;
 }
