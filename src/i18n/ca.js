@@ -1243,7 +1243,15 @@ export default {
     "estadoErrorRed": "No s'ha pogut connectar. Comprova la connexió i reintenta.",
     "listaConfirmada": "Bescanviada",
     "listaPendiente": "Pendent",
-    "listaCaducada": "Caducada"
+    "listaCaducada": "Caducada",
+    "estadoReservaOk": "Arribada confirmada. Reserva marcada com a presentada.",
+    "estadoCancelada": "Aquesta reserva està cancel·lada.",
+    "estadoFueraDeFecha": "Aquest QR només val el dia de la reserva.",
+    "estadoYaPresentada": "Aquesta reserva ja es va marcar com a presentada.",
+    "reservaDatos": "{{hora}} · {{comensales}} persones",
+    "reservaPedido": "Comanda anticipada (es paga al local)",
+    "reservaSinPedido": "Sense comanda anticipada.",
+    "puntosPedido": "+{{puntos}} punts per al client per la comanda"
   },
   "ops": {
     "seccDashboard": "Panell general",
@@ -2083,5 +2091,23 @@ export default {
     "errPrecio": "Preu entre 0,01 i 999,99 € (2 decimals).",
     "errFoto": "Ha de ser una URL https.",
     "errAlergenos": "Al·lergen no vàlid."
+  },
+  "reservasPanel": {
+    "titulo": "Reserves i comandes",
+    "subtitulo": "Avui i els pròxims 7 dies. Escaneja el QR del client quan arribi.",
+    "escanear": "Escanejar arribada",
+    "ocultarEscaner": "Amagar escàner",
+    "conPedido": "Amb comanda",
+    "presentada": "Presentada",
+    "cancelada": "Cancel·lada",
+    "sinReservas": "No hi ha reserves aquests dies.",
+    "error": "No s'han pogut carregar les reserves.",
+    "reintentar": "Reintentar",
+    "total": "Total",
+    "personas": "{{n}} pers.",
+    "hoy": "Avui",
+    "verPedido": "Veure comanda",
+    "ocultarPedido": "Amagar comanda",
+    "soloConPedido": "Només amb comanda"
   }
 }

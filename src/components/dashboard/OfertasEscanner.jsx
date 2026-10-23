@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import { api } from "../../services/httpClient.js";
 import { useT } from "../../i18n/index.jsx";
-import { ESTADOS, normalizarCodigo, claveMensajeEstado, estadoDesdeError, aLlegada, agregarLlegada } from "../../models/escanerModel.js";
+import { ESTADOS, normalizarCodigo, claveMensajeEstado, estadoDesdeError, aLlegada, agregarLlegada, esQrReserva, estadoCheckinDesdeError } from "../../models/escanerModel.js";
 import es from "../../i18n/es.js";
 import ca from "../../i18n/ca.js";
 import en from "../../i18n/en.js";
@@ -24,8 +24,10 @@ const ETIQUETA_ESTADO = {
  *    carga la lista del día con GET /v1/visitas/restaurante.
  *  - onValidar / onCargarLista (opcional): sustituyen las llamadas reales
  *    (útil para tests o datos simulados); reciben lo mismo que la API.
+ *  - onCheckin (opcional): se llama con la respuesta de
+ *    POST /v1/reservations/checkin cuando se escanea un QR de reserva (M11).
  */
-export default function OfertasEscanner({ restauranteId, onValidar, onCargarLista }) {
+export default function OfertasEscanner({ restauranteId, onValidar, onCargarLista, onCheckin }) {
   const t = useT(TRADS);
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -88,6 +90,19 @@ export default function OfertasEscanner({ restauranteId, onValidar, onCargarList
       return;
     }
     setEstado("validando");
+    // QR de reserva (M11): check-in con pedido; los `v1.` siguen siendo visitas (G10).
+    if (esQrReserva(limpio)) {
+      try {
+        const r = await api.post("/v1/reservations/checkin", { qr: limpio });
+        onCheckin?.(r);
+        if (montadoRef.current) setResultado({ estado: ESTADOS.OK, tipo: "reserva", cliente: r?.cliente?.nombre || null, reserva: r?.reserva || null, puntos: r?.puntosPedido || 0 });
+      } catch (e) {
+        if (montadoRef.current) setResultado({ estado: estadoCheckinDesdeError(e), tipo: "reserva" });
+      } finally {
+        if (montadoRef.current) setEstado("resultado");
+      }
+      return;
+    }
     try {
       const r = onValidar ? await onValidar(limpio) : await api.post("/v1/visitas/validar", { qr: limpio });
       const llegada = aLlegada({ ...r?.visita, cliente: r?.cliente });
@@ -106,7 +121,7 @@ export default function OfertasEscanner({ restauranteId, onValidar, onCargarList
         cargarLista();
       }
     }
-  }, [onValidar, cargarLista]);
+  }, [onValidar, cargarLista, onCheckin]);
 
   const bucle = useCallback(() => {
     const video = videoRef.current;
@@ -184,6 +199,14 @@ export default function OfertasEscanner({ restauranteId, onValidar, onCargarList
     [ESTADOS.OTRO_RESTAURANTE]: "storefront",
     [ESTADOS.INVALIDO]: "error",
     [ESTADOS.ERROR_RED]: "wifi_off",
+    [ESTADOS.CANCELADA]: "event_busy",
+    [ESTADOS.FUERA_DE_FECHA]: "event",
+  };
+  const mensaje = (r) => {
+    if (r.tipo !== "reserva") return t(claveMensajeEstado(r.estado));
+    if (r.estado === ESTADOS.OK) return t("escaner.estadoReservaOk");
+    if (r.estado === ESTADOS.YA_USADO) return t("escaner.estadoYaPresentada");
+    return t(claveMensajeEstado(r.estado));
   };
 
   return (
@@ -201,8 +224,38 @@ export default function OfertasEscanner({ restauranteId, onValidar, onCargarList
           <span className="material-symbols-outlined" style={{
             fontSize: 48, color: resultado.estado === ESTADOS.OK ? "var(--op-primary)" : "var(--op-error, #d9534f)",
           }}>{iconoEstado[resultado.estado]}</span>
-          <p style={{ fontWeight: 700, margin: "0.4rem 0" }}>{t(claveMensajeEstado(resultado.estado))}</p>
-          {resultado.estado === ESTADOS.OK && (
+          <p style={{ fontWeight: 700, margin: "0.4rem 0" }}>{mensaje(resultado)}</p>
+          {resultado.estado === ESTADOS.OK && resultado.tipo === "reserva" && (
+            <div data-test="escaner-reserva" style={{
+              background: "var(--op-surface-container)", padding: "0.75rem",
+              margin: "0.5rem auto", maxWidth: 360, textAlign: "left",
+            }}>
+              {resultado.cliente && <strong>{resultado.cliente}</strong>}
+              {resultado.reserva && (
+                <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", color: "var(--op-on-variant)" }}>
+                  {resultado.reserva.codigo ? `${resultado.reserva.codigo} · ` : ""}
+                  {t("escaner.reservaDatos", { hora: resultado.reserva.hora, comensales: resultado.reserva.comensales })}
+                </p>
+              )}
+              {resultado.reserva?.pedido ? (
+                <>
+                  <p style={{ margin: "0.6rem 0 0.25rem", fontSize: "0.78rem", fontWeight: 700 }}>{t("escaner.reservaPedido")}</p>
+                  <ul style={{ listStyle: "none", padding: 0, margin: 0, fontSize: "0.82rem" }}>
+                    {resultado.reserva.pedido.lineas.map((l) => (
+                      <li key={l.platoId} style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
+                        <span><strong>{l.cantidad} ×</strong> {l.nombre}</span><span>{Number(l.subtotal).toFixed(2)} €</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <p style={{ display: "flex", justifyContent: "space-between", margin: "0.35rem 0 0", fontWeight: 700, fontSize: "0.85rem" }}>
+                    <span>{t("reservasPanel.total")}</span><span>{Number(resultado.reserva.pedido.total).toFixed(2)} €</span>
+                  </p>
+                </>
+              ) : <p style={{ margin: "0.5rem 0 0", fontSize: "0.8rem" }}>{t("escaner.reservaSinPedido")}</p>}
+              {resultado.puntos > 0 && <p style={{ margin: "0.5rem 0 0", fontSize: "0.78rem", color: "var(--op-primary)", fontWeight: 700 }}>{t("escaner.puntosPedido", { puntos: resultado.puntos })}</p>}
+            </div>
+          )}
+          {resultado.estado === ESTADOS.OK && resultado.tipo !== "reserva" && (
             <div style={{
               background: "var(--op-surface-container)", borderRadius: "0", padding: "0.75rem",
               margin: "0.5rem auto", maxWidth: 360,

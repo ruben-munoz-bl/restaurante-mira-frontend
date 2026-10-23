@@ -14,6 +14,7 @@ import OfertasPanel from "./OfertasPanel.jsx";
 import OfertasStats from "./OfertasStats.jsx";
 import OfertasEscanner from "./OfertasEscanner.jsx";
 import CartaEditor from "./CartaEditor.jsx";
+import ReservasPedidos from "./ReservasPedidos.jsx";
 import { facturaReal, reporteFiscalReal, fechaDeTicket } from "../fiscal/fiscalReal.js";
 import "./dashboard.css";
 
@@ -574,6 +575,9 @@ const restDropdownRef = useRef(null);
             <CartaEditor restauranteId={restaurante.id} oferta onCrear={()=> setShowCarta(true)}
               onLuego={()=>{ try { localStorage.setItem(`mira_carta_luego_${restaurante.id}`, "1"); } catch { /* ignore */ } setCartaLuego(p=> ({...p, [restaurante.id]: true})); }} />
           ))}
+
+          {/* Reservas y pedidos (M10) con el check-in por QR (M11) */}
+          {restaurante.id && <ReservasPedidos restauranteId={restaurante.id} />}
 
           {/* Ofertas por distancia (G04) + escáner de llegada (G10) + estadísticas (G07) */}
           {showOfertas && restaurante.id && (

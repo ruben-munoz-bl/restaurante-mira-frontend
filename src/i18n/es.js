@@ -1243,7 +1243,15 @@ export default {
     "estadoErrorRed": "No se pudo conectar. Comprueba la conexión y reintenta.",
     "listaConfirmada": "Canjeada",
     "listaPendiente": "Pendiente",
-    "listaCaducada": "Caducada"
+    "listaCaducada": "Caducada",
+    "estadoReservaOk": "Llegada confirmada. Reserva marcada como presentada.",
+    "estadoCancelada": "Esta reserva está cancelada.",
+    "estadoFueraDeFecha": "Este QR solo vale el día de la reserva.",
+    "estadoYaPresentada": "Esta reserva ya se marcó como presentada.",
+    "reservaDatos": "{{hora}} · {{comensales}} personas",
+    "reservaPedido": "Pedido anticipado (se paga en el local)",
+    "reservaSinPedido": "Sin pedido anticipado.",
+    "puntosPedido": "+{{puntos}} puntos para el cliente por el pedido"
   },
   "ops": {
     "seccDashboard": "Panel general",
@@ -2083,5 +2091,23 @@ export default {
     "errPrecio": "Precio entre 0,01 y 999,99 € (2 decimales).",
     "errFoto": "Debe ser una URL https.",
     "errAlergenos": "Alérgeno no válido."
+  },
+  "reservasPanel": {
+    "titulo": "Reservas y pedidos",
+    "subtitulo": "Hoy y los próximos 7 días. Escanea el QR del cliente al llegar.",
+    "escanear": "Escanear llegada",
+    "ocultarEscaner": "Ocultar escáner",
+    "conPedido": "Con pedido",
+    "presentada": "Presentada",
+    "cancelada": "Cancelada",
+    "sinReservas": "No hay reservas en estos días.",
+    "error": "No se pudieron cargar las reservas.",
+    "reintentar": "Reintentar",
+    "total": "Total",
+    "personas": "{{n}} pers.",
+    "hoy": "Hoy",
+    "verPedido": "Ver pedido",
+    "ocultarPedido": "Ocultar pedido",
+    "soloConPedido": "Solo con pedido"
   }
 }
