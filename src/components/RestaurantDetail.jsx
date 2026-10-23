@@ -143,6 +143,16 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   // Pedido anticipado (M05): solo si el restaurante tiene carta en la API.
   const [cartaPedido, setCartaPedido] = useState(null);
   const [cantidades, setCantidades] = useState({});
+  const [verCarta, setVerCarta] = useState(false);
+  const [fotoCarta, setFotoCarta] = useState(null);
+  // Portada del botón de la carta: foto del primer plato (la del restaurante o la de Wikipedia).
+  useEffect(() => {
+    const p = cartaPedido?.categorias?.[0]?.platos?.[0];
+    if (!p) return undefined;
+    let vivo = true;
+    (p.foto ? Promise.resolve(p.foto) : fotoDePlato(p.nombre)).then((u) => vivo && setFotoCarta(u)).catch(() => {});
+    return () => { vivo = false; };
+  }, [cartaPedido]);
   // Máx. 20 por plato y 30 platos distintos (contrato M01): pasado el límite no suma.
   const cambiarCantidad = (id, delta) => setCantidades((c) => {
     if (!c[id] && delta > 0 && Object.values(c).filter((n) => n > 0).length >= 30) return c;
@@ -259,7 +269,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
 
   useEffect(() => {
     let vivo = true;
-    setCartaPedido(null); setCantidades({});
+    setCartaPedido(null); setCantidades({}); setVerCarta(false);
     getCarta(restaurant.id).then((c) => { if (vivo) setCartaPedido(c); }).catch(() => {});
     return () => { vivo = false; };
   }, [restaurant.id]);
@@ -590,10 +600,21 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                   )}
                 </div>
               )}
-              {cartaPedido && (
-                // Pedido anticipado con las tarjetas de la JAM (jam.css): opcional, tocar suma uno.
-                <section className="det-pedido" aria-labelledby="det-pedido-titulo">
-                  <h3 id="det-pedido-titulo" className="jam-h2">{t('detail.pedidoTitulo')} <small>{t('detail.pedidoAyuda')}</small></h3>
+              {cartaPedido && (() => {
+                const nPlatos = Object.values(cantidades).reduce((t, n) => t + n, 0);
+                return (
+                  // Botón destacado (estilo del banner JAM) que despliega la carta; el pedido es opcional.
+                  <button type="button" className="det-grupo det-pedido-abrir" style={fotoCarta ? { "--foto-carta": `url("${fotoCarta}")` } : undefined} aria-expanded={verCarta} aria-controls="det-pedido" onClick={() => setVerCarta((v) => !v)}>
+                    <span className="det-grupo-marca">MIRA <b>{t('detail.pedidoMarca')}</b></span>
+                    <strong className="det-grupo-titulo">{t('detail.pedidoTitulo')}</strong>
+                    <span className="det-grupo-texto">{nPlatos ? t('detail.pedidoResumen', { n: nPlatos, total: totalPedido(cartaPedido, cantidades).toFixed(2) }) : t('detail.pedidoGancho')}</span>
+                    <span className="det-grupo-cta">{verCarta ? t('detail.pedidoOcultar') : t('detail.pedidoVerCarta')} <span aria-hidden="true" className={`det-pedido-flecha${verCarta ? ' is-abierta' : ''}`}>↓</span></span>
+                  </button>
+                );
+              })()}
+              {cartaPedido && verCarta && (
+                <section id="det-pedido" className="det-pedido" aria-label={t('detail.pedidoTitulo')}>
+                  <p className="jam-nota det-pedido-ayuda">{t('detail.pedidoAyuda')}</p>
                   {cartaPedido.categorias.map((cat) => (
                     <div key={cat.id} className="det-pedido-cat">
                       <h4>{cat.nombre}</h4>

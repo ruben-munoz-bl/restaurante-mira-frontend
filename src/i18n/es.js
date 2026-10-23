@@ -386,8 +386,13 @@ export default {
     "cancelada": "Cancelada"
   },
   "detail": {
+    "pedidoMarca": "CARTA",
     "pedidoTitulo": "Pide la comida ya",
-    "pedidoAyuda": "Opcional · toca un plato para añadirlo",
+    "pedidoGancho": "Elige tus platos al reservar y la cocina los tendrá listos cuando llegues. Opcional.",
+    "pedidoResumen": "{{n}} platos en tu pedido · {{total}} €",
+    "pedidoVerCarta": "Ver la carta",
+    "pedidoOcultar": "Ocultar la carta",
+    "pedidoAyuda": "Toca un plato para añadirlo; tócalo otra vez para sumar uno más.",
     "pedidoUds": "en pedido",
     "pedidoAnadir": "Añadir {{nombre}} al pedido",
     "pedidoQuitar": "Quitar uno de {{nombre}}",
@@ -2049,6 +2054,7 @@ export default {
     "notifIos": "En iPhone, primero instala MIRA en la pantalla de inicio: te explicamos cómo."
   },
   "cartaEditor": {
+    "seccion": { "entrantes": "Entrantes", "primeros": "Primeros", "segundos": "Segundos", "postres": "Postres", "bebidas": "Bebidas" },
     "boton": "Carta",
     "titulo": "Carta del restaurante",
     "ofertaTitulo": "¿Creas la carta ahora?",

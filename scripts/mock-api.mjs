@@ -8,7 +8,7 @@
 import http from 'node:http';
 import { createHash } from 'node:crypto';
 import { restaurants } from '../src/data/restaurants.js';
-import { cartaDelLocal } from '../src/models/restaurantModel.js';
+import { cartaLibro } from '../src/models/restaurantModel.js';
 
 const PORT = Number(process.env.MOCK_PORT || 3001);
 
@@ -69,12 +69,20 @@ const cartas = new Map([[docs[0]?.id || '1', { restauranteId: docs[0]?.id || '1'
   { id: 'cat_principales', nombre: 'Principales', platos: [
     { id: 'pl_paella', nombre: 'Paella de marisco', descripcion: 'Mínimo 2 personas', precio: 22, foto: null, alergenos: ['crustaceos'], disponible: true },
   ] },
+  { id: 'cat_postres', nombre: 'Postres', platos: [
+    { id: 'pl_crema', nombre: 'Crema catalana', descripcion: '', precio: 6.5, foto: null, alergenos: ['lactosa', 'huevo'], disponible: true },
+    { id: 'pl_tarta', nombre: 'Tarta de queso', descripcion: 'Casera', precio: 7, foto: null, alergenos: ['lactosa', 'gluten'], disponible: true },
+  ] },
 ] }]]);
 // Como en producción tras M14: el resto de restaurantes con su carta simulada del frontend.
 for (const d of docs) {
   if (cartas.has(d.id)) continue;
-  const platos = cartaDelLocal(d).map((pl, i) => ({ id: `pl_${d.id}_${i}`, nombre: pl.nombre, descripcion: '', precio: pl.precio, foto: null, alergenos: [], disponible: true }));
-  cartas.set(d.id, { restauranteId: d.id, actualizada: new Date().toISOString(), categorias: [{ id: 'cat_carta', nombre: 'Carta', platos }] });
+  const categorias = cartaLibro(d).secciones.map((s, k) => ({
+    id: `cat_${k}`,
+    nombre: s.titulo,
+    platos: s.platos.map((pl, i) => ({ id: `pl_${d.id}_${k}_${i}`, nombre: pl.nombre, descripcion: pl.descripcion || '', precio: pl.precio, foto: null, alergenos: [], disponible: true })),
+  }));
+  cartas.set(d.id, { restauranteId: d.id, actualizada: new Date().toISOString(), categorias });
 }
 const reservas = []; // creadas durante la sesión (en memoria)
 const dispositivos = new Map(); // push (T04): id -> { token, tipo, plataforma, idioma }

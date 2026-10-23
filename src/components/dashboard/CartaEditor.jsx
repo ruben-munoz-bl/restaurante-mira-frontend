@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { getCartaEditar, guardarCarta } from "../../services/cartaApi.js";
 import { ALERGENOS } from "../../models/restaurantModel.js";
 import { categoriaVacia, platoVacio, mover, validarCarta, paraGuardar, aFormulario } from "../../models/cartaModel.js";
+
+const SECCIONES_BASE = ['entrantes', 'primeros', 'segundos', 'postres', 'bebidas'];
 import { useT } from "../../i18n/index.jsx";
 import es from "../../i18n/es.js";
 import ca from "../../i18n/ca.js";
@@ -25,10 +27,15 @@ export default function CartaEditor({ restauranteId, oferta = false, onCrear, on
     let vivo = true;
     setCats(null); setError("");
     getCartaEditar(restauranteId)
-      .then((c) => { if (vivo) setCats(aFormulario(c?.categorias)); })
+      .then((c) => {
+        if (!vivo) return;
+        // Carta nueva: arranca con las secciones típicas ya creadas (las vacías no se ven al reservar).
+        const nueva = !c?.categorias?.length && !oferta;
+        setCats(nueva ? SECCIONES_BASE.map((k) => ({ ...categoriaVacia(), nombre: t(`cartaEditor.seccion.${k}`) })) : aFormulario(c?.categorias));
+      })
       .catch((e) => { if (vivo) { setCats([]); setError(e.status === 403 ? t("cartaEditor.errSinPermiso") : e.message); } });
     return () => { vivo = false; };
-  }, [restauranteId]);
+  }, [restauranteId, oferta]);
 
   if (oferta) {
     if (!cats || cats.length || error) return null;

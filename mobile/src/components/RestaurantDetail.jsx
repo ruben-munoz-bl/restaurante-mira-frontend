@@ -221,6 +221,7 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
   const [cargandoReserva, setCargandoReserva] = useState(false);
   const [cartaApi, setCartaApi] = useState(null);
   const [cantidades, setCantidades] = useState({});
+  const [verCarta, setVerCarta] = useState(false);
 
   const [resenasFs, setResenasFs] = useState([]);
   const [cargandoResenas, setCargandoResenas] = useState(true);
@@ -784,11 +785,26 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
 
             {cartaApi && (
               <View style={{ marginTop: 11.2, gap: 6.4 }}>
-                <CampoEtiqueta>{t('detail.pedirAdelantado')}</CampoEtiqueta>
-                <Text style={{ color: colores.gris }}>{t('detail.pedirAyuda')}</Text>
-                {cartaApi.categorias.map((cat) => (
+                {/* Botón destacado (como el banner JAM) que despliega la carta; el pedido es opcional. */}
+                <Pressable
+                  onPress={() => setVerCarta((v) => !v)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: verCarta }}
+                  style={{ padding: 16, gap: 4, borderRadius: 14, borderWidth: 1.5, borderColor: '#1ed760', backgroundColor: '#0d1512' }}
+                >
+                  <Text style={{ color: '#f3f7f4', fontSize: 11, fontWeight: '800', letterSpacing: 2.5 }}>MIRA <Text style={{ color: '#1ed760' }}>{t('detail.pedirMarca')}</Text></Text>
+                  <Text style={{ color: '#fff', fontSize: 22, fontWeight: '800' }}>{t('detail.pedirAdelantado')}</Text>
+                  <Text style={{ color: 'rgba(243,247,244,0.82)' }}>
+                    {Object.values(cantidades).reduce((a, n) => a + n, 0) ? t('detail.pedirResumen', { n: Object.values(cantidades).reduce((a, n) => a + n, 0), total: totalPedido(cartaApi, cantidades).toFixed(2) }) : t('detail.pedirGancho')}
+                  </Text>
+                  <Text style={{ alignSelf: 'flex-start', marginTop: 6, paddingVertical: 7, paddingHorizontal: 14, borderRadius: 999, backgroundColor: '#1ed760', color: '#06110c', fontWeight: '800', overflow: 'hidden' }}>
+                    {verCarta ? t('detail.pedirOcultar') : t('detail.pedirVerCarta')}
+                  </Text>
+                </Pressable>
+                {verCarta && <Text style={{ color: colores.gris }}>{t('detail.pedirAyuda')}</Text>}
+                {verCarta && cartaApi.categorias.map((cat) => (
                     <View key={cat.id} style={{ gap: 4 }}>
-                      <Text style={{ fontWeight: '700', color: colores.tinta }}>{cat.nombre}</Text>
+                      <Text style={{ fontWeight: '800', fontSize: 18, color: colores.tinta, marginTop: 8 }}>{cat.nombre}</Text>
                       {cat.platos
                         .filter((p) => p.disponible !== false)
                         .map((p) => (
@@ -821,12 +837,12 @@ export default function RestaurantDetail({ restaurant, usuario, onClose, onVerCa
                         ))}
                     </View>
                   ))}
-                {(
+                {verCarta && (
                   <Text style={{ fontWeight: '700', color: colores.tinta }}>
                     {t('detail.totalOrientativo', { total: totalPedido(cartaApi, cantidades).toFixed(2) })}
                   </Text>
                 )}
-                <Text style={{ color: colores.gris }}>{t('detail.avisoPedido')}</Text>
+                {verCarta && <Text style={{ color: colores.gris }}>{t('detail.avisoPedido')}</Text>}
               </View>
             )}
 

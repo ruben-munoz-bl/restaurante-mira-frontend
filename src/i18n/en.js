@@ -386,8 +386,13 @@ export default {
     "cancelada": "Cancelled"
   },
   "detail": {
+    "pedidoMarca": "MENU",
     "pedidoTitulo": "Order your food now",
-    "pedidoAyuda": "Optional · tap a dish to add it",
+    "pedidoGancho": "Pick your dishes when you book and the kitchen will have them ready when you arrive. Optional.",
+    "pedidoResumen": "{{n}} dishes in your order · {{total}} €",
+    "pedidoVerCarta": "See the menu",
+    "pedidoOcultar": "Hide the menu",
+    "pedidoAyuda": "Tap a dish to add it; tap again to add one more.",
     "pedidoUds": "in order",
     "pedidoAnadir": "Add {{nombre}} to the order",
     "pedidoQuitar": "Remove one {{nombre}}",
@@ -2049,6 +2054,7 @@ export default {
     "notifIos": "On iPhone, first add MIRA to your home screen: we'll show you how."
   },
   "cartaEditor": {
+    "seccion": { "entrantes": "Starters", "primeros": "First courses", "segundos": "Main courses", "postres": "Desserts", "bebidas": "Drinks" },
     "boton": "Menu",
     "titulo": "Restaurant menu",
     "ofertaTitulo": "Create your menu now?",
