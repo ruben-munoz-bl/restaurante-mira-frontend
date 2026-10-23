@@ -201,7 +201,7 @@ export default function SearchBar({ filtros, opciones, hayFiltrosActivos, onChan
       <div className="campo campo-acciones">
         {/* Solo la landing navega al enviar: aquí hace falta un botón explícito. */}
         {onBuscar && (
-          <button type="submit" className="btn-cta">{t('hero.buscar')}</button>
+          <button type="submit" className="btn-cta">{t('busqueda.buscar')}</button>
         )}
         <button type="button" className="btn-secundario" onClick={onClear} disabled={!hayFiltrosActivos}>
           {t('busqueda.limpiar')}

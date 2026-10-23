@@ -51,6 +51,7 @@ export default {
     "hora": "Hora",
     "ordenarPor": "Ordenar por",
     "limpiar": "Limpiar",
+    "buscar": "Buscar",
     "cualquiera": "Cualquiera",
     "todas": "Todas",
     "todaCataluna": "Toda Cataluña",
@@ -1608,6 +1609,7 @@ export default {
     "verTodos": "Ver todos los restaurantes",
     "todosTitulo": "Todos los restaurantes",
     "todosSub": "De 27 en 27, hasta el final del catálogo",
+    "filtros": "Buscar y filtrar",
     "resultados": "Resultados",
     "resultadosSub": "Lo que encaja con tu búsqueda"
   },

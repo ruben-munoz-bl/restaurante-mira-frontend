@@ -49,5 +49,14 @@ def crear_driver(headless: bool = True, ancho: int = 1400, alto: int = 1000):
     else:
         d = webdriver.Edge(options=opts, service=Service())
 
+    # Los runners de Windows suelen traer las animaciones del sistema apagadas y
+    # el carrusel respeta `prefers-reduced-motion`; los tests asumen el perfil
+    # normal salvo que se pida lo contrario con QA_REDUCED_MOTION.
+    if not os.environ.get("QA_REDUCED_MOTION"):
+        d.execute_cdp_cmd(
+            "Emulation.setEmulatedMedia",
+            {"features": [{"name": "prefers-reduced-motion", "value": "no-preference"}]},
+        )
+
     d.set_page_load_timeout(60)
     return d
