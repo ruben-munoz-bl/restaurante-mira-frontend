@@ -127,14 +127,16 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  padding: 0;
-  border: 1px solid var(--glass-border);
+  align-items: center;
+  padding: 1.4rem 0.9rem 1.1rem;
+  border: 1px solid transparent;
   border-radius: var(--radio-xl);
   overflow: hidden;
-  background: var(--papel);
+  /* Plato en círculo sobre tarjeta clara, como «Elige tu plato favorito». */
+  background: var(--landing-plato-fondo, #f7f7f6);
   color: var(--tinta);
   font: inherit;
-  text-align: left;
+  text-align: center;
   cursor: pointer;
   box-shadow: var(--sombra-card);
   transition: transform 250ms ease, box-shadow 250ms ease, border-color 250ms ease;
@@ -148,15 +150,17 @@
 
 .landing-plato img {
   display: block;
-  width: 100%;
-  height: 200px;
+  width: min(100%, 170px);
+  aspect-ratio: 1;
+  border-radius: 50%;
   object-fit: cover;
+  box-shadow: 0 10px 22px rgba(22, 56, 44, 0.18);
 }
 
 .landing-plato-texto {
   display: grid;
   gap: 0.15rem;
-  padding: 0.7rem 0.9rem 0.9rem;
+  padding-top: 1rem;
 }
 
 .landing-plato-nombre {
@@ -205,4 +209,8 @@
   .landing-plato:hover {
     transform: none;
   }
+}
+
+[data-theme='dark'] .landing-plato {
+  --landing-plato-fondo: rgba(255, 255, 255, 0.05);
 }
