@@ -14,6 +14,7 @@ import OpsAjustes from './OpsAjustes.jsx';
 import OpsAuditoria from './OpsAuditoria.jsx';
 import OpsCargaDirecto from './OpsCargaDirecto.jsx';
 import OpsOfertas from './OpsOfertas.jsx';
+import OpsPromociones from './OpsPromociones.jsx';
 import { track, trackPanel } from '../../services/auditoria.js';
 import { api } from '../../services/httpClient.js';
 import { invalidarCatalogo } from '../../services/restaurantApi.js';
@@ -46,6 +47,7 @@ const SECCIONES = [
   { id: 'restaurantes', clave: 'ops.seccRestaurantes', icono: 'restaurant' },
   { id: 'reservas', clave: 'ops.seccReservas', icono: 'calendar_month', live: true },
   { id: 'ofertas', clave: 'ops.seccOfertas', icono: 'local_offer' },
+  { id: 'promociones', clave: 'ops.seccPromociones', icono: 'campaign' },
   { id: 'finanzas', clave: 'ops.seccFinanzas', icono: 'payments' },
   { id: 'incidencias', clave: 'ops.seccIncidencias', icono: 'report_problem', badgeCrit: true },
   { id: 'usuarios', clave: 'ops.seccUsuarios', icono: 'group' },
@@ -300,6 +302,7 @@ export default function OpsPanel({ usuario, esAdmin, perfil, tema, onCambiarTema
             {seccion === 'restaurantes' && <OpsRestaurantes />}
             {seccion === 'reservas' && <OpsReservas busquedaInicial={consultaCabecera.q} revisionBusqueda={consultaCabecera.revision} />}
             {seccion === 'ofertas' && <OpsOfertas />}
+            {seccion === 'promociones' && <OpsPromociones />}
             {seccion === 'finanzas' && <OpsFinanzas key={simulado ? 'sim' : 'real'} demo={simulado ? demo : null} />}
             {seccion === 'incidencias' && <OpsIncidencias />}
             {seccion === 'usuarios' && <OpsUsuarios />}

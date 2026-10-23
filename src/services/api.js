@@ -163,9 +163,11 @@ export const promotionsApi = {
     if (params.estado) q.set('estado', params.estado);
     if (params.restauranteId) q.set('restauranteId', params.restauranteId);
     const qs = q.toString();
-    const d = await api.get(`/v1/promotions${qs ? `?${qs}` : ''}`, { auth: false });
+    // Sin sesión la API oculta presupuesto/gasto; el panel los pide con auth.
+    const d = await api.get(`/v1/promotions${qs ? `?${qs}` : ''}`, { auth: params.auth === true });
     return d.data || d;
   },
+  crear: async (datos) => api.post('/v1/promotions', datos),
   getStats: async (id) => api.get(`/v1/promotions/${id}/stats`),
 };
 

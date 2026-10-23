@@ -522,6 +522,10 @@
 [data-theme='dark'] .ofertas-aviso-mejora { color: #fed65b; }
 [data-theme='dark'] .ofertas-chip { background: #2c332c; color: var(--op-on-surface); }
 [data-theme='dark'] .ofertas-fila { background: #232824; }
+.promos-avanzado summary { cursor: pointer; font-size: 0.7rem; font-weight: 700; color: var(--op-on-variant); }
+.promos-avanzado[open] summary { margin-bottom: 0.5rem; }
+.promos-stats { display: flex; flex-wrap: wrap; gap: 0.6rem; padding: 0.55rem 0.7rem; border: 1px solid var(--op-border); border-radius: var(--op-radius-lg); background: var(--op-surface-low); font-size: 0.66rem; color: var(--op-on-variant); }
+.promos-stats strong { display: block; font-size: 0.85rem; color: var(--op-on-surface); }
 @media (max-width: 640px) {
   .ofertas-nivel, .ofertas-form-fila { grid-template-columns: 1fr; gap: 0.3rem; }
 }
